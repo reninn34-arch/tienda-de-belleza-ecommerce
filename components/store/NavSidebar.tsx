@@ -20,6 +20,7 @@ interface Collection {
 }
 
 const LINKS = [
+  { href: "/", label: "Inicio" },
   { href: "/collections", label: "Colecciones", hasChildren: true },
   { href: "/novedades", label: "Novedades" },
   { href: "/mas-vendidos", label: "Más Vendidos" },
