@@ -88,3 +88,13 @@ model NewsletterSubscriber {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+
+// Admins
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

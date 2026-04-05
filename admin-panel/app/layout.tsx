@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
-import { readFileSync } from "fs";
-import { join } from "path";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
@@ -13,12 +11,19 @@ const manrope = Manrope({
 
 export async function generateMetadata(): Promise<Metadata> {
   let title = "Admin Panel";
-  let storeName = "Blush";
+  let storeName = "Tienda";
   try {
-    const raw = readFileSync(join(process.cwd(), "..", "data", "settings.json"), "utf-8").replace(/^\uFEFF/, "");
-    storeName = JSON.parse(raw)?.storeName ?? "Blush";
-    title = `Admin — ${storeName}`;
-  } catch (e) {}
+    const res = await fetch(`${process.env.BACKEND_URL || 'http://localhost:4000'}/api/settings`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      storeName = data?.storeName ?? "Blush";
+      title = `Admin — ${storeName}`;
+    }
+  } catch (e) {
+    console.error("Error fetching storeName for metadata:", e);
+  }
   return {
     title,
     description: "Panel de administración",
@@ -38,7 +43,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={manrope.variable}>
+    <html lang="es" className={manrope.variable} suppressHydrationWarning>
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"

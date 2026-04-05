@@ -120,8 +120,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     fetch("/api/admin/settings")
-      .then((r) => r.json())
-      .then((s) => setStoreName(s.storeName ?? "Tienda"));
+      .then((r) => {
+        if (!r.ok) return {};
+        return r.json();
+      })
+      .then((s) => setStoreName(s?.storeName ?? "Tienda"))
+      .catch((e) => {
+        console.error("Failed to fetch settings:", e);
+        setStoreName("Tienda");
+      });
 
     if (pathname === "/admin/login") {
       setReady(true);

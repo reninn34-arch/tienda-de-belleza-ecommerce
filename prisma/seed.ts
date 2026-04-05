@@ -64,7 +64,6 @@ interface RawPage {
 async function main() {
   console.log("🌱 Seeding database...");
 
-  // ── Products ──
   const products = readJson<RawProduct[]>("products.json");
   for (const p of products) {
     await db.product.upsert({
@@ -90,7 +89,6 @@ async function main() {
   }
   console.log(`  ✔ ${products.length} products`);
 
-  // ── Orders ──
   const orders = readJson<RawOrder[]>("orders.json");
   for (const o of orders) {
     await db.order.upsert({
@@ -123,7 +121,6 @@ async function main() {
   }
   console.log(`  ✔ ${orders.length} orders`);
 
-  // ── Settings ──
   const settings = readJson<Record<string, unknown>>("settings.json");
   await db.settings.upsert({
     where: { id: 1 },
@@ -132,7 +129,6 @@ async function main() {
   });
   console.log("  ✔ settings");
 
-  // ── Pages ──
   const pages = readJson<RawPage[]>("pages.json");
   for (const page of pages) {
     await db.page.upsert({
@@ -149,14 +145,24 @@ async function main() {
   }
   console.log(`  ✔ ${pages.length} pages`);
 
-  // ── Tutorials ──
-  const tutorials = readJson<Record<string, unknown>>("tutorials.json");
+  const tutorials = readJson<Record<string, unknown>>("tutorials.json");        
   await db.tutorials.upsert({
     where: { id: 1 },
     update: { data: tutorials as any },
     create: { id: 1, data: tutorials as any },
   });
   console.log("  ✔ tutorials");
+
+  await db.admin.upsert({
+    where: { email: "admin@blush.com" },
+    update: {},
+    create: {
+      email: "admin@blush.com",
+      password: "blush2024", // Use bcrypt in prod
+      name: "Administrador",
+    },
+  });
+  console.log("  ✔ default admin (admin@blush.com)");
 
   console.log("✅ Seed complete.");
 }

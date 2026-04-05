@@ -18,33 +18,38 @@ export default function LoginForm({ storeName }: { storeName: string }) {
     setPasswordError("");
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     clearErrors();
     setLoading(true);
 
-    setTimeout(() => {
-      const profile = getAdminProfile();
-      let hasError = false;
+    try {
+      const res = await fetch("http://localhost:4000/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
 
-      if (email.trim().toLowerCase() !== profile.email.trim().toLowerCase()) {
-        setEmailError("Correo electrónico no reconocido.");
-        hasError = true;
-      }
-
-      if (password !== profile.password) {
-        setPasswordError("Contraseña incorrecta.");
-        hasError = true;
-      }
-
-      if (hasError) {
+      if (!res.ok) {
+        const data = await res.json();
+        if (data.error?.toLowerCase().includes("email") || data.error?.toLowerCase().includes("correo")) {
+          setEmailError("Correo electrónico no reconocido.");
+        } else {
+          setPasswordError("Contraseña incorrecta.");
+        }
         setLoading(false);
         return;
       }
 
+      const data = await res.json();
+      localStorage.setItem("adminProfile", JSON.stringify(data.user));
       localStorage.setItem("adminAuth", "true");
       router.replace("/admin");
-    }, 400);
+    } catch (err) {
+      console.error(err);
+      setPasswordError("Error al conectar con el servidor.");
+      setLoading(false);
+    }
   }
 
   return (
