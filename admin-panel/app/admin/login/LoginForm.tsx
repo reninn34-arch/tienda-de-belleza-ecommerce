@@ -24,7 +24,7 @@ export default function LoginForm({ storeName }: { storeName: string }) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:4000/api/admin/login", {
+      const res = await fetch("/api/admin/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), password }),

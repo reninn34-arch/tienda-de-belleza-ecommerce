@@ -2,6 +2,7 @@ import "dotenv/config";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { db } from "../lib/db";
+import bcrypt from "bcryptjs";
 
 function readJson<T>(file: string): T {
   try {
@@ -155,10 +156,12 @@ async function main() {
 
   await db.admin.upsert({
     where: { email: "admin@blush.com" },
-    update: {},
+    update: {
+      password: await bcrypt.hash("blush2024", 10),
+    },
     create: {
       email: "admin@blush.com",
-      password: "blush2024", // Use bcrypt in prod
+      password: await bcrypt.hash("blush2024", 10),
       name: "Administrador",
     },
   });

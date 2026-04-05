@@ -20,9 +20,10 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const res = await fetch(`${BACKEND}/api/settings`, {
+    const token = request.cookies.get("admin_token")?.value;
+  const res = await fetch(`${BACKEND}/api/settings`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { Authorization: token ? `Bearer ${token}` : "", "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     if (!res.ok) return NextResponse.json({ error: "Backend error" }, { status: res.status });

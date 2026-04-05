@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-12345";
 
 export async function POST(request: NextRequest) {
+  const token = request.cookies.get("admin_token")?.value;
+  if (!token) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  try {
+    jwt.verify(token, JWT_SECRET);
+  } catch (err) {
+    return NextResponse.json({ error: "Token inválido" }, { status: 401 });
+  }
+
   const data = await request.formData();
   const file = data.get("file") as File | null;
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });

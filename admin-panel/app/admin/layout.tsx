@@ -121,8 +121,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     fetch("/api/admin/settings")
       .then((r) => {
-        if (!r.ok) return {};
-        return r.json();
+        if (!r.ok) return { storeName: "Tienda" };
+        return r.json() as Promise<{ storeName?: string }>;
       })
       .then((s) => setStoreName(s?.storeName ?? "Tienda"))
       .catch((e) => {
