@@ -1,36 +1,202 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+﻿# Blush — E-commerce
 
-## Getting Started
+Plataforma de e-commerce de belleza full-stack con tienda pública, panel de administración y backend REST independiente.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Arquitectura
+
+El proyecto está compuesto por **3 servicios** que corren en paralelo:
+
+| Servicio | Tecnología | Puerto | Descripción |
+|---|---|---|---|
+| **Tienda** | Next.js 16 | `3000` | Vitrina pública para clientes |
+| **Admin** | Next.js 16 | `3001` | Panel de gestión interno |
+| **Backend** | Express + Prisma | `4000` | API REST + acceso a PostgreSQL |
+
+```
+Cliente
+  └─ Tienda (3000)
+       └─ /api/* → proxy → Backend (4000) → PostgreSQL
+                                ↑
+Admin (3001) → /api/admin/* ───┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+La tienda cachea todas las páginas durante **24 horas** con ISR. Cada cambio guardado desde el admin invalida automáticamente el cache correspondiente.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Requisitos
 
-## Learn More
+- Node.js 18+
+- PostgreSQL 14+
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Variables de entorno
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### `/.env` (Tienda)
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/blush"
+BACKEND_URL="http://localhost:4000"
+REVALIDATE_SECRET="tu-clave-secreta"
+STORE_URL="http://localhost:3000"
+```
 
-## Deploy on Vercel
+### `/admin-panel/.env` (Admin)
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/blush"
+BACKEND_URL="http://localhost:4000"
+REVALIDATE_SECRET="tu-clave-secreta"
+STORE_URL="http://localhost:3000"
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### `/backend/.env` (Backend)
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/blush"
+PORT=4000
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Instalación
+
+```bash
+# Tienda
+npm install
+
+# Admin
+cd admin-panel && npm install
+
+# Backend
+cd backend && npm install
+```
+
+---
+
+## Base de datos
+
+```bash
+# Crear tablas
+npx prisma migrate dev --name init
+
+# Poblar con datos iniciales (desde /data/*.json)
+npx tsx prisma/seed.ts
+```
+
+---
+
+## Desarrollo
+
+Abrir **3 terminales**:
+
+```bash
+# Terminal 1 — Backend (puerto 4000)
+cd backend
+npm run dev
+
+# Terminal 2 — Tienda (puerto 3000)
+npm run dev
+
+# Terminal 3 — Admin (puerto 3001)
+cd admin-panel
+npm run dev
+```
+
+---
+
+## Estructura del proyecto
+
+```
+blush-ecomerce/
+├── app/                        # Tienda Next.js
+│   ├── (store)/                # Rutas públicas
+│   │   ├── page.tsx            # Inicio
+│   │   ├── products/           # Catálogo y detalle de producto
+│   │   ├── collections/        # Colecciones
+│   │   ├── cart/               # Carrito
+│   │   ├── checkout/           # Checkout
+│   │   ├── novedades/          # Novedades
+│   │   ├── mas-vendidos/       # Más vendidos
+│   │   ├── tutorials/          # Tutoriales
+│   │   ├── p/[slug]/           # Páginas CMS dinámicas
+│   │   └── policies/[slug]/    # Políticas
+│   └── api/
+│       ├── orders/             # Proxy → backend
+│       ├── settings/           # Proxy → backend
+│       └── revalidate/         # Invalidar cache ISR
+│
+├── admin-panel/                # Panel de administración Next.js
+│   └── app/admin/
+│       ├── page.tsx            # Dashboard
+│       ├── products/           # CRUD productos
+│       ├── orders/             # Gestión de pedidos
+│       ├── pages/              # CMS páginas
+│       ├── home/               # Editor inicio
+│       ├── novedades/          # Editor novedades
+│       ├── mas-vendidos/       # Editor más vendidos
+│       ├── collections/        # Editor colecciones
+│       ├── tutorials/          # Editor tutoriales
+│       ├── shipping/           # Métodos de envío
+│       ├── payments/           # Métodos de pago
+│       ├── policies/           # Políticas
+│       └── analytics/          # Analíticas
+│
+├── backend/                    # Servidor Express
+│   └── src/
+│       ├── index.ts            # Punto de entrada
+│       └── routes/
+│           ├── products.ts     # CRUD productos (con control de stock)
+│           ├── orders.ts       # CRUD pedidos
+│           ├── settings.ts     # Configuración global
+│           ├── pages.ts        # CRUD páginas CMS
+│           └── tutorials.ts    # Tutoriales
+│
+├── components/store/           # Componentes de la tienda
+├── context/CartContext.tsx     # Estado del carrito (localStorage)
+├── lib/
+│   ├── db.ts                   # Cliente Prisma singleton
+│   ├── data.ts                 # Fetchers hacia backend (ISR tags)
+│   ├── types.ts                # Tipos TypeScript compartidos
+│   └── generated/prisma/       # Cliente Prisma generado
+│
+├── prisma/
+│   ├── schema.prisma           # Modelos de base de datos
+│   ├── seed.ts                 # Seed desde /data/*.json
+│   └── migrations/             # Historial de migraciones
+│
+├── data/                       # JSON de referencia para seed inicial
+└── public/uploads/             # Imágenes subidas desde el admin
+```
+
+---
+
+## Modelos de base de datos
+
+| Modelo | Descripción |
+|---|---|
+| `Product` | Productos con stock, precio, galería, reseñas |
+| `Order` + `OrderItem` | Pedidos con líneas de detalle |
+| `Settings` | Configuración global (fila única) |
+| `Page` | Páginas CMS con bloques de contenido |
+| `Tutorials` | Videos y FAQ (fila única) |
+| `NewsletterSubscriber` | Suscriptores |
+
+---
+
+## Cache e invalidación
+
+La tienda usa ISR con tags. El admin invalida automáticamente el cache tras cada cambio:
+
+| Tag | Se invalida cuando... |
+|---|---|
+| `products` | Se crea, edita o elimina un producto |
+| `settings` | Se guarda cualquier configuración |
+| `pages` | Se crea, edita o elimina una página CMS |
+| `tutorials` | Se actualiza el contenido de tutoriales |
+
+---
+
+## Imágenes
+
+Las imágenes se suben desde el admin y se almacenan en `public/uploads/`. Next.js las sirve optimizadas en **AVIF/WebP** con `sharp`, cacheadas 24 horas.

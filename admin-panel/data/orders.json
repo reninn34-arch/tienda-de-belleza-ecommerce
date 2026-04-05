@@ -1,0 +1,61 @@
+[
+  {
+    "id": "ORD-2026-001",
+    "customer": "María Elena González",
+    "email": "maria.gonzalez@email.com",
+    "total": 103.00,
+    "subtotal": 98.00,
+    "shipping": 15.00,
+    "tax": 7.84,
+    "status": "completed",
+    "date": "2026-04-01",
+    "items": 2,
+    "shippingMethod": "Envío Express",
+    "paymentMethod": "card",
+    "address": "Av. República 123, Piso 4, Quito, Pichincha, EC",
+    "notes": "",
+    "products": [
+      { "id": "midnight-plum-serum", "name": "Midnight Plum Serum", "price": 42, "quantity": 1 },
+      { "id": "liquid-gold-elixir", "name": "Liquid Gold Elixir", "price": 56, "quantity": 1 }
+    ]
+  },
+  {
+    "id": "ORD-2026-002",
+    "customer": "Valentina Torres",
+    "email": "val.torres@email.com",
+    "total": 72.40,
+    "subtotal": 67.00,
+    "shipping": 5.00,
+    "tax": 5.36,
+    "status": "pending",
+    "date": "2026-04-02",
+    "items": 2,
+    "shippingMethod": "Envío Estándar",
+    "paymentMethod": "transfer",
+    "address": "Calle Colón 456, Guayaquil, Guayas, EC",
+    "notes": "Cliente enviará comprobante de transferencia.",
+    "products": [
+      { "id": "rose-gold-glaze", "name": "Rose Gold Glaze", "price": 38, "quantity": 1 },
+      { "id": "ivory-lift-kit", "name": "Ivory Lift Kit", "price": 29, "quantity": 1 }
+    ]
+  },
+  {
+    "id": "ORD-2026-003",
+    "customer": "Isabella Ramírez",
+    "email": "isa.ramirez@email.com",
+    "total": 45.80,
+    "subtotal": 35.00,
+    "shipping": 5.00,
+    "tax": 2.80,
+    "status": "processing",
+    "date": "2026-04-03",
+    "items": 1,
+    "shippingMethod": "Envío Estándar",
+    "paymentMethod": "paypal",
+    "address": "Av. Colón 789, Cuenca, Azuay, EC",
+    "notes": "",
+    "products": [
+      { "id": "honey-nectar-gloss", "name": "Honey Nectar Gloss", "price": 35, "quantity": 1 }
+    ]
+  }
+]

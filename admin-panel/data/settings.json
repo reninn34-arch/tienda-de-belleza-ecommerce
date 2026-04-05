@@ -1,0 +1,166 @@
+{
+  "branding": {
+    "logoUrl": "",
+    "faviconUrl": ""
+  },
+  "socialLinks": {
+    "instagram": "",
+    "tiktok": "",
+    "facebook": "",
+    "whatsapp": ""
+  },
+  "shipping": {
+    "methods": [
+      {
+        "id": "standard",
+        "name": "Envío Estándar",
+        "description": "3–5 días hábiles",
+        "price": 5.00,
+        "enabled": true
+      },
+      {
+        "id": "express",
+        "name": "Envío Express",
+        "description": "1–2 días hábiles",
+        "price": 15.00,
+        "enabled": true
+      },
+      {
+        "id": "free",
+        "name": "Envío Gratuito",
+        "description": "5–7 días hábiles · Pedidos mayores a $100",
+        "price": 0.00,
+        "enabled": false,
+        "minOrder": 100
+      }
+    ]
+  },
+  "payments": {
+    "methods": [
+      {
+        "id": "card",
+        "name": "Tarjeta de Crédito / Débito",
+        "icon": "credit_card",
+        "enabled": true,
+        "instructions": ""
+      },
+      {
+        "id": "transfer",
+        "name": "Transferencia Bancaria / Depósito",
+        "icon": "account_balance",
+        "enabled": true,
+        "instructions": "Una vez completado el pedido, realiza la transferencia a la siguiente cuenta y envíanos el comprobante al correo indicado.",
+        "accountDetails": {
+          "bank": "Banco Pichincha",
+          "accountNumber": "2200000001",
+          "accountType": "Cuenta Corriente",
+          "holderName": "The Editorial Alchemist CIA. LTDA.",
+          "ruc": "1790000000001",
+          "email": "pagos@editorialalchemist.com"
+        }
+      },
+      {
+        "id": "paypal",
+        "name": "PayPal",
+        "icon": "payment",
+        "enabled": true,
+        "instructions": "Serás redirigido a PayPal para completar el pago de forma segura.",
+        "email": "pagos@editorialalchemist.com"
+      }
+    ]
+  },
+  "policies": [
+    { "id": "returns", "title": "Política de Devoluciones", "slug": "devoluciones", "icon": "assignment_return", "content": "# Política de Devoluciones\n\nAceptamos devoluciones dentro de los 30 días posteriores a la compra en perfectas condiciones. Los productos de color abiertos no son elegibles para devolución por razones higiénicas. Para iniciar una devolución, contáctanos en hola@editorialalchemist.com." },
+    { "id": "shipping", "title": "Política de Envíos", "slug": "envios", "icon": "local_shipping", "content": "# Política de Envíos\n\nRealizamos envíos a todo Ecuador. El tiempo de procesamiento es de 1–2 días hábiles. El envío estándar toma 3–5 días hábiles y el express 1–2 días hábiles. No nos hacemos responsables por demoras causadas por la empresa de correos." },
+    { "id": "privacy", "title": "Política de Privacidad", "slug": "privacidad", "icon": "privacy_tip", "content": "# Política de Privacidad\n\nEn The Editorial Alchemist, nos comprometemos a proteger tu información personal. Solo recopilamos datos necesarios para procesar tus pedidos y mejorar tu experiencia de compra. No vendemos ni compartimos tu información con terceros." },
+    { "id": "terms", "title": "Términos de Servicio", "slug": "terminos", "icon": "gavel", "content": "# Términos de Servicio\n\nAl realizar una compra en The Editorial Alchemist, aceptas que has leído y comprendes nuestra política de devoluciones, envíos y privacidad. Todos los precios están en dólares americanos (USD) e incluyen IVA." }
+  ],
+  "content": {
+    "hero": {
+      "title": "El Ritual de Color",
+      "subtitle": "Para la Mujer Que Sabe",
+      "description": "Tratamientos de color profesional formulados para la alquimista moderna.",
+      "ctaText": "Explorar la Colección",
+      "ctaLink": "/products"
+    },
+    "announcement": {
+      "enabled": true,
+      "text": "Envío gratuito en pedidos mayores a $100 · Nuevo: Sérum Ciruela de Medianoche",
+      "link": "/products"
+    },
+    "featuredSection": {
+      "title": "La Colección",
+      "subtitle": "Descubre nuestra selección de productos premium"
+    },
+    "collectionsPage": {
+      "hero": {
+        "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuBIWEtfaPBPxhCJiRF_XZshVPxFElizRdu2da2PKsjl9JZwW8PfmxJ26mshiJR8WRQRTkj_Wb80MAOdE2LKfVNWptoF1OFCRzpPfvlYn_KC1AI0ZCnTZJi8YLT94atejoH1ijU-5ZbaWk_oVt52ws4BD_1_6ECjB2lDvz0H6MdzXYFp8i0CX0hd-kXgK9kyVffMVK936ST3eCU-tQ6L51PB5hOY9n2v3Bra4MeXgEI-yheGQFSvKvX0rsRJAqIG3j3meBhBgIR20x8",
+        "label": "The Editorial Alchemist",
+        "title": "Colecciones"
+      },
+      "intro": {
+        "heading": "Cada colecci\u00f3n es un manifesto crom\u00e1tico. Una historia contada a trav\u00e9s de pigmentos formulados con precisi\u00f3n alqu\u00edmica.",
+        "body": "Desde tonos ic\u00f3nicos de la colecci\u00f3n permanente hasta lanzamientos estacionales de edici\u00f3n limitada, cada pieza est\u00e1 concebida para trascender la tendencia."
+      },
+      "collections": [
+        {
+          "id": "invierno",
+          "title": "La Selecci\u00f3n de Invierno",
+          "subtitle": "Colecci\u00f3n Oto\u00f1o / Invierno 2025",
+          "description": "Tonos oscuros y envolventes inspirados en la alquimia del crep\u00fasculo. Profundidad crom\u00e1tica para noches que exigen ser recordadas.",
+          "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuBIWEtfaPBPxhCJiRF_XZshVPxFElizRdu2da2PKsjl9JZwW8PfmxJ26mshiJR8WRQRTkj_Wb80MAOdE2LKfVNWptoF1OFCRzpPfvlYn_KC1AI0ZCnTZJi8YLT94atejoH1ijU-5ZbaWk_oVt52ws4BD_1_6ECjB2lDvz0H6MdzXYFp8i0CX0hd-kXgK9kyVffMVK936ST3eCU-tQ6L51PB5hOY9n2v3Bra4MeXgEI-yheGQFSvKvX0rsRJAqIG3j3meBhBgIR20x8",
+          "productIds": ["midnight-plum-serum", "sapphire-smoke-serum"]
+        },
+        {
+          "id": "dorado",
+          "title": "Ritual Dorado",
+          "subtitle": "Lujo Alqu\u00edmico \u00b7 Edici\u00f3n Especial",
+          "description": "Una oda al oro l\u00edquido y la luz \u00e1mbar. F\u00f3rmulas enriquecidas con pigmentos minerales para una luminosidad que trasciende la estaci\u00f3n.",
+          "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuBIWEtfaPBPxhCJiRF_XZshVPxFElizRdu2da2PKsjl9JZwW8PfmxJ26mshiJR8WRQRTkj_Wb80MAOdE2LKfVNWptoF1OFCRzpPfvlYn_KC1AI0ZCnTZJi8YLT94atejoH1ijU-5ZbaWk_oVt52ws4BD_1_6ECjB2lDvz0H6MdzXYFp8i0CX0hd-kXgK9kyVffMVK936ST3eCU-tQ6L51PB5hOY9n2v3Bra4MeXgEI-yheGQFSvKvX0rsRJAqIG3j3meBhBgIR20x8",
+          "productIds": ["liquid-gold-elixir", "honey-nectar-gloss"]
+        },
+        {
+          "id": "editorial",
+          "title": "Archivo Editorial",
+          "subtitle": "Colecci\u00f3n Permanente",
+          "description": "Los tonos fundamentales que definen la casa. Refinados durante d\u00e9cadas y formulados para durar. La base de todo lo que somos.",
+          "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuBIWEtfaPBPxhCJiRF_XZshVPxFElizRdu2da2PKsjl9JZwW8PfmxJ26mshiJR8WRQRTkj_Wb80MAOdE2LKfVNWptoF1OFCRzpPfvlYn_KC1AI0ZCnTZJi8YLT94atejoH1ijU-5ZbaWk_oVt52ws4BD_1_6ECjB2lDvz0H6MdzXYFp8i0CX0hd-kXgK9kyVffMVK936ST3eCU-tQ6L51PB5hOY9n2v3Bra4MeXgEI-yheGQFSvKvX0rsRJAqIG3j3meBhBgIR20x8",
+          "productIds": ["rose-gold-glaze", "ivory-lift-kit"]
+        }
+      ],
+      "ctaBanner": {
+        "label": "El Archivo Completo",
+        "title": "Descubre todos los tonos",
+        "body": "M\u00e1s de 50 f\u00f3rmulas exclusivas formuladas con pigmentos alqu\u00edmicos y tecnolog\u00eda de vanguardia.",
+        "buttonText": "Ver Todos los Productos",
+        "buttonLink": "/products"
+      }
+    },
+    "slides": [
+      {
+        "id": "slide-1",
+        "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuDZKWRNHNygTLOs2VVbs2SbdIYrVLjUvuzO_M8K1_0G7T-ESqT4uAkjYixjk1OE8yJwfFu9I-eeFm4byAZFe9pm9II83NGpF2yD7FoUnEUT5MH5evLShtDl9Xuw1FOh8NQUQe73V4d6TfiVqqshIUlvmy5dI-dPMVLdoQoBO0CeGDb9-aB5uARa9x47L6oMpAzBKnLka-X7P_dYBYUmn4_mouKfL8KqHvP9w02ZD5lMhkw0aWyebJBdKL_GTCfPTJOhoTB_b-t9hKI",
+        "label": "Arte Científico • Excelencia Editorial",
+        "title": "El Maestro del",
+        "titleHighlight": "Pigmento Puro",
+        "description": "Color de cabello transformador y de alto rendimiento para el individuo exigente. Experimenta la profundidad de la maestría profesional con fórmulas que nutren al pigmentar.",
+        "cta1Text": "Comprar la Colección",
+        "cta1Link": "/products",
+        "cta2Text": "Ver Lookbook",
+        "cta2Link": "/collections"
+      },
+      {
+        "id": "slide-2",
+        "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuCpcWDWGgWOynQGcDLIlQ34QG6QNBZ1wNXtqL-iGsfFG1lHGCS0exS9LqjKAGjXUOj1BEKH6igTfnUVwmjdAqSh3kzVaIYiv_r3vC2cEyMRaTPBmZsHKqOeJhafwBQOLB_67g1rdIRUf78g-tTlpQZcVLCEIlY-ZTAJ76f8gdgaxIN58nLGiCkEXL1n52QH-o5EJwa4zyEhrEYe1OKQliK469Ur0qbwvshHIcjbG0q55goAVbP-51A3iGFdevbnGgW5F76VhBs_hRE",
+        "label": "Nueva Temporada",
+        "title": "El Ritual de",
+        "titleHighlight": "Color Puro",
+        "description": "Tratamientos de color semi-permanente de última generación. Fórmulas que cuidan tu melena mientras la transforman con pigmentos vibrantes.",
+        "cta1Text": "Ver Tratamientos",
+        "cta1Link": "/products",
+        "cta2Text": "Descubrir",
+        "cta2Link": "/collections"
+      }
+    ]
+  }
+}

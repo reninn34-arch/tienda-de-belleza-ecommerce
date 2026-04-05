@@ -1,0 +1,16 @@
+[
+  {
+    "id": "6547cb6e-9b22-43ee-a89f-2d68d4559d77",
+    "title": "contáctanos",
+    "slug": "contactanos",
+    "blocks": [
+      {
+        "id": "block-1775321157592-s5cy4",
+        "type": "text",
+        "content": "hola somos una tienda de belleza"
+      }
+    ],
+    "published": true,
+    "createdAt": "2026-04-04"
+  }
+]

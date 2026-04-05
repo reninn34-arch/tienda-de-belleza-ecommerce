@@ -1,0 +1,158 @@
+[
+  {
+    "customer": "ERIK AGUIRRE",
+    "email": "clementineorganic.ec@gmail.com",
+    "total": 65.48,
+    "subtotal": 56,
+    "shipping": 5,
+    "tax": 4.48,
+    "status": "cancelled",
+    "items": 1,
+    "shippingMethod": "Envío Estándar",
+    "paymentMethod": "transfer",
+    "address": "Samborondón, Samborondón, guayas, EC",
+    "notes": "",
+    "products": [
+      {
+        "id": "liquid-gold-elixir",
+        "name": "Liquid Gold Elixir",
+        "price": 56,
+        "quantity": 1
+      }
+    ],
+    "id": "ORD-1775366418730",
+    "date": "2026-04-05"
+  },
+  {
+    "customer": "ERIK AGUIRRE",
+    "email": "clementineorganic.ec@gmail.com",
+    "total": 65.48,
+    "subtotal": 56,
+    "shipping": 5,
+    "tax": 4.48,
+    "status": "pending",
+    "items": 1,
+    "shippingMethod": "Envío Estándar",
+    "paymentMethod": "transfer",
+    "address": "Samborondón, Samborondón, dssasdss, EC",
+    "notes": "",
+    "products": [
+      {
+        "id": "liquid-gold-elixir",
+        "name": "Liquid Gold Elixir",
+        "price": 56,
+        "quantity": 1
+      }
+    ],
+    "id": "ORD-1775244316328",
+    "date": "2026-04-03"
+  },
+  {
+    "customer": "ERIK AGUIRRE",
+    "email": "clementineorganic.ec@gmail.com",
+    "total": 95.72,
+    "subtotal": 84,
+    "shipping": 5,
+    "tax": 6.72,
+    "status": "pending",
+    "items": 2,
+    "shippingMethod": "Envío Estándar",
+    "paymentMethod": "transfer",
+    "address": "Samborondón, Samborondón, dssasdss, EC",
+    "notes": "",
+    "products": [
+      {
+        "id": "midnight-plum-serum",
+        "name": "Midnight Plum Serum",
+        "price": 42,
+        "quantity": 2
+      }
+    ],
+    "id": "ORD-1775243905556",
+    "date": "2026-04-03"
+  },
+  {
+    "id": "ORD-2026-001",
+    "customer": "María Elena González",
+    "email": "maria.gonzalez@email.com",
+    "total": 103,
+    "subtotal": 98,
+    "shipping": 15,
+    "tax": 7.84,
+    "status": "completed",
+    "date": "2026-04-01",
+    "items": 2,
+    "shippingMethod": "Envío Express",
+    "paymentMethod": "card",
+    "address": "Av. República 123, Piso 4, Quito, Pichincha, EC",
+    "notes": "",
+    "products": [
+      {
+        "id": "midnight-plum-serum",
+        "name": "Midnight Plum Serum",
+        "price": 42,
+        "quantity": 1
+      },
+      {
+        "id": "liquid-gold-elixir",
+        "name": "Liquid Gold Elixir",
+        "price": 56,
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": "ORD-2026-002",
+    "customer": "Valentina Torres",
+    "email": "val.torres@email.com",
+    "total": 72.4,
+    "subtotal": 67,
+    "shipping": 5,
+    "tax": 5.36,
+    "status": "pending",
+    "date": "2026-04-02",
+    "items": 2,
+    "shippingMethod": "Envío Estándar",
+    "paymentMethod": "transfer",
+    "address": "Calle Colón 456, Guayaquil, Guayas, EC",
+    "notes": "Cliente enviará comprobante de transferencia.",
+    "products": [
+      {
+        "id": "rose-gold-glaze",
+        "name": "Rose Gold Glaze",
+        "price": 38,
+        "quantity": 1
+      },
+      {
+        "id": "ivory-lift-kit",
+        "name": "Ivory Lift Kit",
+        "price": 29,
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": "ORD-2026-003",
+    "customer": "Isabella Ramírez",
+    "email": "isa.ramirez@email.com",
+    "total": 45.8,
+    "subtotal": 35,
+    "shipping": 5,
+    "tax": 2.8,
+    "status": "processing",
+    "date": "2026-04-03",
+    "items": 1,
+    "shippingMethod": "Envío Estándar",
+    "paymentMethod": "paypal",
+    "address": "Av. Colón 789, Cuenca, Azuay, EC",
+    "notes": "",
+    "products": [
+      {
+        "id": "honey-nectar-gloss",
+        "name": "Honey Nectar Gloss",
+        "price": 35,
+        "quantity": 1
+      }
+    ]
+  }
+]

@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Products
+model Product {
+  id          String      @id
+  name        String
+  description String?
+  price       Float
+  cost        Float?
+  category    String
+  image       String?
+  badge       String?
+  stock       Int         @default(0)
+  features    String[]
+  gallery     String[]
+  swatches    Json        @default("[]")
+  reviews     Json        @default("[]")
+  highlights  Json        @default("[]")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+// Orders
+model Order {
+  id             String      @id
+  customer       String
+  email          String
+  total          Float
+  subtotal       Float
+  shipping       Float       @default(0)
+  tax            Float       @default(0)
+  status         String      @default("pending")
+  shippingMethod String?
+  paymentMethod  String?
+  address        String?
+  notes          String?
+  date           DateTime    @default(now())
+  items          OrderItem[]
+}
+
+model OrderItem {
+  id        Int    @id @default(autoincrement())
+  orderId   String
+  productId String
+  name      String
+  price     Float
+  quantity  Int
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+// Pages
+model Page {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  blocks    Json     @default("[]")
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Settings (single row)
+model Settings {
+  id   Int  @id @default(1)
+  data Json
+}
+
+// Tutorials (single row)
+model Tutorials {
+  id   Int  @id @default(1)
+  data Json
+}
+
+// Newsletter subscribers
+model NewsletterSubscriber {
+  id        Int      @id @default(autoincrement())
+  email     String
+  name      String?
+  phone     String?
+  message   String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

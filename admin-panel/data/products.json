@@ -1,0 +1,58 @@
+[
+  {
+    "id": "midnight-plum-serum",
+    "name": "Midnight Plum Serum",
+    "description": "Deep Permanent Hue. Transformative, high-performance hair color for the discerning individual. Experience the depth of professional artistry with formulas that nourish as they pigment.",
+    "price": 42,
+    "category": "permanent",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuDVM0urFXlTx1vuNn3M7emmEIKUb67ccdh1aUMRGJoAOK1DZr3LKHFvRRobcl6CoK5B3bBkINc--EeCP2WQDNuwBjn6w8_XxQhEh3l7bKoPjJ1kw-1jS0c2NFI7UD-tl5pDdMCDylj3mGpdcYrD0XODVyhrJiZQreqaU3Ft119QhS9goNGW0jOnUveIhMSVStj0OvxhtKLngUgI42FYjVno1E-SFsb5aNuCF7Yv3dZGeaMcMIRS8n5ovvDABON4rWwmf-iecZ4QtsY",
+    "badge": "Top Rated",
+    "features": ["100% Vegan Formula", "0% Ammonia", "Deep Pigmentation"]
+  },
+  {
+    "id": "rose-gold-glaze",
+    "name": "Rose Gold Glaze",
+    "description": "Luminous Semi-Permanent color mask. Add a wash of elegant rose gold to pre-lightened or blonde hair while deeply conditioning.",
+    "price": 38,
+    "category": "semi-permanent",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuBaSxpg4wCzZ5oJrzawNJEFJtT3gL7wmwO9LzUGAAhiInqOnMQVipNCa9z_Bc2Tg3Ormqlxmanrzq-GBrI7AtEbZ1ND7Ca6fiiRWRIsfV5dOeMENy-PYByq-XglDU4F2E-jDINFlRdssjNMmqB72lmqQGk6nUxALmvFVcGq7OLMMjD4tdxxrikENRtw5mvH_44dy4hW1eHyht3uN0E-U__wX9cf4pr6huWqgg2by20x8D0l6C00bh8x024rfqUUFlhw2mKAF1PrFn4",
+    "features": ["Lasts up to 10 washes", "Intense hydration", "Pastel tone"]
+  },
+  {
+    "id": "liquid-gold-elixir",
+    "name": "Liquid Gold Elixir",
+    "description": "Restorative Post-Color Oil. Seal in your new color and lock out damage with this lightweight, nutrient-dense hair oil.",
+    "price": 56,
+    "category": "treatments",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuDeBlSUflDn30Q5_8vG6yT1UIiVUcpRKzAu28gFYc5rLUPrKEqCpNdt3F-VYZlG6-HLZTPP3Fe7FDnTdybYEB0daEJpNHLEm8jdx7KwWvQo6jnCRrnHZQHC_PLlnxba5-7gO7Msk4nDlkRQLvUvR3BLCv94rOITVO1-HlTNQljr837a3CWTMzNkrVtaJVd_JabUJGAAje6bcHfVY5MWqBI3zLWFPUJsT1N5QkwjvCHe_5RfeuZK4gQEtPY4iBpvueRwertrQ0G02eg",
+    "features": ["Heat protectant", "Color sealing", "Silicone-free"]
+  },
+  {
+    "id": "ivory-lift-kit",
+    "name": "Ivory Lift Kit",
+    "description": "High-Lift Lightener. Professional grade bleach kit optimized to lift up to 8 levels while minimizing structural damage.",
+    "price": 29,
+    "category": "lightener",
+    "badge": "Pro Kit",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuDITPZLpQWPlQT6RZjCONQFzi8avNal1A_BCkV7mtwLYJf2kSQ3Q81Wv3kEVaFR5Hz9muUPGvGbvvJK50mzhfa_-rKBgZz0ULgA7VjhjY18Avl6RWSF7c7Kigg89lHs_XH6yhe7-G4pvUPdZx8Ecum14tjPxx3lATHHGnsOhh37Pty1ehA1c0nhh84FofBLTEQYvnga2EFkAQQlefZRyAjms4FR5WKBH69b9vI9o8ZYVpTmxsgbG8Ep_PnFIl9oHMjqN9hPIe-1LR4",
+    "features": ["Lifts 8 levels", "Anti-breakage bond complex included", "Cream formula"]
+  },
+  {
+    "id": "sapphire-smoke-serum",
+    "name": "Sapphire Smoke Serum",
+    "description": "Deep Permanent Hue in a cool, smoky blue-black. Unapologetic expression through saturation.",
+    "price": 42,
+    "category": "permanent",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuB6U0UgCGTdUBHlYSCZXSa21kf-O8t04oYgsEFzD08dI7cVQPvS7rVYWESDNqka3zZLw6urm--aMPKqSzE_cYNC4uki9UrY30NPBUjw25Nn82sx5RoEXNtmDCRPnawBIk9EkoxsJ3ZFmadoxBI9VGJQhSYmJmFQ-hsVzD-y6HOiNtYjLI3aYQSu0hOoK2u_dXHxW5qg7ETW4-ZTL5358a6wDAvTsi3N4RR-MggLe8kZrbmp0W34JfWFfHJZnWYTWE9IxgNQI9GY7M4",
+    "features": ["100% Vegan Formula", "Cool undertones", "Mirror shine"]
+  },
+  {
+    "id": "honey-nectar-gloss",
+    "name": "Honey Nectar Gloss",
+    "description": "Timeless Elegance. A brilliant gloss treatment that revives natural warmth and adds dimension to blondes and light brunettes.",
+    "price": 35,
+    "category": "demi-permanent",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuCpcWDWGgWOynQGcDLIlQ34QG6QNBZ1wNXtqL-iGsfFG1lHGCS0exS9LqjKAGjXUOj1BEKH6igTfnUVwmjdAqSh3kzVaIYiv_r3vC2cEyMRaTPBmZsHKqOeJhafwBQOLB_67g1rdIRUf78g-tTlpQZcVLCEIlY-ZTAJ76f8gdgaxIN58nLGiCkEXL1n52QH-o5EJwa4zyEhrEYe1OKQliK469Ur0qbwvshHIcjbG0q55goAVbP-51A3iGFdevbnGgW5F76VhBs_hRE",
+    "features": ["Ammonia-free", "Blends grays", "Ultra conditioning"]
+  }
+]
