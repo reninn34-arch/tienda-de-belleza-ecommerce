@@ -13,13 +13,13 @@ export async function POST(request: NextRequest) {
   const tag = request.nextUrl.searchParams.get("tag") as ValidTag | null;
 
   if (tag && VALID_TAGS.includes(tag)) {
-    revalidateTag(tag, {});
+    revalidateTag(tag);
     revalidatePath("/", "layout");
     return NextResponse.json({ revalidated: true, tag });
   }
 
   // No tag → revalidate everything
-  for (const t of VALID_TAGS) revalidateTag(t, {});
+  for (const t of VALID_TAGS) revalidateTag(t);
   revalidatePath("/", "layout");
   return NextResponse.json({ revalidated: true, tags: VALID_TAGS });
 }
