@@ -20,7 +20,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (res.ok) revalidateStore("products");
+  if (res.ok) await revalidateStore("products");
   return NextResponse.json(data, { status: res.status });
 }
 
@@ -29,6 +29,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const token = request.cookies.get("admin_token")?.value;
   const res = await fetch(`${BACKEND}/api/products/${id}`, { method: "DELETE", headers: { Authorization: token ? `Bearer ${token}` : "" } });
   const data = await res.json();
-  if (res.ok) revalidateStore("products");
+  if (res.ok) await revalidateStore("products");
   return NextResponse.json(data, { status: res.status });
 }

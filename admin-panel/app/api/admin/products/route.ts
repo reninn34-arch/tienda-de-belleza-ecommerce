@@ -18,6 +18,6 @@ export async function POST(request: NextRequest) {
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (res.ok) revalidateStore("products");
+  if (res.ok) await revalidateStore("products");
   return NextResponse.json(data, { status: res.status });
 }
