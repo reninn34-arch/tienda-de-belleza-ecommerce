@@ -11,7 +11,21 @@ import { requireAuth } from "./middleware/auth";
 
 const app = express();
 
-app.use(cors({ origin: ["http://localhost:3000", "http://localhost:3001"] }));  
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',') 
+  : ["http://localhost:3000", "http://localhost:3001"];
+
+app.use(cors({ 
+  origin: function (origin, callback) {
+    // Permitir peticiones sin origin (como apps móviles o curl) o si el origen está en la lista
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: "10mb" }));
 
 // Middleware para proteger endpoints de escritura excepto órdenes y login
