@@ -151,15 +151,3 @@ export async function getTutorials(): Promise<TutorialsData> {
 }
 
 // Seed reference products removed per cleanup
-    features: ["100% Vegan Formula", "Cool undertones", "Mirror shine"]
-  },
-  {
-    id: "honey-nectar-gloss",
-    name: "Honey Nectar Gloss",
-    description: "Timeless Elegance. A brilliant gloss treatment that revives natural warmth and adds dimension to blondes and light brunettes.",
-    price: 35,
-    category: "demi-permanent",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCpcWDWGgWOynQGcDLIlQ34QG6QNBZ1wNXtqL-iGsfFG1lHGCS0exS9LqjKAGjXUOj1BEKH6igTfnUVwmjdAqSh3kzVaIYiv_r3vC2cEyMRaTPBmZsHKqOeJhafwBQOLB_67g1rdIRUf78g-tTlpQZcVLCEIlY-ZTAJ76f8gdgaxIN58nLGiCkEXL1n52QH-o5EJwa4zyEhrEYe1OKQliK469Ur0qbwvshHIcjbG0q55goAVbP-51A3iGFdevbnGgW5F76VhBs_hRE",
-    features: ["Ammonia-free", "Blends grays", "Ultra conditioning"]
-  }
-];

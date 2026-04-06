@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-12345";
@@ -37,19 +35,10 @@ export async function POST(request: NextRequest) {
 
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
+  
+  // Convertimos el archivo local a Data URL (Base64) en lugar de guardar en disco
+  const base64 = buffer.toString("base64");
+  const url = `data:${file.type};base64,${base64}`;
 
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-  // Store's public/uploads (served by the storefront at port 3000)
-  const storeUploadDir = join(process.cwd(), "..", "public", "uploads");
-  // Admin's own public/uploads (served by the admin panel at port 3001) — needed for preview
-  const adminUploadDir = join(process.cwd(), "public", "uploads");
-
-  await Promise.all([
-    mkdir(storeUploadDir, { recursive: true }).then(() => writeFile(join(storeUploadDir, safeName), buffer)),
-    mkdir(adminUploadDir, { recursive: true }).then(() => writeFile(join(adminUploadDir, safeName), buffer)),
-  ]);
-
-  return NextResponse.json({ url: `/uploads/${safeName}` });
+  return NextResponse.json({ url });
 }
