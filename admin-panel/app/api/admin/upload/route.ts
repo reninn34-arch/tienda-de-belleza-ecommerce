@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import sharp from "sharp"; // <-- Importamos sharp
 
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-12345";
 
@@ -36,9 +37,31 @@ export async function POST(request: NextRequest) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
   
-  // Convertimos el archivo local a Data URL (Base64) en lugar de guardar en disco
-  const base64 = buffer.toString("base64");
-  const url = `data:${file.type};base64,${base64}`;
+  if (isVideo) {
+    // Si es video, no usamos sharp, lo pasamos directo a Base64
+    const base64 = buffer.toString("base64");
+    const url = `data:${file.type};base64,${base64}`;
+    return NextResponse.json({ url });
+  }
 
-  return NextResponse.json({ url });
+  try {
+    // AQUÍ ES DONDE SHARP HACE LA MAGIA
+    const optimizedBuffer = await sharp(buffer)
+      .resize(1200, 1200, { // Máximo 1200x1200px
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 80 }) // Lo convertimos a WebP con 80% de calidad
+      .toBuffer();
+
+    // Convertimos el buffer YA OPTIMIZADO a Base64
+    const base64 = optimizedBuffer.toString("base64");
+    const url = `data:image/webp;base64,${base64}`;
+
+    return NextResponse.json({ url });
+
+  } catch (error) {
+    console.error("Error optimizando imagen con sharp:", error);
+    return NextResponse.json({ error: "Error al procesar la imagen" }, { status: 500 });
+  }
 }
