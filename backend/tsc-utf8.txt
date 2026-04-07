@@ -1,0 +1,1 @@
+﻿src/routes/products.ts(111,9): error TS2353: Object literal may only specify known properties, and 'details' does not exist in type '(Without<ProductCreateInput, ProductUncheckedCreateInput> & ProductUncheckedCreateInput) | (Without<...> & ProductCreateInput)'.

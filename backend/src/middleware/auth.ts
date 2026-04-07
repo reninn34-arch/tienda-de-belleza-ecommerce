@@ -6,6 +6,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is required");
 }
+// Forzar a TypeScript a tratarlo como string, ya que arriba se valida
+const JWT_SECRET_TYPED = JWT_SECRET as string;
 
 type AuthenticatedRequest = Request & { user?: jwt.JwtPayload | string };
 
@@ -18,7 +20,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 
   const token = authHeader.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload | string;
+    const decoded = jwt.verify(token, JWT_SECRET_TYPED) as jwt.JwtPayload | string;
     (req as AuthenticatedRequest).user = decoded;
     next();
   } catch {

@@ -10,25 +10,29 @@ import tutorialsRouter from "./routes/tutorials";
 import adminRouter from "./routes/admin";
 import { requireAuth } from "./middleware/auth";
 import { sendError } from "./lib/errors";
+import { validateEnv } from "./lib/env";
+import { requestLogger, logger, type RequestWithId } from "./lib/logger";
 
+const env = validateEnv(process.env);
 const app = express();
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',') 
+const allowedOrigins = env.ALLOWED_ORIGINS
+  ? env.ALLOWED_ORIGINS.split(",")
   : ["http://localhost:3000", "http://localhost:3001"];
 
-app.use(cors({ 
+app.use(cors({
   origin: function (origin, callback) {
     // Permitir peticiones sin origin (como apps móviles o curl) o si el origen está en la lista
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('No permitido por CORS'));
+      callback(new Error("No permitido por CORS"));
     }
   },
-  credentials: true
+  credentials: true,
 }));
 app.use(express.json({ limit: "10mb" }));
+app.use(requestLogger);
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -69,7 +73,6 @@ app.use((req, res, next) => {
   if (req.method === "GET") return next();
   if (req.path.startsWith("/api/admin/login")) return next();
   if (req.method === "POST" && req.path === "/api/orders") return next();
-  
   requireAuth(req, res, next);
 });
 
@@ -81,19 +84,28 @@ app.use("/api/tutorials", tutorialsRouter);
 app.use("/api/admin", adminRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const req = _req as RequestWithId;
   void next;
   if (err instanceof Error && err.message === "No permitido por CORS") {
     sendError(res, 403, { code: "FORBIDDEN", message: err.message });
     return;
   }
   if (err instanceof Error) {
+    logger.error({
+      requestId: req.requestId,
+      method: req.method,
+      path: req.originalUrl,
+      message: "unhandled_error",
+      details: err.message,
+    });
     sendError(res, 500, { code: "INTERNAL_ERROR", message: "Error interno", details: err.message });
     return;
   }
   sendError(res, 500, { code: "INTERNAL_ERROR", message: "Error interno" });
 });
 
-const PORT = parseInt(process.env.PORT ?? "4000", 10);
+const PORT = parseInt(env.PORT ?? "4000", 10);
 app.listen(PORT, () => {
   console.log(`Backend corriendo en http://localhost:${PORT}`);
+  logger.info({ message: `backend_started:${PORT}` });
 });

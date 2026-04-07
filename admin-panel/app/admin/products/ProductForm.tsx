@@ -229,9 +229,9 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
       reviews: form.reviews
         .filter((r) => r.author)
         .map((r) => ({ ...r, stars: parseFloat(r.stars) })),
-      details: form.details || undefined,
-      howToUse: form.howToUse || undefined,
-      shippingInfo: form.shippingInfo || undefined,
+      details: form.details,
+      howToUse: form.howToUse,
+      shippingInfo: form.shippingInfo,
       highlights: form.highlights.filter((h) => h.title) || undefined,
       highlightsLabel: form.highlightsLabel || undefined,
       highlightsTitle: form.highlightsTitle || undefined,
@@ -239,12 +239,20 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
       scienceDesc: form.scienceDesc || undefined,
       scienceItems: form.scienceItems.filter((s) => s.title).length ? form.scienceItems.filter((s) => s.title) : undefined,
     };
+    let res;
     if (mode === "new") {
-      await fetch("/api/admin/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      res = await fetch("/api/admin/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     } else {
-      await fetch(`/api/admin/products/${productId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      res = await fetch(`/api/admin/products/${productId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     }
+    
     setSaving(false);
+    
+    if (!res.ok) {
+      alert("Hubo un error al guardar el producto. Revisa los datos o la conexión.");
+      return;
+    }
+
     setToast(mode === "new" ? "Producto creado correctamente." : "Producto actualizado correctamente.");
     setTimeout(() => router.push("/admin/products"), 1000);
   }

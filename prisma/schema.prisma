@@ -23,6 +23,14 @@ model Product {
   swatches    Json        @default("[]")
   reviews     Json        @default("[]")
   highlights  Json        @default("[]")
+  details      String?
+  howToUse     String?
+  shippingInfo String?
+  highlightsLabel String?
+  highlightsTitle String?
+  scienceTitle    String?
+  scienceDesc     String?
+  scienceItems    Json        @default("[]")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }

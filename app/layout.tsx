@@ -41,6 +41,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        {/*
+          Next.js recomienda cargar fuentes globales en _document.js para evitar advertencias.
+          Si usas la app directory, puedes ignorar esta advertencia o migrar a un archivo personalizado _document.js en pages/.
+        */}
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
