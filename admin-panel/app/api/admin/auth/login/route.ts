@@ -5,10 +5,9 @@ const BACKEND = process.env.BACKEND_URL ?? "http://localhost:4000";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const token = request.cookies.get("admin_token")?.value;
-  const res = await fetch(`${BACKEND}/api/admin/login`, {
+    const res = await fetch(`${BACKEND}/api/admin/login`, {
       method: "POST",
-      headers: { Authorization: token ? `Bearer ${token}` : "", "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 

@@ -66,6 +66,11 @@ interface RawPage {
 async function main() {
   console.log("🌱 Seeding database...");
 
+  const isProd = process.env.NODE_ENV === "production";
+  const seedAdmin = process.env.SEED_ADMIN === "true" || !isProd;
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
   const products = readJson<RawProduct[]>("products.json");
   for (const p of products) {
     await db.product.upsert({
@@ -155,18 +160,25 @@ async function main() {
   });
   console.log("  ✔ tutorials");
 
-  await db.admin.upsert({
-    where: { email: "admin@blush.com" },
-    update: {
-      password: await bcrypt.hash("blush2024", 10),
-    },
-    create: {
-      email: "admin@blush.com",
-      password: await bcrypt.hash("blush2024", 10),
-      name: "Administrador",
-    },
-  });
-  console.log("  ✔ default admin (admin@blush.com)");
+  if (seedAdmin) {
+    if (!adminEmail || !adminPassword) {
+      throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD are required to seed admin");
+    }
+    await db.admin.upsert({
+      where: { email: adminEmail },
+      update: {
+        password: await bcrypt.hash(adminPassword, 10),
+      },
+      create: {
+        email: adminEmail,
+        password: await bcrypt.hash(adminPassword, 10),
+        name: "Administrador",
+      },
+    });
+    console.log(`  ✔ admin seeded (${adminEmail})`);
+  } else {
+    console.log("  ↪ admin seed skipped (production)");
+  }
 
   console.log("✅ Seed complete.");
 }

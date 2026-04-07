@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { db } from "../../../lib/db";
-import { sendError } from "../lib/errors";
+import { sendError, type ErrorCode } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
 
 interface OrderItemRow {
@@ -78,6 +78,14 @@ const orderUpdateSchema = z.object({
   { message: "Se requiere al menos un campo" }
 );
 
+class StockError extends Error {
+  code: ErrorCode = "STOCK_INSUFFICIENT";
+  constructor(message: string) {
+    super(message);
+    this.name = "StockError";
+  }
+}
+
 // GET all orders
 router.get("/", async (_req: Request, res: Response) => {
   const orders = await db.order.findMany({
@@ -105,55 +113,63 @@ router.post("/", async (req: Request, res: Response) => {
   }
   const body = parsed.data;
   const orderItems = body.items ?? body.products ?? [];
+  try {
+    const newOrder = await db.$transaction(async (tx) => {
+      for (const item of orderItems) {
+        const updated = await tx.product.updateMany({
+          where: { id: item.id, stock: { gte: item.quantity } },
+          data: { stock: { decrement: item.quantity } },
+        });
+        if (updated.count === 0) {
+          const product = await tx.product.findUnique({
+            where: { id: item.id },
+            select: { name: true, stock: true },
+          });
+          if (!product) {
+            throw new StockError(`El producto ${item.name} no existe.`);
+          }
+          throw new StockError(
+            `El producto ${product.name} no cuenta con stock suficiente. Disponible: ${product.stock}`
+          );
+        }
+      }
 
-  // Check stock
-  for (const item of orderItems) {
-    const product = await db.product.findUnique({ where: { id: item.id } });
-    if (product && product.stock < item.quantity) {
-      sendError(res, 400, {
-        code: "STOCK_INSUFFICIENT",
-        message: `El producto ${product.name} no cuenta con stock suficiente. Disponible: ${product.stock}`,
+      return tx.order.create({
+        data: {
+          id: `ORD-${Date.now()}`,
+          customer: body.customer,
+          email: body.email,
+          total: body.total ?? 0,
+          subtotal: body.subtotal ?? 0,
+          shipping: body.shipping ?? 0,
+          tax: body.tax ?? 0,
+          status: body.status ?? "pending",
+          shippingMethod: body.shippingMethod ?? null,
+          paymentMethod: body.paymentMethod ?? null,
+          address: body.address ?? null,
+          notes: body.notes ?? null,
+          date: new Date(),
+          items: {
+            create: orderItems.map((item) => ({
+              productId: item.id,
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+            })),
+          },
+        },
+        include: { items: true },
       });
+    });
+
+    res.status(201).json(newOrder);
+  } catch (error) {
+    if (error instanceof StockError) {
+      sendError(res, 400, { code: error.code, message: error.message });
       return;
     }
+    throw error;
   }
-
-  // Deduct stock
-  for (const item of orderItems) {
-    await db.product.updateMany({
-      where: { id: item.id },
-      data: { stock: { decrement: item.quantity } },
-    });
-  }
-
-  const newOrder = await db.order.create({
-    data: {
-      id: `ORD-${Date.now()}`,
-      customer: body.customer,
-      email: body.email,
-      total: body.total ?? 0,
-      subtotal: body.subtotal ?? 0,
-      shipping: body.shipping ?? 0,
-      tax: body.tax ?? 0,
-      status: body.status ?? "pending",
-      shippingMethod: body.shippingMethod ?? null,
-      paymentMethod: body.paymentMethod ?? null,
-      address: body.address ?? null,
-      notes: body.notes ?? null,
-      date: new Date(),
-      items: {
-        create: orderItems.map((item) => ({
-          productId: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-        })),
-      },
-    },
-    include: { items: true },
-  });
-
-  res.status(201).json(newOrder);
 });
 
 // GET order by id (enriched)

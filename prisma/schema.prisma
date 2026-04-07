@@ -81,7 +81,7 @@ model Tutorials {
 // Newsletter subscribers
 model NewsletterSubscriber {
   id        Int      @id @default(autoincrement())
-  email     String
+  email     String   @unique
   name      String?
   phone     String?
   message   String?

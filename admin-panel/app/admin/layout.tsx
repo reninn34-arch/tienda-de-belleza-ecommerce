@@ -169,7 +169,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <>{children}</>;
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await fetch("/api/admin/auth/logout", { method: "POST" });
+    } catch {
+      // best-effort
+    }
     localStorage.removeItem("adminAuth");
     router.replace("/admin/login");
   }

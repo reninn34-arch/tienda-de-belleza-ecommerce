@@ -41,6 +41,9 @@ DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/blush"
 BACKEND_URL="http://localhost:4000"
 REVALIDATE_SECRET="tu-clave-secreta"
 STORE_URL="http://localhost:3000"
+ADMIN_EMAIL="admin@example.com"
+ADMIN_PASSWORD="tu-password-seguro"
+SEED_ADMIN="true"
 ```
 
 ### `/admin-panel/.env` (Admin)
@@ -55,6 +58,7 @@ STORE_URL="http://localhost:3000"
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/blush"
 PORT=4000
+JWT_SECRET="tu-secreto-largo"
 ```
 
 ---
