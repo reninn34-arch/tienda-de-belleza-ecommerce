@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import MediaInput from "@/components/MediaInput";
 import LinkPicker from "@/components/LinkPicker";
@@ -349,10 +350,13 @@ export default function PageForm({ id }: PageFormProps) {
                               selected ? "bg-[#33172c]/5" : ""
                             }`}
                           >
-                            <img
+                            <Image
                               src={p.image}
                               alt={p.name}
+                              width={40}
+                              height={48}
                               className="w-10 h-12 object-cover rounded-lg shrink-0"
+                              sizes="40px"
                             />
                             <span className="flex-1 text-sm font-medium text-gray-900">{p.name}</span>
                             <span

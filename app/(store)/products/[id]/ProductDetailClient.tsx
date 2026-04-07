@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { Product } from "@/lib/types";
@@ -88,7 +89,14 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
         }`}
       >
         <div className="hidden md:flex items-center gap-4">
-          <img alt={product.name} className="w-12 h-12 object-cover rounded" src={product.image} />
+          <Image
+            alt={product.name}
+            className="w-12 h-12 object-cover rounded"
+            src={product.image}
+            width={48}
+            height={48}
+            sizes="48px"
+          />
           <div>
             <p className="font-headline font-bold text-primary text-sm">{product.name}</p>
             <p className="text-secondary font-bold text-sm">${product.price.toFixed(2)}</p>
@@ -110,7 +118,14 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
       {/* ── Hero ── */}
       <section className="relative h-[90vh] min-h-[700px] w-full overflow-hidden">
         <div className="absolute inset-0">
-          <img alt={product.name} className="h-full w-full object-cover" src={product.image} />
+          <Image
+            alt={product.name}
+            className="object-cover"
+            src={product.image}
+            fill
+            sizes="100vw"
+            priority
+          />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/60 via-transparent to-transparent" />
         </div>
         <div className="relative z-10 h-full max-w-[1440px] mx-auto px-8 lg:px-12 flex flex-col justify-center pt-24">
@@ -188,10 +203,12 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
         <div className="lg:col-span-7 flex flex-col gap-4">
           {/* Main image */}
           <div className="relative aspect-square rounded-xl overflow-hidden bg-surface-container-low group">
-            <img
+            <Image
               alt={product.name}
-              className="h-full w-full object-cover transition-all duration-500"
+              className="object-cover transition-all duration-500"
               src={allImages[activeImage]}
+              fill
+              sizes="(min-width: 1024px) 50vw, 100vw"
             />
             {allImages.length > 1 && (
               <>
@@ -230,11 +247,11 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
                   key={i}
                   type="button"
                   onClick={() => setActiveImage(i)}
-                  className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
                     i === activeImage ? "border-primary" : "border-transparent opacity-60 hover:opacity-90"
                   }`}
                 >
-                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  <Image src={src} alt="" fill className="object-cover" sizes="64px" />
                 </button>
               ))}
             </div>
@@ -388,18 +405,24 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
             <div className="bg-white p-8 rounded-2xl shadow-sm flex flex-col md:flex-row items-center gap-12">
               {/* Product images */}
               <div className="flex items-center gap-4 overflow-x-auto pb-4 md:pb-0 flex-shrink-0">
-                <img
+                <Image
                   alt={product.name}
                   className="w-24 h-24 object-cover rounded-lg"
                   src={product.image}
+                  width={96}
+                  height={96}
+                  sizes="96px"
                 />
                 {relatedProducts.slice(0, 2).map((rp) => (
                   <div key={rp.id} className="flex items-center gap-4">
                     <span className="material-symbols-outlined text-slate-300">add</span>
-                    <img
+                    <Image
                       alt={rp.name}
                       className="w-24 h-24 object-cover rounded-lg"
                       src={rp.image}
+                      width={96}
+                      height={96}
+                      sizes="96px"
                     />
                   </div>
                 ))}
@@ -462,7 +485,14 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
                 ) : null}
               </div>
               <div className="lg:w-1/2 rounded-2xl overflow-hidden shadow-2xl">
-                <img alt="Proceso Alquímico" className="w-full h-full object-cover" src={product.gallery?.[2] ?? product.image} />
+                <Image
+                  alt="Proceso Alquímico"
+                  className="w-full h-auto object-cover"
+                  src={product.gallery?.[2] ?? product.image}
+                  width={1200}
+                  height={900}
+                  sizes="(min-width: 1024px) 50vw, 100vw"
+                />
               </div>
             </div>
           </div>

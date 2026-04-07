@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Product { id: string; name: string; price: number; category: string; cost?: number; stock?: number; image?: string; }
 interface OrderProduct { id: string; productId?: string; name: string; price: number; quantity: number; }
@@ -581,7 +582,14 @@ export default function AnalyticsPage() {
                     {noSalesHighMargin.map((p) => (
                       <div key={p.id} className="flex items-center gap-3 bg-white rounded-lg px-3 py-2 border border-amber-100 shadow-sm">
                         {p.image ? (
-                          <img src={p.image} alt={p.name} className="w-9 h-9 rounded-md object-cover flex-shrink-0 border border-amber-100" />
+                          <Image
+                            src={p.image}
+                            alt={p.name}
+                            width={36}
+                            height={36}
+                            className="w-9 h-9 rounded-md object-cover flex-shrink-0 border border-amber-100"
+                            sizes="36px"
+                          />
                         ) : (
                           <div className="w-9 h-9 rounded-md bg-amber-100 flex items-center justify-center flex-shrink-0">
                             <span className="material-symbols-outlined text-[18px] text-amber-400">inventory_2</span>
@@ -643,9 +651,15 @@ export default function AnalyticsPage() {
                       <Link key={p.id} href={`/admin/products/${p.id}`}
                         className="flex items-center gap-4 p-3 rounded-xl border border-gray-100 hover:border-[#33172c]/20 hover:bg-gray-50/50 transition-all group">
                         {/* Imagen */}
-                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
+                        <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
                           {p.image ? (
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <Image
+                              src={p.image}
+                              alt={p.name}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-500"
+                              sizes="56px"
+                            />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <span className="material-symbols-outlined text-[20px] text-gray-500">inventory_2</span>
@@ -768,9 +782,15 @@ export default function AnalyticsPage() {
                     return (
                       <Link key={p.id} href={`/admin/products/${p.id}`}
                         className="flex items-center gap-3 p-2 rounded-xl border border-gray-100 hover:border-red-200 hover:bg-red-50/30 transition-all group">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                        <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                           {p.image ? (
-                            <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                            <Image
+                              src={p.image}
+                              alt={p.name}
+                              fill
+                              className="object-cover"
+                              sizes="40px"
+                            />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
                               <span className="material-symbols-outlined text-[14px] text-gray-500">inventory_2</span>
@@ -875,7 +895,14 @@ export default function AnalyticsPage() {
                         return (
                           <div key={p.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2 border border-gray-100 shadow-sm">
                             {p.image ? (
-                              <img src={p.image} alt={p.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+                              <Image
+                                src={p.image}
+                                alt={p.name}
+                                width={36}
+                                height={36}
+                                className="w-9 h-9 rounded-lg object-cover flex-shrink-0"
+                                sizes="36px"
+                              />
                             ) : (
                               <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: color + "20" }}>
                                 <span className="material-symbols-outlined text-[16px]" style={{ color }}>{icon}</span>

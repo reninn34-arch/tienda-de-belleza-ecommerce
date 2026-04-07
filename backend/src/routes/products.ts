@@ -9,7 +9,10 @@ import { logAdminAction } from "../lib/audit";
 const router = Router();
 
 const productBaseSchema = z.object({
-  id: z.string().min(1).optional(),
+  id: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().min(1).optional()
+  ),
   name: z.string().min(1),
   description: z.string().nullable().optional(),
   price: z.coerce.number().nonnegative(),

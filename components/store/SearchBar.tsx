@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { createPortal } from "react-dom";
 import type { Product } from "@/lib/types";
 
@@ -93,7 +94,14 @@ export default function SearchBar({ products }: Props) {
                 }`}
               >
                 <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-surface-container-low">
-                  <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-cover"
+                    sizes="48px"
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-primary truncate">{product.name}</p>

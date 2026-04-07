@@ -31,16 +31,6 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Navigation + static → stale-while-revalidate
-  e.respondWith(
-    caches.match(e.request).then((cached) => {
-      const fresh = fetch(e.request).then((res) => {
-        if (res.ok) {
-          caches.open(CACHE).then((c) => c.put(e.request, res.clone()));
-        }
-        return res;
-      }).catch(() => cached);
-      return cached || fresh;
-    })
-  );
+  // Dev-safe: network only to avoid response clone errors
+  e.respondWith(fetch(e.request));
 });

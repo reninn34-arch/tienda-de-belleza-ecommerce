@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Image from "next/image";
 
 interface MediaInputProps {
   label: string;
@@ -76,10 +77,13 @@ export default function MediaInput({
             className={previewClass ?? "mt-2 h-32 w-full rounded-xl object-cover"}
           />
         ) : (
-          <img
+          <Image
             src={value}
             alt="preview"
+            width={640}
+            height={192}
             className={previewClass ?? "mt-2 h-24 w-full object-cover rounded-xl"}
+            sizes="100vw"
           />
         )
       )}

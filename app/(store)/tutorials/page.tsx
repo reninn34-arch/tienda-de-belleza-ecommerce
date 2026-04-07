@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getTutorials } from "@/lib/data";
 
 
@@ -43,10 +44,13 @@ export default async function TutorialsPage() {
       {/* ── Hero ── */}
       <header className="relative min-h-[60vh] md:h-[870px] flex items-center overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img
-            className="w-full h-full object-cover"
+          <Image
+            className="object-cover"
             alt="Preparación profesional de tinte ciruela en tazón de cerámica"
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpH4tchDeWhkTK0DuAWIjl7Z_y17St4KMkQKadpe10ouE5TkKGyLVWzROkzCQy-oyiL3FbHAZvDQCmCwidyZQWu3hIeC4tvAQ4PYGBA4vjRgdF8pP0MqmWyLhDPUjhP5ZgNe4kSHj_rlwgyCyPgKn9NPLFrDYWp4EKNpYS5dcTT6wwxJcxSWOL_W9116e5Y2ukF-_ZL8o0aZ2DebRGA5TZnPeV4ENMSZTC2i12UFIlUfmrR_GN0JyS1cskvDq4alaqz0ApKGW5xd8"
+            fill
+            sizes="100vw"
+            priority
           />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/60 to-transparent" />
         </div>
@@ -91,10 +95,12 @@ export default async function TutorialsPage() {
           {VIDEO_CARDS.map((card) => (
             <div key={card.title} className="group cursor-pointer">
               <div className="relative aspect-[4/5] overflow-hidden mb-6 rounded-lg bg-surface-container-low">
-                <img
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                <Image
+                  className="object-cover transition-transform duration-700 group-hover:scale-110"
                   alt={card.title}
                   src={card.image}
+                  fill
+                  sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                 />
                 {/* Play overlay */}
                 <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
@@ -134,10 +140,12 @@ export default async function TutorialsPage() {
           <div className="grid grid-cols-12 gap-8">
             {/* Large card */}
             <div className="col-span-12 md:col-span-7 h-[300px] md:h-[600px] relative group overflow-hidden rounded-xl">
-              <img
-                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+              <Image
+                className="object-cover transition-transform duration-1000 group-hover:scale-105"
                 alt="Revistas y frascos de botica sobre mármol"
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwI_0xF-I9cpCcCfdQRtUVNpn9lxScPpns1cQLTlfCixm7gdsZ9be123pbheyCifSPNDEB9PHgbDSgoka2Mj5w8g9r5yaPxuiA8zTSV4MSzOfvNF6L--ogCboeHeGdm30teRydMzAKNwzgpwZz6FcXwSlHXhwfejwgppIVdqO9es1Dbd_eVA7zF8j_PEyC-_vBmv31TvhfALLlaXZJ5mJzH1PuCJRu4ow1cJqK1gCDVCWJSnShc9Lz2HAjcXbQMijmNtV54Nvt0E0"
+                fill
+                sizes="(min-width: 1024px) 60vw, 100vw"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-primary via-transparent to-transparent" />
               <div className="absolute bottom-6 left-6 right-6 md:bottom-10 md:left-10 md:right-10">
@@ -250,10 +258,12 @@ export default async function TutorialsPage() {
             {SHOP_ITEMS.map((item) => (
               <div key={item.name} className="text-center group">
                 <div className="bg-surface-container-lowest aspect-square p-8 mb-4 overflow-hidden relative">
-                  <img
-                    className="w-full h-full object-contain mix-blend-multiply group-hover:scale-110 transition-transform"
+                  <Image
+                    className="object-contain mix-blend-multiply group-hover:scale-110 transition-transform"
                     alt={item.name}
                     src={item.image}
+                    fill
+                    sizes="(min-width: 768px) 25vw, 50vw"
                   />
                   <button className="absolute bottom-0 left-0 right-0 bg-primary text-on-primary py-3 translate-y-full group-hover:translate-y-0 transition-transform font-label text-[10px] uppercase tracking-widest">
                     Agregar

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import type { Slide } from "@/lib/types";
 
@@ -37,10 +38,13 @@ export default function HeroCarousel({ slides }: { slides: Slide[] }) {
             i === current ? "opacity-100" : "opacity-0"
           }`}
         >
-          <img
-            className="w-full h-full object-cover object-center"
+          <Image
+            className="object-cover object-center"
             src={slide.image}
             alt={slide.title}
+            fill
+            sizes="100vw"
+            priority={i === 0}
           />
           <div className="absolute inset-0 hero-gradient" />
         </div>

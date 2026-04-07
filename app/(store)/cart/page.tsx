@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { useEffect, useState } from "react";
 
@@ -49,7 +50,14 @@ export default function CartPage() {
                 <div key={item.id} className="grid grid-cols-1 md:grid-cols-6 gap-6 items-center border-b border-surface-variant/30 pb-8">
                   <div className="col-span-3 flex gap-6 items-center">
                     <div className="w-24 h-32 bg-surface-container shrink-0">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        width={96}
+                        height={128}
+                        className="w-full h-full object-cover"
+                        sizes="96px"
+                      />
                     </div>
                     <div>
                       <span className="text-[10px] uppercase tracking-[0.2em] text-on-surface/40 font-bold block mb-1">{item.category}</span>

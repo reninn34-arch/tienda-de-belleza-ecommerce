@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import CartIcon from "./CartIcon";
 import SearchBar from "./SearchBar";
 import NavSidebar from "./NavSidebar";
@@ -28,7 +29,14 @@ export default async function Navbar() {
           className="absolute left-1/2 -translate-x-1/2 flex items-center"
         >
           {logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="h-10 w-auto object-contain" />
+            <Image
+              src={logoUrl}
+              alt="Logo"
+              width={160}
+              height={40}
+              className="h-10 w-40 object-contain"
+              sizes="160px"
+            />
           ) : (
             <span className="text-2xl font-headline italic text-primary tracking-tight whitespace-nowrap">
               The Editorial Alchemist

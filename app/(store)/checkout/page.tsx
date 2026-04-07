@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { useState, useEffect } from "react";
 
@@ -464,7 +465,13 @@ export default function CheckoutPage() {
                 {cart.map((item) => (
                   <div key={item.id} className="flex gap-4 items-center">
                     <div className="relative w-16 h-20 bg-white border border-outline-variant/30 rounded flex-shrink-0 overflow-hidden">
-                      <img alt={item.name} className="w-full h-full object-cover" src={item.image} />
+                      <Image
+                        alt={item.name}
+                        src={item.image}
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                      />
                       <span className="absolute -top-2 -right-2 w-5 h-5 bg-outline text-white text-[10px] flex items-center justify-center rounded-full">
                         {item.quantity}
                       </span>

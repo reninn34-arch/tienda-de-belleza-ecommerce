@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Product {
   id: string;
@@ -150,7 +151,14 @@ export default function AdminProductsPage() {
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-11 h-14 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
-                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          width={44}
+                          height={56}
+                          className="w-full h-full object-cover"
+                          sizes="44px"
+                        />
                       </div>
                       <div>
                         <p className="font-semibold text-gray-900">{product.name}</p>

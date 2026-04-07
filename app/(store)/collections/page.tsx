@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getAllProducts, getCollectionsPage } from "@/lib/data";
 
 export default async function CollectionsPage() {
@@ -21,10 +22,13 @@ export default async function CollectionsPage() {
       {/* Hero */}
       <section className="relative h-[60vh] flex items-end overflow-hidden">
         <div className="absolute inset-0 hero-gradient z-10" />
-        <img
+        <Image
           src={hero.image}
           alt={hero.title}
-          className="absolute inset-0 w-full h-full object-cover scale-105"
+          fill
+          className="object-cover scale-105"
+          sizes="100vw"
+          priority
         />
         <div className="relative z-20 px-6 md:px-12 pb-10 md:pb-20 max-w-[1440px] w-full mx-auto">
           <span className="text-[10px] font-label uppercase tracking-[0.4em] text-white/60 mb-4 block">
@@ -65,11 +69,13 @@ export default async function CollectionsPage() {
               {/* Image */}
               <div className={`relative group overflow-hidden ${!isEven ? "lg:col-start-2" : ""}`}>
                 <Link href={`/collections/${col.id}`} className="block">
-                <div className="aspect-[4/5] overflow-hidden">
-                  <img
+                <div className="relative aspect-[4/5] overflow-hidden">
+                  <Image
                     src={col.image}
                     alt={col.title}
-                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                    fill
+                    className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                    sizes="(min-width: 1024px) 50vw, 100vw"
                   />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -95,11 +101,13 @@ export default async function CollectionsPage() {
                   <div className="flex gap-4 mb-10">
                     {featuredProducts.map((p) => (
                       <Link key={p.id} href={`/products/${p.id}`} className="group/card flex flex-col gap-2 w-28">
-                        <div className="aspect-square overflow-hidden bg-surface-container">
-                          <img
+                        <div className="relative aspect-square overflow-hidden bg-surface-container">
+                          <Image
                             src={p.image}
                             alt={p.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-110"
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover/card:scale-110"
+                            sizes="112px"
                           />
                         </div>
                         <span className="text-[9px] font-bold uppercase tracking-wider text-primary line-clamp-2">

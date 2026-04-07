@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Product } from "@/lib/types";
 import { useCart } from "@/context/CartContext";
 
@@ -11,10 +12,12 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <div className="group card-hover flex flex-col bg-white editorial-shadow relative">
       <Link href={`/products/${product.id}`} className="block relative aspect-[3/4] overflow-hidden bg-surface-container">
-        <img 
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" 
-          alt={product.name} 
+        <Image
+          className="object-cover group-hover:scale-110 transition-transform duration-1000"
+          alt={product.name}
           src={product.image}
+          fill
+          sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
         />
         <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
         

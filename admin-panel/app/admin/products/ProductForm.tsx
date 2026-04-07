@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 interface Category {
@@ -76,6 +77,12 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
   const [scienceIconPickerOpen, setScienceIconPickerOpen] = useState<number | null>(null);
   const [toast, setToast] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
+
+  const slugify = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
 
   useEffect(() => {
     fetch("/api/admin/settings")
@@ -207,8 +214,10 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    const autoId = form.id.trim() || slugify(form.name);
     const body = {
       ...form,
+      id: autoId || undefined,
       price: parseFloat(form.price) || 0,
       stock: form.stock ? parseInt(form.stock, 10) : undefined,
       cost: form.cost ? parseFloat(form.cost) : undefined,
@@ -266,7 +275,14 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
           <div className="flex gap-5 items-start">
             <div className="w-28 h-36 rounded-xl bg-gray-100 overflow-hidden border border-gray-200 flex-shrink-0 flex items-center justify-center">
               {form.image ? (
-                <img src={form.image} alt="preview" className="w-full h-full object-cover" />
+                <Image
+                  src={form.image}
+                  alt="preview"
+                  width={112}
+                  height={144}
+                  className="w-full h-full object-cover"
+                  sizes="112px"
+                />
               ) : (
                 <span className="material-symbols-outlined text-gray-300 text-3xl">image</span>
               )}
@@ -521,7 +537,15 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
               {form.gallery.map((url, i) => (
                 <div key={i} className="space-y-1">
                   <div className="relative group aspect-square rounded-xl overflow-hidden bg-gray-50 border border-gray-200">
-                    {url && <img src={url} alt="" className="w-full h-full object-cover" />}
+                    {url && (
+                      <Image
+                        src={url}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="(min-width: 1024px) 33vw, 50vw"
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => removeGalleryImage(i)}

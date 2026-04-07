@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import LinkPicker from "@/components/LinkPicker";
 
 interface VentajaItem { icon: string; title: string; desc: string; }
@@ -362,7 +363,14 @@ export default function AdminContentPage() {
               </div>
               {branding.logoUrl && (
                 <div className="mt-3 bg-[#faf9f6] border border-gray-100 rounded-xl px-4 py-3 inline-flex items-center">
-                  <img src={branding.logoUrl} alt="Logo preview" className="h-10 max-w-[200px] object-contain" />
+                  <Image
+                    src={branding.logoUrl}
+                    alt="Logo preview"
+                    width={200}
+                    height={40}
+                    className="h-10 max-w-[200px] object-contain"
+                    sizes="200px"
+                  />
                 </div>
               )}
               <p className="text-[10px] text-gray-400 mt-1.5">Recomendado: PNG transparente, altura ~40px. Si está vacío se muestra el nombre de texto.</p>
@@ -401,7 +409,14 @@ export default function AdminContentPage() {
               </div>
               {branding.faviconUrl && (
                 <div className="mt-3 bg-[#faf9f6] border border-gray-100 rounded-xl px-4 py-3 inline-flex items-center gap-3">
-                  <img src={branding.faviconUrl} alt="Favicon preview" className="w-8 h-8 object-contain" />
+                  <Image
+                    src={branding.faviconUrl}
+                    alt="Favicon preview"
+                    width={32}
+                    height={32}
+                    className="w-8 h-8 object-contain"
+                    sizes="32px"
+                  />
                   <span className="text-[11px] text-gray-400">Vista previa del favicon</span>
                 </div>
               )}
@@ -593,7 +608,14 @@ export default function AdminContentPage() {
                     </button>
                   </div>
                   {slide.image && (
-                    <img src={slide.image} alt="preview" className="mt-2 h-24 w-full object-cover rounded-xl" />
+                    <Image
+                      src={slide.image}
+                      alt="preview"
+                      width={640}
+                      height={192}
+                      className="mt-2 h-24 w-full object-cover rounded-xl"
+                      sizes="100vw"
+                    />
                   )}
                 </div>
 

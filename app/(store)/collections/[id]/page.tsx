@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getCollectionById } from "@/lib/data";
@@ -26,10 +27,13 @@ export default async function CollectionPage({ params }: Props) {
     <div className="pt-20 min-h-screen bg-background">
       {/* Hero */}
       <section className="relative h-[70vh] flex items-end overflow-hidden">
-        <img
+        <Image
           src={collection.image}
           alt={collection.title}
-          className="absolute inset-0 w-full h-full object-cover"
+          fill
+          className="object-cover"
+          sizes="100vw"
+          priority
         />
         <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-primary/20 to-transparent" />
         <div className="relative z-10 max-w-[1440px] w-full mx-auto px-8 lg:px-16 pb-20">

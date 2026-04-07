@@ -1,4 +1,5 @@
 ﻿import Link from "next/link";
+import Image from "next/image";
 import ProductCarousel from "@/components/store/ProductCarousel";
 import HeroCarousel from "@/components/store/HeroCarousel";
 import NewsletterForm from "@/components/store/NewsletterForm";
@@ -63,11 +64,13 @@ export default async function Home() {
             {/* Antes / DespuÃ©s */}
             <div className="relative grid grid-cols-2 gap-4">
               <div className="space-y-4">
-                <div className="relative">
-                  <img
+                <div className="relative aspect-[4/5] overflow-hidden rounded-lg shadow-lg">
+                  <Image
                     alt="Antes"
-                    className="w-full aspect-[4/5] object-cover rounded-lg shadow-lg"
                     src={tr?.beforeImage ?? "https://lh3.googleusercontent.com/aida-public/AB6AXuCpcWDWGgWOynQGcDLIlQ34QG6QNBZ1wNXtqL-iGsfFG1lHGCS0exS9LqjKAGjXUOj1BEKH6igTfnUVwmjdAqSh3kzVaIYiv_r3vC2cEyMRaTPBmZsHKqOeJhafwBQOLB_67g1rdIRUf78g-tTlpQZcVLCEIlY-ZTAJ76f8gdgaxIN58nLGiCkEXL1n52QH-o5EJwa4zyEhrEYe1OKQliK469Ur0qbwvshHIcjbG0q55goAVbP-51A3iGFdevbnGgW5F76VhBs_hRE"}
+                    fill
+                    className="object-cover"
+                    sizes="(min-width: 1024px) 25vw, 50vw"
                   />
                   <span className="absolute bottom-4 left-4 bg-black/60 text-white text-[8px] uppercase tracking-widest px-2 py-1 rounded">
                     Antes
@@ -75,11 +78,13 @@ export default async function Home() {
                 </div>
               </div>
               <div className="space-y-4 pt-12">
-                <div className="relative">
-                  <img
+                <div className="relative aspect-[4/5] overflow-hidden rounded-lg shadow-2xl">
+                  <Image
                     alt="DespuÃ©s"
-                    className="w-full aspect-[4/5] object-cover rounded-lg shadow-2xl"
                     src={tr?.afterImage ?? "https://lh3.googleusercontent.com/aida-public/AB6AXuBoPXafMaVEeaWVGngx9QNc2UOTiaZAobP_GHHeLF3zcJ9IONaHZfxyK2ctbLimWlxuIjwreWiidHJo4af_18vpj8CpYbkh2Rqu-ZePX8Uln9tVMPbSQTtxMCXBkV2K66JsdOx67nG_9dq1ymQFdXGPZtPRrV_VDo_X3nftNWxRWoMIo9bHIa0qizoLW4ukk5XJW6ILODmxmQYr0mo0PQRqYlCJ-Vn86ur6SDRVTFEkufUcHDuLpNfjbQ1u8NwU8QLXzjmfkR2Oc_c"}
+                    fill
+                    className="object-cover"
+                    sizes="(min-width: 1024px) 25vw, 50vw"
                   />
                   <span className="absolute bottom-4 left-4 bg-secondary text-white text-[8px] uppercase tracking-widest px-2 py-1 rounded font-bold">
                     {tr?.afterLabel ?? "DespuÃ©s"}
@@ -99,11 +104,13 @@ export default async function Home() {
                   &ldquo;{tr?.quote ?? ""}&rdquo;
                 </p>
                 <div className="mt-8 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full overflow-hidden">
-                    <img
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden">
+                    <Image
                       alt={tr?.authorName ?? ""}
-                      className="w-full h-full object-cover"
                       src={tr?.authorImage ?? "https://lh3.googleusercontent.com/aida-public/AB6AXuB7MXnNnmd1qzHzru38uSNZ2MeGoKnL1vcso0OcZ9T821b6hXZZ19fce-SFv-KQ1SdPKIqRYVt2dfUIvR2eFQlfJYa0q3VubVqysyYtQiTsiTFuGsYJc1EbKpmsDlac8WRx94LFL161WzVyk69Zq5ts4YXWv0LapmSmVRpksM5lR9EALZwz8KNF-zfBV74xXHABpMUSszZTBXFc6RJXRoWZ_THoIy0CczNAWkZbaRFZUTJ-NtyNsbf6m0scPl6BRA8-TNaFF5oEKz4"}
+                      fill
+                      className="object-cover"
+                      sizes="48px"
                     />
                   </div>
                   <div>
@@ -155,10 +162,12 @@ export default async function Home() {
             <div className="md:col-span-7 group cursor-pointer relative">
               <Link href={`/collections/${collections[0].id}`} className="block">
                 <div className="relative aspect-[4/5] md:aspect-auto md:h-[700px] overflow-hidden rounded-lg">
-                  <img
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]"
+                  <Image
+                    className="object-cover group-hover:scale-105 transition-transform duration-[2000ms]"
                     alt={collections[0].title}
                     src={collections[0].image}
+                    fill
+                    sizes="(min-width: 1024px) 60vw, 100vw"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
                   <div className="absolute bottom-6 left-6 sm:bottom-12 sm:left-12 text-white z-10">
@@ -182,10 +191,12 @@ export default async function Home() {
                 <div key={col.id} className="group cursor-pointer">
                   <Link href={`/collections/${col.id}`} className="block">
                     <div className="relative aspect-[4/3] overflow-hidden rounded-lg">
-                      <img
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms]"
+                      <Image
+                        className="object-cover group-hover:scale-105 transition-transform duration-[2000ms]"
                         alt={col.title}
                         src={col.image}
+                        fill
+                        sizes="(min-width: 1024px) 35vw, 100vw"
                       />
                       <div className="absolute inset-0 bg-black/10" />
                       <div className="absolute inset-0 flex flex-col justify-end p-10 bg-gradient-to-t from-black/40 to-transparent">

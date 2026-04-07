@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { use } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface OrderProduct { id: string; name: string; price: number; quantity: number; image?: string; }
 interface Order {
@@ -144,7 +145,14 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               {order.products.map((p) => (
                 <div key={p.id} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
                   {p.image ? (
-                    <img src={p.image} alt={p.name} className="w-14 h-16 object-cover rounded-lg shrink-0 bg-gray-100" />
+                    <Image
+                      src={p.image}
+                      alt={p.name}
+                      width={56}
+                      height={64}
+                      className="w-14 h-16 object-cover rounded-lg shrink-0 bg-gray-100"
+                      sizes="56px"
+                    />
                   ) : (
                     <div className="w-14 h-16 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center">
                       <span className="material-symbols-outlined text-gray-300 text-2xl">image_not_supported</span>

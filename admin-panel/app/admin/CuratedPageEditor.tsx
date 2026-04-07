@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 interface Product {
   id: string;
@@ -195,7 +196,14 @@ export default function CuratedPageEditor({ settingsKey, pageTitle, storeHref }:
                     </button>
                   </div>
                   <div className="w-10 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      width={40}
+                      height={48}
+                      className="w-full h-full object-cover"
+                      sizes="40px"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>
@@ -227,7 +235,14 @@ export default function CuratedPageEditor({ settingsKey, pageTitle, storeHref }:
               {unselected.map((product) => (
                 <li key={product.id} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors">
                   <div className="w-10 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      width={40}
+                      height={48}
+                      className="w-full h-full object-cover"
+                      sizes="40px"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{product.name}</p>

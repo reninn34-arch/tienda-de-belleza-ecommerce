@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getPageBySlug, getAllProducts } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { PageBlock } from "@/lib/types";
@@ -47,10 +48,12 @@ export default async function CustomPage({ params }: { params: Promise<{ slug: s
             return (
               <div key={block.id} className="relative rounded-3xl overflow-hidden bg-[#33172c]/10 min-h-[340px] flex items-end">
                 {block.image && (
-                  <img
+                  <Image
                     src={block.image}
                     alt={block.title ?? ""}
-                    className="absolute inset-0 w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="100vw"
                   />
                 )}
                 <div className="relative z-10 p-10 bg-gradient-to-t from-black/60 via-black/20 to-transparent w-full">

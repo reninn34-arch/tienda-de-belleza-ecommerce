@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 
 interface Collection {
   id: string;
@@ -205,7 +206,14 @@ export default function AdminCollectionsPage() {
               </button>
             </div>
             {page.hero.image && (
-              <img src={page.hero.image} alt="hero preview" className="mt-2 h-32 w-full object-cover rounded-xl" />
+              <Image
+                src={page.hero.image}
+                alt="hero preview"
+                width={640}
+                height={256}
+                className="mt-2 h-32 w-full object-cover rounded-xl"
+                sizes="100vw"
+              />
             )}
           </div>
 
@@ -331,7 +339,14 @@ export default function AdminCollectionsPage() {
                     </button>
                   </div>
                   {col.image && (
-                    <img src={col.image} alt="preview" className="mt-2 h-24 w-full object-cover rounded-xl" />
+                    <Image
+                      src={col.image}
+                      alt="preview"
+                      width={640}
+                      height={192}
+                      className="mt-2 h-24 w-full object-cover rounded-xl"
+                      sizes="100vw"
+                    />
                   )}
                 </div>
 
@@ -379,7 +394,14 @@ export default function AdminCollectionsPage() {
                                 : "border-gray-100 hover:border-gray-200"
                             }`}
                           >
-                            <img src={p.image} alt={p.name} className="w-8 h-8 object-cover rounded-lg flex-shrink-0" />
+                            <Image
+                              src={p.image}
+                              alt={p.name}
+                              width={32}
+                              height={32}
+                              className="w-8 h-8 object-cover rounded-lg flex-shrink-0"
+                              sizes="32px"
+                            />
                             <span className="text-[11px] font-medium text-gray-700 line-clamp-2 leading-tight flex-1">{p.name}</span>
                             {checked && (
                               <span className="ml-auto text-[#33172c] flex-shrink-0">
