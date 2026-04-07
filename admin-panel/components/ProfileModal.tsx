@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export interface AdminProfile {
   name: string;
@@ -33,9 +33,10 @@ interface Props {
 }
 
 export default function ProfileModal({ onClose }: Props) {
-  const [profile, setProfile] = useState<AdminProfile>(DEFAULT_PROFILE);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const initialProfile = getAdminProfile();
+  const [profile, setProfile] = useState<AdminProfile>(initialProfile);
+  const [name, setName] = useState(initialProfile.name);
+  const [email, setEmail] = useState(initialProfile.email);
   const [currentPwd, setCurrentPwd] = useState("");
   const [newPwd, setNewPwd] = useState("");
   const [confirmPwd, setConfirmPwd] = useState("");
@@ -45,13 +46,6 @@ export default function ProfileModal({ onClose }: Props) {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-
-  useEffect(() => {
-    const p = getAdminProfile();
-    setProfile(p);
-    setName(p.name);
-    setEmail(p.email);
-  }, []);
 
   function saveInfo(e: React.FormEvent) {
     e.preventDefault();

@@ -71,7 +71,7 @@ export default function AdminShippingPage() {
     setMethods((prev) => prev.map((m) => m.id === id ? { ...m, [key]: value } : m));
   }
 
-  async function saveMethod(id: string) {
+  async function saveMethod() {
     await save(methods);
     setEditing(null);
   }
@@ -222,7 +222,7 @@ export default function AdminShippingPage() {
                 </div>
                 <div className="flex gap-3 mt-4">
                   <button onClick={() => setEditing(null)} className="px-5 py-2 border border-gray-200 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors">Cancelar</button>
-                  <button onClick={() => saveMethod(method.id)} disabled={saving} className="px-5 py-2 bg-[#33172c] text-white rounded-xl text-sm font-bold hover:bg-[#4b2c42] transition-colors">Guardar</button>
+                  <button onClick={() => saveMethod()} disabled={saving} className="px-5 py-2 bg-[#33172c] text-white rounded-xl text-sm font-bold hover:bg-[#4b2c42] transition-colors">Guardar</button>
                 </div>
               </div>
             )}

@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   const tag = request.nextUrl.searchParams.get("tag") as ValidTag | null;
 
   if (tag && VALID_TAGS.includes(tag)) {
-    // @ts-ignore: Next.js exige 2 argumentos en los tipos de esta versión, pero falla en ejecución si pasamos un objeto.
+    // @ts-expect-error: Next.js exige 2 argumentos en los tipos de esta versión, pero falla en ejecución si pasamos un objeto.
     revalidateTag(tag);
     revalidatePath("/", "layout");
     return NextResponse.json({ revalidated: true, tag });
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
   // No tag → revalidate everything
   for (const t of VALID_TAGS) {
-    // @ts-ignore
+    // @ts-expect-error: Tipos exigen 2 argumentos, pero esta versión rompe en runtime si pasamos el objeto.
     revalidateTag(t);
   }
   revalidatePath("/", "layout");

@@ -2,6 +2,7 @@ import "dotenv/config";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { db } from "../lib/db";
+import { Prisma } from "../lib/generated/prisma/client";
 import bcrypt from "bcryptjs";
 
 function readJson<T>(file: string): T {
@@ -80,11 +81,11 @@ async function main() {
         image: p.image ?? null,
         badge: p.badge ?? null,
         stock: p.stock ?? 0,
-        features: (p.features ?? []) as any[],
-        gallery: (p.gallery ?? []) as any[],
-        swatches: (p.swatches ?? []) as any[],
-        reviews: (p.reviews ?? []) as any[],
-        highlights: (p.highlights ?? []) as any[],
+        features: (p.features ?? []) as string[],
+        gallery: (p.gallery ?? []) as string[],
+        swatches: (p.swatches ?? []) as Prisma.JsonArray,
+        reviews: (p.reviews ?? []) as Prisma.JsonArray,
+        highlights: (p.highlights ?? []) as Prisma.JsonArray,
       },
     });
   }
@@ -125,8 +126,8 @@ async function main() {
   const settings = readJson<Record<string, unknown>>("settings.json");
   await db.settings.upsert({
     where: { id: 1 },
-    update: { data: settings as any },
-    create: { id: 1, data: settings as any },
+    update: { data: settings as Prisma.JsonObject },
+    create: { id: 1, data: settings as Prisma.JsonObject },
   });
   console.log("  ✔ settings");
 
@@ -139,7 +140,7 @@ async function main() {
         id: page.id,
         title: page.title,
         slug: page.slug,
-        blocks: (page.blocks ?? []) as any[],
+        blocks: (page.blocks ?? []) as Prisma.JsonArray,
         published: page.published ?? false,
       },
     });
@@ -149,8 +150,8 @@ async function main() {
   const tutorials = readJson<Record<string, unknown>>("tutorials.json");        
   await db.tutorials.upsert({
     where: { id: 1 },
-    update: { data: tutorials as any },
-    create: { id: 1, data: tutorials as any },
+    update: { data: tutorials as Prisma.JsonObject },
+    create: { id: 1, data: tutorials as Prisma.JsonObject },
   });
   console.log("  ✔ tutorials");
 

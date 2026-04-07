@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAdminProfile } from "@/components/ProfileModal";
 
 export default function LoginForm({ storeName }: { storeName: string }) {
   const router = useRouter();

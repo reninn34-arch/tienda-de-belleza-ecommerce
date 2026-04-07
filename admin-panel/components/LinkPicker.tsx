@@ -7,8 +7,6 @@ interface Collection { id: string; title: string; }
 interface Page { id: string; title: string; slug: string; published: boolean; }
 interface Policy { id: string; title: string; slug: string; }
 
-type LinkType = "all" | "product" | "category" | "collection" | "custom";
-
 interface LinkPickerProps {
   label: string;
   value: string;
@@ -26,21 +24,12 @@ const STATIC_LINKS = [
   { label: "Carrito", href: "/cart" },
 ];
 
-function detectType(val: string): LinkType {
-  if (!val) return "custom";
-  if (val.startsWith("/products/")) return "product";
-  if (val.startsWith("/products?category=")) return "category";
-  if (val.startsWith("/collections/")) return "collection";
-  return "custom";
-}
-
 export default function LinkPicker({ label, value, onChange, scope = "all" }: LinkPickerProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [pages, setPages] = useState<Page[]>([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
-  const [type, setType] = useState<LinkType>(detectType(value));
   const [open, setOpen] = useState(false);
 
   useEffect(() => {

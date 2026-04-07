@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('fs');
 const path = require('path');
 
@@ -9,7 +10,6 @@ function processDir(dir) {
       processDir(fullPath);
     } else if (fullPath.endsWith('route.ts')) {
       let content = fs.readFileSync(fullPath, 'utf8');
-      let changed = false;
 
       // match export async function POST(request: NextRequest, etc)
       // replace headers: { "Content-Type": "application/json" }

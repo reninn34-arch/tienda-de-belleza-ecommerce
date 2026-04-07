@@ -97,7 +97,7 @@ export default function CategoriesPage() {
             </div>
             <h3 className="text-lg font-bold text-center text-gray-900 mb-2">¿Eliminar categoría?</h3>
             <p className="text-sm text-gray-500 text-center mb-1">
-              <strong>"{categories[deleteIndex]?.label}"</strong>
+              <strong>&quot;{categories[deleteIndex]?.label}&quot;</strong>
             </p>
             <p className="text-xs text-gray-400 text-center mb-6">
               Los productos con esta categoría no se borrarán, pero quedarán sin categoría reconocida en los filtros.

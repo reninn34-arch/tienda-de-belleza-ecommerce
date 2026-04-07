@@ -52,29 +52,58 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       });
   }, [id]);
 
+  async function refetchOrder() {
+    const res = await fetch(`/api/admin/orders/${id}`);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.error?.message ?? data?.error ?? "Error al cargar el pedido");
+    }
+    setOrder(data);
+    setStatus(data.status);
+    setNotes(data.notes ?? "");
+  }
+
+  async function updateOrder(payload: { status?: string; notes?: string }) {
+    const res = await fetch(`/api/admin/orders/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.error?.message ?? data?.error ?? "No se pudo actualizar el pedido");
+    }
+  }
+
   async function handleSaveStatus(newStatus: string) {
     setStatus(newStatus);
     setSaving(true);
-    await fetch(`/api/admin/orders/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus, notes }),
-    });
-    setSaving(false);
-    setToast("Estado actualizado.");
-    setTimeout(() => setToast(""), 3000);
+    try {
+      await updateOrder({ status: newStatus, notes });
+      await refetchOrder();
+      setToast("Estado actualizado.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No se pudo actualizar el estado";
+      setToast(message);
+    } finally {
+      setSaving(false);
+      setTimeout(() => setToast(""), 3000);
+    }
   }
 
   async function handleSaveNotes() {
     setSaving(true);
-    await fetch(`/api/admin/orders/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, notes }),
-    });
-    setSaving(false);
-    setToast("Notas guardadas.");
-    setTimeout(() => setToast(""), 3000);
+    try {
+      await updateOrder({ status, notes });
+      await refetchOrder();
+      setToast("Notas guardadas.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No se pudieron guardar las notas";
+      setToast(message);
+    } finally {
+      setSaving(false);
+      setTimeout(() => setToast(""), 3000);
+    }
   }
 
   if (loading) return <div className="p-4 sm:p-8 flex justify-center"><span className="w-7 h-7 border-2 border-[#33172c] border-t-transparent rounded-full animate-spin" /></div>;

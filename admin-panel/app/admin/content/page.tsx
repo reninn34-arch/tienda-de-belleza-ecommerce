@@ -697,7 +697,7 @@ export default function AdminContentPage() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">La Ventaja Alquímica</h2>
-              <p className="text-[11px] text-gray-400 mt-1">Sección "Por qué lo Amarás" en la página de inicio.</p>
+              <p className="text-[11px] text-gray-400 mt-1">Sección &quot;Por qué lo Amarás&quot; en la página de inicio.</p>
             </div>
             <button
               onClick={addVentajaItem}

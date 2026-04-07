@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAdminProfile, saveAdminProfile, type AdminProfile } from "@/components/ProfileModal";
 
@@ -44,10 +44,11 @@ function PasswordInput({
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<AdminProfile | null>(null);
+  const initialProfile = getAdminProfile();
+  const [profile, setProfile] = useState<AdminProfile | null>(initialProfile);
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(initialProfile.name);
+  const [email, setEmail] = useState(initialProfile.email);
   const [infoSaved, setInfoSaved] = useState(false);
 
   const [currentPwd, setCurrentPwd] = useState("");
@@ -58,13 +59,6 @@ export default function ProfilePage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [pwdError, setPwdError] = useState("");
   const [pwdSaved, setPwdSaved] = useState(false);
-
-  useEffect(() => {
-    const p = getAdminProfile();
-    setProfile(p);
-    setName(p.name);
-    setEmail(p.email);
-  }, []);
 
   function saveInfo(e: React.FormEvent) {
     e.preventDefault();

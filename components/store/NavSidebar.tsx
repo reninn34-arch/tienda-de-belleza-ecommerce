@@ -42,8 +42,14 @@ export default function NavSidebar({ customPages, collections, socialLinks }: { 
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const pathname = usePathname();
 
-  useEffect(() => { setMounted(true); }, []);
-  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOpen(false);
+  }, [pathname]);
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };

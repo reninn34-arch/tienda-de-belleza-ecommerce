@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getCollectionById, getAllProducts } from "@/lib/data";
+import { getCollectionById } from "@/lib/data";
 import ProductCard from "@/components/store/ProductCard";
 
 interface Props {

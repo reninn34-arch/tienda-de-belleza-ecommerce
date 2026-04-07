@@ -1,7 +1,13 @@
 import { Router, Request, Response } from "express";
+import { z } from "zod";
+import { Prisma } from "../../../lib/generated/prisma/client";
 import { db } from "../../../lib/db";
+import { sendError } from "../lib/errors";
+import { logAdminAction } from "../lib/audit";
 
 const router = Router();
+
+const settingsSchema = z.record(z.unknown());
 
 function deepMerge(
   target: Record<string, unknown>,
@@ -27,14 +33,29 @@ router.get("/", async (_req: Request, res: Response) => {
 });
 
 router.put("/", async (req: Request, res: Response) => {
-  const body = req.body as Record<string, unknown>;
+  const parsed = settingsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    sendError(res, 400, {
+      code: "VALIDATION_ERROR",
+      message: "Payload inválido",
+      details: parsed.error.flatten(),
+    });
+    return;
+  }
+  const body = parsed.data;
   const row = await db.settings.findUnique({ where: { id: 1 } });
   const current = (row?.data as Record<string, unknown>) ?? {};
-  const updated = deepMerge(current, body);
+  const updated = deepMerge(current, body) as Prisma.JsonObject;
   await db.settings.upsert({
     where: { id: 1 },
-    update: { data: updated as any },
-    create: { id: 1, data: updated as any },
+    update: { data: updated },
+    create: { id: 1, data: updated },
+  });
+  await logAdminAction(req, {
+    action: "settings.update",
+    entity: "settings",
+    entityId: "1",
+    details: { keys: Object.keys(body) },
   });
   res.json(updated);
 });

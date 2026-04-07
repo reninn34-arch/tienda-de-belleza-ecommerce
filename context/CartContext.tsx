@@ -16,19 +16,17 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>([]);
-
-  // Load from local storage
-  useEffect(() => {
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    if (typeof window === "undefined") return [];
     const savedCart = localStorage.getItem("blush_cart");
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (e) {
-        console.error("Failed to parse cart", e);
-      }
+    if (!savedCart) return [];
+    try {
+      return JSON.parse(savedCart) as CartItem[];
+    } catch (e) {
+      console.error("Failed to parse cart", e);
+      return [];
     }
-  }, []);
+  });
 
   // Save to local storage
   useEffect(() => {

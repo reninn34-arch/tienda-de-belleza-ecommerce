@@ -44,7 +44,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notif[]>([]);
-  const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
   const buildNotifs = useCallback((orders: Record<string, unknown>[], products: Record<string, unknown>[], read: Set<string>): Notif[] => {
     const notifs: Notif[] = [];
@@ -131,6 +130,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       });
 
     if (pathname === "/admin/login") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setReady(true);
       return;
     }
@@ -146,7 +146,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       // Load read IDs
       const stored = localStorage.getItem("adminReadNotifs");
       const read = new Set<string>(stored ? JSON.parse(stored) : []);
-      setReadIds(read);
 
       // Fetch data for notifications
       Promise.all([
@@ -176,18 +175,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   function markRead(id: string) {
-    setReadIds((prev) => {
-      const next = new Set(prev).add(id);
-      localStorage.setItem("adminReadNotifs", JSON.stringify([...next]));
-      setNotifications((ns) => ns.map((n) => n.id === id ? { ...n, read: true } : n));
-      return next;
+    setNotifications((ns) => {
+      const nextIds = new Set(ns.filter((n) => n.read).map((n) => n.id));
+      nextIds.add(id);
+      localStorage.setItem("adminReadNotifs", JSON.stringify([...nextIds]));
+      return ns.map((n) => n.id === id ? { ...n, read: true } : n);
     });
   }
 
   function markAllRead() {
     const ids = new Set(notifications.map((n) => n.id));
     localStorage.setItem("adminReadNotifs", JSON.stringify([...ids]));
-    setReadIds(ids);
     setNotifications((ns) => ns.map((n) => ({ ...n, read: true })));
   }
 

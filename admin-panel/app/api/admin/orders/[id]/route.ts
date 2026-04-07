@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateStore } from "@/lib/revalidate";
 
 const BACKEND = process.env.BACKEND_URL ?? "http://localhost:4000";
 
@@ -19,5 +20,6 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     body: JSON.stringify(body),
   });
   const data = await res.json();
+  if (res.ok) await revalidateStore("products");
   return NextResponse.json(data, { status: res.status });
 }

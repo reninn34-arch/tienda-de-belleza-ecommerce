@@ -42,9 +42,24 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/orders")
-      .then((r) => r.json())
-      .then((data) => { setOrders(data); setLoading(false); });
+    const fetchOrders = async () => {
+      const res = await fetch("/api/admin/orders");
+      const data = await res.json();
+      if (res.ok) {
+        setOrders(data);
+      }
+      setLoading(false);
+    };
+
+    fetchOrders();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchOrders();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
   const filtered = orders.filter((o) => {
@@ -53,7 +68,9 @@ export default function AdminOrdersPage() {
     return matchStatus && matchSearch;
   });
 
-  const revenue = orders.reduce((s, o) => s + o.total, 0);
+  const revenue = orders
+    .filter((o) => o.status !== "cancelled" && o.status !== "refunded")
+    .reduce((s, o) => s + o.total, 0);
 
   return (
     <div className="p-4 sm:p-8">

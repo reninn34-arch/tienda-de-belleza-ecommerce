@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import sharp from "sharp"; // <-- Importamos sharp
 
-const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-12345";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is required");
+}
 
 export async function POST(request: NextRequest) {
   const token = request.cookies.get("admin_token")?.value;
@@ -12,7 +15,7 @@ export async function POST(request: NextRequest) {
 
   try {
     jwt.verify(token, JWT_SECRET);
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: "Token inválido" }, { status: 401 });
   }
 

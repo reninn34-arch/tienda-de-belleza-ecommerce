@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 interface Product { id: string; name: string; price: number; category: string; cost?: number; stock?: number; image?: string; }
-interface OrderProduct { id: string; name: string; price: number; quantity: number; }
+interface OrderProduct { id: string; productId?: string; name: string; price: number; quantity: number; }
 interface Order { id: string; customer: string; total: number; status: string; date: string; items: number; paymentMethod: string; products?: OrderProduct[]; }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -79,10 +79,32 @@ export default function AnalyticsPage() {
   const [expandedPayment, setExpandedPayment] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/admin/products").then((r) => r.json()),
-      fetch("/api/admin/orders").then((r) => r.json()),
-    ]).then(([p, o]) => { setProducts(p); setOrders(o); setLoaded(true); });
+    let alive = true;
+
+    const fetchData = async () => {
+      const [p, o] = await Promise.all([
+        fetch("/api/admin/products").then((r) => r.json()),
+        fetch("/api/admin/orders").then((r) => r.json()),
+      ]);
+      if (!alive) return;
+      setProducts(p);
+      setOrders(o);
+      setLoaded(true);
+    };
+
+    fetchData();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchData();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      alive = false;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   // ── Date range filtering ──────────────────────────────────────
@@ -148,8 +170,9 @@ export default function AnalyticsPage() {
   const topProducts = (() => {
     const map = new Map<string, { name: string; units: number; revenue: number }>();
     for (const o of activeOrders) for (const p of (o.products ?? [])) {
-      const prev = map.get(p.id) ?? { name: p.name, units: 0, revenue: 0 };
-      map.set(p.id, { name: p.name, units: prev.units + p.quantity, revenue: prev.revenue + p.price * p.quantity });
+      const productId = p.productId ?? p.id;
+      const prev = map.get(productId) ?? { name: p.name, units: 0, revenue: 0 };
+      map.set(productId, { name: p.name, units: prev.units + p.quantity, revenue: prev.revenue + p.price * p.quantity });
     }
     return [...map.values()].sort((a, b) => b.units - a.units).slice(0, 8);
   })();
@@ -168,7 +191,10 @@ export default function AnalyticsPage() {
       const cost = p.cost ?? 0;
       const margin = ((p.price - cost) / p.price) * 100;
       let unitsSold = 0;
-      for (const o of activeOrders) for (const ip of (o.products ?? [])) if (ip.id === p.id) unitsSold += ip.quantity;
+      for (const o of activeOrders) for (const ip of (o.products ?? [])) {
+        const productId = ip.productId ?? ip.id;
+        if (productId === p.id) unitsSold += ip.quantity;
+      }
       const profit = (p.price - cost) * unitsSold;
       return { id: p.id, name: p.name, price: p.price, cost, margin, unitsSold, profit, image: p.image };
     });
@@ -194,7 +220,8 @@ export default function AnalyticsPage() {
   for (const o of activeOrders) {
     const catsInOrder = new Set<string>();
     for (const p of (o.products ?? [])) {
-      const cat = categoryMap.get(p.id) ?? "Otro";
+      const productId = p.productId ?? p.id;
+      const cat = categoryMap.get(productId) ?? "Otro";
       const prev = catRevMap.get(cat) ?? { rev: 0, units: 0, orders: 0 };
       catRevMap.set(cat, { rev: prev.rev + p.price * p.quantity, units: prev.units + p.quantity, orders: prev.orders });
       catsInOrder.add(cat);
@@ -207,18 +234,18 @@ export default function AnalyticsPage() {
   const catRevData = [...catRevMap.entries()]
     .sort((a, b) => b[1].rev - a[1].rev)
     .map(([cat, d]) => ({ cat, ...d, avg: d.rev / Math.max(d.orders, 1) }));
-  const catRevMax = Math.max(...catRevData.map((d) => d.rev), 1);
 
   // ── Desglose de productos por categoria ──────────────────────
   const productImageMap = new Map(productMarginsBase.map((p) => [p.id, p.image]));
   const catProductsMap = new Map<string, { id: string; name: string; image?: string; units: number; rev: number }[]>();
   for (const o of activeOrders) {
     for (const p of (o.products ?? [])) {
-      const cat = categoryMap.get(p.id) ?? "Otro";
+      const productId = p.productId ?? p.id;
+      const cat = categoryMap.get(productId) ?? "Otro";
       const arr = catProductsMap.get(cat) ?? [];
-      const existing = arr.find((x) => x.id === p.id);
+      const existing = arr.find((x) => x.id === productId);
       if (existing) { existing.units += p.quantity; existing.rev += p.price * p.quantity; }
-      else { arr.push({ id: p.id, name: p.name, image: productImageMap.get(p.id), units: p.quantity, rev: p.price * p.quantity }); catProductsMap.set(cat, arr); }
+      else { arr.push({ id: productId, name: p.name, image: productImageMap.get(productId), units: p.quantity, rev: p.price * p.quantity }); catProductsMap.set(cat, arr); }
     }
   }
   for (const [cat, arr] of catProductsMap) catProductsMap.set(cat, [...arr].sort((a, b) => b.rev - a.rev));
@@ -244,7 +271,6 @@ export default function AnalyticsPage() {
       avg: g.total / g.count, total: g.total, count: g.count,
       share: activeOrders.length > 0 ? (g.count / activeOrders.length) * 100 : 0,
     }));
-  const payAvgMax = Math.max(...paymentData.map((d) => d.avg), 1);
 
   // ── Estado de pedidos (donut) ─────────────────────────────────
   const donutTotal = rangeOrders.length || 1;
@@ -793,7 +819,7 @@ export default function AnalyticsPage() {
             )}
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {catRevData.map(({ cat, rev, units, orders, avg }, i) => {
+            {catRevData.map(({ cat, rev, units, avg }, i) => {
               const share = revenue > 0 ? (rev / revenue) * 100 : 0;
               const isTop = i === 0;
               const color = CAT_COLORS[i % CAT_COLORS.length];

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllProducts, getTutorials } from "@/lib/data";
+import { getTutorials } from "@/lib/data";
 
 
 const SHOP_ITEMS = [
@@ -34,7 +34,6 @@ const SHOP_ITEMS = [
 ];
 
 export default async function TutorialsPage() {
-  const products = (await getAllProducts()).slice(0, 4);
   const tutorials = await getTutorials();
   const VIDEO_CARDS = tutorials.videos;
   const FAQ = tutorials.faq;

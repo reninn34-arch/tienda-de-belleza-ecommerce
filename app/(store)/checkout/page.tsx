@@ -83,7 +83,6 @@ export default function CheckoutPage() {
         shipping: shippingCost,
         tax,
         status: "pending",
-        items: cart.reduce((s, i) => s + i.quantity, 0),
         shippingMethod: selectedShipping?.name ?? shippingMethod,
         paymentMethod,
         address: `${form.address}${form.apartment ? ", " + form.apartment : ""}, ${form.city}, ${form.province}, ${form.country}`,
