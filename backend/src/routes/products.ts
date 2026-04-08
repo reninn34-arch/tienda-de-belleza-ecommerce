@@ -65,10 +65,47 @@ const productUpdateSchema = z.object({
   { message: "Se requiere al menos un campo" }
 );
 
-router.get("/", async (_req: Request, res: Response) => {
+router.get("/", async (req: Request, res: Response) => {
   try {
-    const products = await db.product.findMany({ orderBy: { createdAt: "asc" } });
-    res.json(products);
+    const { category, maxPrice, sort, page, limit } = req.query;
+
+    // If any filter/pagination param is present, use server-side filtering
+    const isFiltered = category || maxPrice || sort || page || limit;
+
+    if (!isFiltered) {
+      // Legacy: return all products (used by admin, collections, curated pages, etc.)
+      const products = await db.product.findMany({ orderBy: { createdAt: "asc" } });
+      res.json(products);
+      return;
+    }
+
+    // --- Server-Side Filtering & Pagination ---
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, Number(limit) || 12));
+    const skip = (pageNum - 1) * limitNum;
+
+    // Build WHERE clause
+    const where: Record<string, unknown> = {};
+    if (typeof category === "string" && category) where.category = category;
+    if (typeof maxPrice === "string" && maxPrice) where.price = { lte: Number(maxPrice) };
+
+    // Build ORDER BY
+    let orderBy: Record<string, string> = { createdAt: "desc" };
+    if (sort === "price-asc") orderBy = { price: "asc" };
+    else if (sort === "price-desc") orderBy = { price: "desc" };
+    else if (sort === "name") orderBy = { name: "asc" };
+
+    const [products, totalItems] = await Promise.all([
+      db.product.findMany({ where, orderBy, skip, take: limitNum }),
+      db.product.count({ where }),
+    ]);
+
+    res.json({
+      products,
+      totalItems,
+      totalPages: Math.ceil(totalItems / limitNum),
+      currentPage: pageNum,
+    });
   } catch (error) {
     sendError(res, 500, { code: "INTERNAL_ERROR", message: "Error interno", details: error instanceof Error ? error.message : error });
   }

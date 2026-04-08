@@ -86,6 +86,44 @@ export async function getAllProducts(): Promise<Product[]> {
   }
 }
 
+export interface FilteredProductsResult {
+  products: Product[];
+  totalPages: number;
+  currentPage: number;
+  totalItems: number;
+}
+
+export async function getFilteredProducts({
+  category,
+  maxPrice,
+  sort = "featured",
+  page = 1,
+  limit = 12,
+}: {
+  category?: string;
+  maxPrice?: number;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}): Promise<FilteredProductsResult> {
+  try {
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (maxPrice !== undefined) params.set("maxPrice", String(maxPrice));
+    if (sort) params.set("sort", sort);
+    params.set("page", String(page));
+    params.set("limit", String(limit));
+
+    const res = await fetch(`${BACKEND}/api/products?${params.toString()}`, {
+      next: { tags: ["products"], revalidate: 0 }, // No cache — URL = unique result
+    });
+    if (!res.ok) throw new Error("Backend error");
+    return res.json() as Promise<FilteredProductsResult>;
+  } catch {
+    return { products: [], totalPages: 1, currentPage: page, totalItems: 0 };
+  }
+}
+
 export async function getCategories(): Promise<string[]> {
   const products = await getAllProducts();
   const cats = products.map((p) => p.category);
