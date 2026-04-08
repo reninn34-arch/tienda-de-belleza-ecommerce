@@ -75,7 +75,11 @@ export default async function CollectionPage({ params }: Props) {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
             {collectionProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                href={`/collections/${id}/${product.id}`}
+              />
             ))}
           </div>
         </section>

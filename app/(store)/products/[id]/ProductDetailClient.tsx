@@ -44,9 +44,13 @@ const BADGE_MAP: Record<string, string> = {
 interface Props {
   product: Product;
   relatedProducts: Product[];
+  breadcrumb?: {
+    collectionId: string;
+    collectionTitle: string;
+  };
 }
 
-export default function ProductDetailClient({ product, relatedProducts }: Props) {
+export default function ProductDetailClient({ product, relatedProducts, breadcrumb }: Props) {
   const { addToCart } = useCart();
   const [selectedSwatch, setSelectedSwatch] = useState(0);
   const [subscribeMode, setSubscribeMode] = useState(false);
@@ -135,7 +139,16 @@ export default function ProductDetailClient({ product, relatedProducts }: Props)
                 Colecciones
               </Link>
               <span className="material-symbols-outlined text-[12px]">chevron_right</span>
-              <span className="font-bold">{product.category.replace(/-/g, " ")}</span>
+              {breadcrumb ? (
+                <Link
+                  className="hover:text-white transition-colors font-bold"
+                  href={`/collections/${breadcrumb.collectionId}`}
+                >
+                  {breadcrumb.collectionTitle}
+                </Link>
+              ) : (
+                <span className="font-bold">{product.category.replace(/-/g, " ")}</span>
+              )}
             </nav>
 
             {product.badge && (

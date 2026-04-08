@@ -5,13 +5,13 @@ import Image from "next/image";
 import { Product } from "@/lib/types";
 import { useCart } from "@/context/CartContext";
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({ product, href }: { product: Product; href?: string }) {
   const { addToCart } = useCart();
   const isOutOfStock = product.stock !== undefined && Number(product.stock) <= 0;
 
   return (
     <div className="group card-hover flex flex-col bg-white editorial-shadow relative">
-      <Link href={`/products/${product.id}`} className="block relative aspect-[3/4] overflow-hidden bg-surface-container">
+      <Link href={href ?? `/products/${product.id}`} className="block relative aspect-[3/4] overflow-hidden bg-surface-container">
         <Image
           className="object-cover group-hover:scale-110 transition-transform duration-1000"
           alt={product.name}
