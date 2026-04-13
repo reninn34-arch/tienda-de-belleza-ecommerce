@@ -30,12 +30,17 @@ const CATEGORY_ICON: Record<string, string> = {
   permanent: "palette", "semi-permanent": "water_drop", treatment: "spa",
   accessories: "diamond", tools: "hardware", color: "palette",
 };
-const RANGE_OPTIONS = [
-  { label: "7 dias", value: 7 },
-  { label: "30 dias", value: 30 },
-  { label: "3 meses", value: 90 },
-  { label: "Siempre", value: 0 },
-];
+const PERIOD_MAP = {
+  "today": { label: "Hoy", days: 1 },
+  "7d": { label: "7 días", days: 7 },
+  "14d": { label: "14 días", days: 14 },
+  "30d": { label: "1 mes", days: 30 },
+  "90d": { label: "3 meses", days: 90 },
+  "180d": { label: "6 meses", days: 180 },
+  "365d": { label: "1 año", days: 365 },
+  "always": { label: "Siempre", days: 0 },
+};
+type PeriodKey = keyof typeof PERIOD_MAP;
 
 function smoothPath(pts: { x: number; y: number }[]): string {
   if (!pts.length) return "";
@@ -74,7 +79,7 @@ export default function AnalyticsPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [range, setRange] = useState(30);
+  const [range, setRange] = useState<PeriodKey>("30d");
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
   const [profitSort, setProfitSort] = useState<"profit" | "margin" | "units">("profit");
@@ -114,11 +119,20 @@ export default function AnalyticsPage() {
   }, []);
 
   // ── Date range filtering ──────────────────────────────────────
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  const rangeMs = range > 0 ? range * 86400000 : null;
-  const rangeStart = rangeMs ? new Date(today.getTime() - rangeMs) : null;
-  const prevStart = rangeMs ? new Date(today.getTime() - 2 * rangeMs) : null;
+  const now = new Date();
+  const currentPeriodDays = PERIOD_MAP[range].days;
+  
+  const rangeStart = currentPeriodDays > 0 ? new Date() : null;
+  if (rangeStart) {
+    rangeStart.setDate(now.getDate() - currentPeriodDays);
+    rangeStart.setHours(0, 0, 0, 0);
+  }
+
+  const prevStart = currentPeriodDays > 0 ? new Date() : null;
+  if (prevStart) {
+    prevStart.setDate(now.getDate() - (currentPeriodDays * 2));
+    prevStart.setHours(0, 0, 0, 0);
+  }
 
   const matchesBranch = (o: Order) => {
     if (!selectedBranchId) return true;
@@ -152,10 +166,10 @@ export default function AnalyticsPage() {
   const completedRate = rangeOrders.length > 0 ? (completedCount / rangeOrders.length) * 100 : 0;
   const prevCompletedCount = prevOrders.filter((o) => o.status === "completed").length;
   const prevCompletedRate = prevOrders.length > 0 ? (prevCompletedCount / prevOrders.length) * 100 : 0;
-  const showTrend = range > 0;
+   const showTrend = range !== "always";
 
   // ── Revenue trend chart ───────────────────────────────────────
-  const CHART_DAYS = range === 0 ? 60 : range;
+  const CHART_DAYS = range === "always" ? 60 : currentPeriodDays;
   const DAY_NAMES = ["Dom","Lun","Mar","Mie","Jue","Vie","Sab"];
   const todayStr = new Date().toISOString().split("T")[0];
   const chartData = Array.from({ length: CHART_DAYS }, (_, i) => {
@@ -327,16 +341,18 @@ export default function AnalyticsPage() {
           <p className="text-sm text-gray-500 mt-1">Rentabilidad, inventario y metricas de venta</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Range selector */}
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-0.5">
-            {RANGE_OPTIONS.map(({ label, value }) => (
-              <button key={value} onClick={() => { setRange(value); setHovered(null); }}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-                  range === value ? "bg-white text-[#33172c] shadow-sm" : "text-gray-500 hover:text-gray-600"
-                }`}>
-                {label}
-              </button>
-            ))}
+          {/* Range selector (Dashboard-style) */}
+          <div className="bg-white border border-gray-100 rounded-xl px-3 py-1.5 shadow-sm flex items-center gap-2">
+              <span className="material-symbols-outlined text-gray-400 text-sm">calendar_today</span>
+              <select 
+                value={range}
+                onChange={(e) => { setRange(e.target.value as PeriodKey); setHovered(null); }}
+                className="bg-transparent text-[11px] font-bold text-gray-600 outline-none cursor-pointer pr-1"
+              >
+                  {Object.entries(PERIOD_MAP).map(([key, val]) => (
+                    <option key={key} value={key}>{val.label}</option>
+                  ))}
+              </select>
           </div>
           {/* Branch selector */}
           <div className="flex items-center gap-2">
@@ -395,7 +411,7 @@ export default function AnalyticsPage() {
             <div>
               <h2 className="text-xs font-bold text-gray-600 uppercase tracking-widest">Tendencia de Ingresos</h2>
               <p className="text-[11px] text-gray-500 mt-0.5">
-                {range === 0 ? "Ultimos 60 dias" : `Ultimos ${range} dias`} · sin cancelados ni reembolsos
+                Vista: {PERIOD_MAP[range].label} · sin cancelados ni reembolsos
               </p>
             </div>
             {chartHasData && (
@@ -440,7 +456,12 @@ export default function AnalyticsPage() {
               })}
               <path d={areaPath} fill="url(#aGrad2)" />
               <path d={linePath} fill="none" stroke="#33172c" strokeWidth={2} strokeLinecap="round" />
-              {pts.filter((_, i) => i % labelEvery === 0 || i === CHART_DAYS - 1).map((p) => (
+              {pts.filter((_, i) => {
+                if (CHART_DAYS <= 14) return true;
+                if (CHART_DAYS <= 60) return i % 5 === 0;
+                if (CHART_DAYS <= 180) return i % 15 === 0;
+                return i % 30 === 0;
+              }).map((p) => (
                 <text key={p.date} x={p.x} y={BASELINE + 20} textAnchor="middle" fontSize={9}
                   fill={p.date === todayStr ? "#33172c" : "#9ca3af"}
                   fontWeight={p.date === todayStr ? "700" : "400"}>
