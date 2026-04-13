@@ -31,6 +31,17 @@ const STATUS_CHART_COLOR: Record<string, string> = {
   refunded: "#a855f7",
 };
 
+const PERIOD_MAP = {
+  "today": { label: "Hoy", days: 1 },
+  "7d": { label: "7 días", days: 7 },
+  "14d": { label: "14 días", days: 14 },
+  "30d": { label: "1 mes", days: 30 },
+  "90d": { label: "3 meses", days: 90 },
+  "180d": { label: "6 meses", days: 180 },
+  "365d": { label: "1 año", days: 365 },
+};
+type PeriodKey = keyof typeof PERIOD_MAP;
+
 function smoothPath(pts: { x: number; y: number }[]): string {
   if (!pts.length) return "";
   let d = `M ${pts[0].x} ${pts[0].y}`;
@@ -57,7 +68,7 @@ export default function AdminDashboardPage() {
   const [storeName, setStoreName] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
-
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>("14d");
   const [adminRole, setAdminRole] = useState<"ADMIN" | "VENDEDOR">("ADMIN");
 
   useEffect(() => {
@@ -86,13 +97,26 @@ export default function AdminDashboardPage() {
     });
   }, []);
 
-  const activeOrders = orders.filter((o) => o.status !== "cancelled" && o.status !== "refunded");
-  const revenue = activeOrders.reduce((s, o) => s + o.total, 0);
-  const pending = orders.filter((o) => o.status === "pending" || o.status === "processing").length;
+  // Lógica de filtrado por periodo dinámico
+  const now = new Date();
+  const currentPeriodDays = PERIOD_MAP[selectedPeriod].days;
+  const periodDate = new Date();
+  periodDate.setDate(now.getDate() - currentPeriodDays);
+  periodDate.setHours(0, 0, 0, 0);
+ 
+   const recentOrders = orders.filter(o => new Date(o.date) >= periodDate);
+   const activeRecentOrders = recentOrders.filter((o) => o.status !== "cancelled" && o.status !== "refunded");
+   const recentRevenue = activeRecentOrders.reduce((s, o) => s + o.total, 0);
+   const pending = orders.filter((o) => o.status === "pending" || o.status === "processing").length;
+  
+  // Productos filtrados para vendedores (solo los que tienen stock en su sucursal)
+  const productCount = adminRole === "VENDEDOR" 
+    ? products.filter(p => (p as any).totalStock > 0).length 
+    : products.length;
 
   const DAY_NAMES = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
   const todayStr = new Date().toISOString().split("T")[0];
-  const CHART_DAYS = 14;
+  const CHART_DAYS = currentPeriodDays;
   const chartData = Array.from({ length: CHART_DAYS }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (CHART_DAYS - 1 - i));
@@ -112,8 +136,12 @@ export default function AdminDashboardPage() {
   const chartHasData = chartData.some((d) => d.revenue > 0);
   const SVG_W = 560, SVG_H = 190, PAD_L = 44, PAD_T = 16, CHART_W = 504, CHART_H = 128;
   const BASELINE = PAD_T + CHART_H;
-  const xStep = CHART_W / (CHART_DAYS - 1);
-  const pts = chartData.map((d, i) => ({ x: PAD_L + i * xStep, y: BASELINE - (d.revenue / chartMax) * CHART_H, ...d }));
+  const xStep = CHART_DAYS > 1 ? CHART_W / (CHART_DAYS - 1) : CHART_W;
+  const pts = chartData.map((d, i) => ({ 
+    x: PAD_L + (CHART_DAYS > 1 ? i * xStep : CHART_W / 2), 
+    y: BASELINE - (d.revenue / chartMax) * CHART_H, 
+    ...d 
+  }));
   const linePath = smoothPath(pts);
   const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${BASELINE} L ${pts[0].x} ${BASELINE} Z`;
   const hoveredPoint = hovered !== null ? pts[hovered] : null;
@@ -131,10 +159,10 @@ export default function AdminDashboardPage() {
   }
 
   const STATS = [
-    { label: "Productos", value: loaded ? products.length : "---", icon: "inventory_2", href: "/admin/products", color: "text-violet-600 bg-violet-50" },
-    { label: "Pedidos activos", value: loaded ? activeOrders.length : "---", icon: "receipt_long", href: "/admin/orders", color: "text-blue-600 bg-blue-50" },
+    { label: adminRole === "VENDEDOR" ? "Mi Inventario" : "Productos", value: loaded ? productCount : "---", icon: "inventory_2", href: "/admin/products", color: "text-violet-600 bg-violet-50" },
+    { label: `Pedidos (${PERIOD_MAP[selectedPeriod].label})`, value: loaded ? activeRecentOrders.length : "---", icon: "receipt_long", href: "/admin/orders", color: "text-blue-600 bg-blue-50" },
     { label: "Sin atender", value: loaded ? pending : "---", icon: "pending_actions", href: "/admin/orders", color: "text-amber-600 bg-amber-50" },
-    { label: "Ingresos", value: loaded ? `$${revenue.toFixed(2)}` : "---", icon: "payments", href: "/admin/orders", color: "text-emerald-600 bg-emerald-50" },
+    { label: `Ventas (${PERIOD_MAP[selectedPeriod].label})`, value: loaded ? `$${recentRevenue.toFixed(2)}` : "---", icon: "payments", href: "/admin/orders", color: "text-emerald-600 bg-emerald-50" },
   ];
 
   const QUICK_ACTIONS = [
@@ -155,9 +183,24 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Panel de control · {loaded ? storeName : "Cargando..."}</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">Panel de control · {loaded ? storeName : "Cargando..."}</p>
+        </div>
+        
+        <div className="bg-white border border-gray-100 rounded-xl px-3 py-1.5 shadow-sm flex items-center gap-2">
+            <span className="material-symbols-outlined text-gray-400 text-sm">calendar_today</span>
+            <select 
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value as PeriodKey)}
+              className="bg-transparent text-xs font-bold text-gray-600 outline-none cursor-pointer pr-1"
+            >
+                {Object.entries(PERIOD_MAP).map(([key, val]) => (
+                  <option key={key} value={key}>{val.label}</option>
+                ))}
+            </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -179,17 +222,17 @@ export default function AdminDashboardPage() {
             <div className="flex justify-between items-start mb-5">
               <div>
                 <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Ingresos</h2>
-                <p className="text-[11px] text-gray-500 mt-0.5">Ultimos 14 dias sin cancelados ni reembolsos</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">Vista: {PERIOD_MAP[selectedPeriod].label}</p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-[#33172c]">${revenue.toFixed(2)}</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">acumulado</p>
+                <p className="text-xl font-bold text-[#33172c]">${recentRevenue.toFixed(2)}</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">total periodo</p>
               </div>
             </div>
             {!chartHasData ? (
               <div className="flex flex-col items-center justify-center h-44 gap-3">
                 <span className="material-symbols-outlined text-5xl text-gray-200">show_chart</span>
-                <p className="text-sm text-gray-500">Sin ventas en los ultimos 14 dias</p>
+                <p className="text-sm text-gray-500">Sin ventas en el periodo: {PERIOD_MAP[selectedPeriod].label}</p>
               </div>
             ) : (
               <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full select-none"
@@ -221,7 +264,12 @@ export default function AdminDashboardPage() {
                 })}
                 <path d={areaPath} fill="url(#areaGrad)" />
                 <path d={linePath} fill="none" stroke="#33172c" strokeWidth={2} strokeLinecap="round" />
-                {pts.filter((_, i) => i % 2 === 0).map((p) => (
+                {pts.filter((_, i) => {
+                  if (CHART_DAYS <= 14) return true;
+                  if (CHART_DAYS <= 60) return i % 5 === 0;
+                  if (CHART_DAYS <= 180) return i % 15 === 0;
+                  return i % 30 === 0;
+                }).map((p) => (
                   <text key={p.date} x={p.x} y={BASELINE + 18} textAnchor="middle" fontSize={9}
                     fill={p.date === todayStr ? "#33172c" : "#d1d5db"}
                     fontWeight={p.date === todayStr ? "700" : "400"}>
