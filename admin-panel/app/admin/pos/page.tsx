@@ -13,6 +13,7 @@ interface CashSession {
   openingBalance: number;
   expectedClosingBalance: number;
   admin: { name: string };
+  movements?: { amount: number; reason: string; type: "IN" | "OUT" }[];
 }
 
 export default function POSPage() {
@@ -37,8 +38,42 @@ export default function POSPage() {
   // Modals
   const [showOpeningModal, setShowOpeningModal] = useState(false);
   const [showClosingModal, setShowClosingModal] = useState(false);
+  const [showMovementModal, setShowMovementModal] = useState(false);
   const [openingBalanceInput, setOpeningBalanceInput] = useState("");
   const [closingBalanceInput, setClosingBalanceInput] = useState("");
+  const [closedSessionResult, setClosedSessionResult] = useState<any>(null);
+
+  // States for Movements
+  const [movementType, setMovementType] = useState<"IN" | "OUT">("OUT");
+  const [movementAmount, setMovementAmount] = useState("");
+  const [movementReason, setMovementReason] = useState("");
+
+  // States for Detailed Closing
+  const [closingMode, setClosingMode] = useState<"SIMPLE" | "DETAILED">("SIMPLE");
+  const [denominations, setDenominations] = useState<Record<string, number>>({
+    '100': 0, '50': 0, '20': 0, '10': 0, '5': 0, '1': 0, '0.5': 0, '0.25': 0, '0.1': 0, '0.05': 0, '0.01': 0
+  });
+
+  const totalDenominations = Object.entries(denominations).reduce((sum, [val, qty]) => sum + parseFloat(val) * qty, 0);
+
+  useEffect(() => {
+    if (closingMode === "DETAILED") {
+      setClosingBalanceInput(totalDenominations.toFixed(2));
+    }
+  }, [denominations, closingMode, totalDenominations]);
+
+  // Cálculos de desglose de efectivo para transparencia total
+  const cashBreakdown = useMemo(() => {
+    if (!activeSession) return { sales: 0, others: 0 };
+    const movements = activeSession.movements || [];
+    const sales = movements
+      .filter(m => m.reason.startsWith("Venta POS"))
+      .reduce((acc, m) => acc + (m.type === "IN" ? m.amount : -m.amount), 0);
+    const others = movements
+      .filter(m => !m.reason.startsWith("Venta POS"))
+      .reduce((acc, m) => acc + (m.type === "IN" ? m.amount : -m.amount), 0);
+    return { sales, others };
+  }, [activeSession]);
 
   // Un ADMIN puede operar el POS sin necesidad de abrir caja.
   // Solo los VENDEDOR están obligados a tener una sesión activa.
@@ -168,15 +203,44 @@ export default function POSPage() {
           notes: "Cierre desde POS"
         })
       });
-      if (!res.ok) throw new Error("Error al cerrar caja");
+      const data = await res.json();
       setActiveSession(null);
       setShowClosingModal(false);
       setClosingBalanceInput("");
-      setShowOpeningModal(true); // Requiere abrir de nuevo para vender
+      setClosedSessionResult(data);
     } catch (err: any) {
       alert(err.message);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const handleMovement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeSession) return;
+    setProcessing(true);
+    try {
+      const res = await fetch("/api/admin/cash/movement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: activeSession.id,
+          type: movementType,
+          amount: parseFloat(movementAmount) || 0,
+          reason: movementReason
+        })
+      });
+      if (!res.ok) throw new Error("Error al registrar movimiento");
+      
+      setToast({ message: "Movimiento registrado", type: "success" });
+      setShowMovementModal(false);
+      setMovementAmount("");
+      setMovementReason("");
+    } catch (err: any) {
+      setToast({ message: err.message, type: "error" });
+    } finally {
+      setProcessing(false);
+      setTimeout(() => setToast(null), 4000);
     }
   };
 
@@ -313,7 +377,8 @@ export default function POSPage() {
   const isOnlineStore = branches.find(b => b.id === selectedBranchId)?.name === "tienda-online";
 
   return (
-    <div className="flex h-[calc(100vh-56px)] lg:h-screen bg-gray-100 overflow-hidden">
+    <>
+    <div className="flex h-[calc(100vh-56px)] lg:h-screen bg-gray-100 overflow-hidden print:hidden">
       
       {/* LEFT: CAJA REGISTRADORA */}
       <div className="w-full lg:w-[400px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
@@ -331,9 +396,14 @@ export default function POSPage() {
           <div className="flex items-center gap-2">
             {!isOnlineStore && (
               activeSession ? (
-                  <button onClick={() => setShowClosingModal(true)} className="px-2 py-1 bg-red-50 text-red-600 rounded-md text-[10px] font-bold uppercase hover:bg-red-100 transition-all">
-                     Cerrar Caja
-                  </button>
+                  <>
+                    <button onClick={() => setShowMovementModal(true)} className="px-2 py-1 bg-blue-50 text-blue-600 rounded-md text-[10px] font-bold uppercase hover:bg-blue-100 transition-all">
+                       Movimiento
+                    </button>
+                    <button onClick={() => setShowClosingModal(true)} className="px-2 py-1 bg-red-50 text-red-600 rounded-md text-[10px] font-bold uppercase hover:bg-red-100 transition-all">
+                       Cerrar Caja
+                    </button>
+                  </>
               ) : (
                   <button onClick={() => setShowOpeningModal(true)} className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold uppercase hover:bg-emerald-100 transition-all">
                      Abrir Caja
@@ -591,64 +661,265 @@ export default function POSPage() {
           </div>
       )}
 
+      {/* MOVEMENT MODAL */}
+      {showMovementModal && activeSession && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden p-8 animate-in zoom-in duration-300">
+                  <div className="text-center mb-6">
+                      <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <span className="material-symbols-outlined text-4xl">swap_horiz</span>
+                      </div>
+                      <h2 className="text-xl font-black text-gray-800">Caja Chica</h2>
+                      <p className="text-sm text-gray-500 mt-1">Registra retiros o ingresos durante el turno.</p>
+                  </div>
+                  <form onSubmit={handleMovement} className="space-y-4">
+                      <div className="flex bg-gray-100 p-1 rounded-xl">
+                          <button type="button" onClick={() => setMovementType("OUT")} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${movementType === "OUT" ? "bg-white shadow-sm text-red-600" : "text-gray-500"}`}>Retiro (Gasto)</button>
+                          <button type="button" onClick={() => setMovementType("IN")} className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${movementType === "IN" ? "bg-white shadow-sm text-emerald-600" : "text-gray-500"}`}>Ingreso</button>
+                      </div>
+                      <div>
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Monto</label>
+                          <div className="relative">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                              <input 
+                                required type="number" min="0.01" step="0.01" value={movementAmount} onChange={e => setMovementAmount(e.target.value)}
+                                className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-8 pr-4 py-3 text-lg font-black text-gray-800 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-center"
+                                placeholder="0.00"
+                              />
+                          </div>
+                      </div>
+                      <div>
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Motivo / Descripción</label>
+                          <input 
+                            required type="text" value={movementReason} onChange={e => setMovementReason(e.target.value)}
+                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                            placeholder="Ej. Compra de agua..."
+                          />
+                      </div>
+                      <div className="flex gap-3 mt-6">
+                          <button type="button" onClick={() => setShowMovementModal(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl text-xs font-bold tracking-widest">Cancelar</button>
+                          <button type="submit" disabled={processing} className="flex-[2] bg-blue-600 text-white py-3 rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-600/20 active:scale-95 transition-all flex items-center justify-center">
+                              {processing ? "..." : "Confirmar"}
+                          </button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      )}
+
       {/* CLOSING MODAL */}
       {showClosingModal && activeSession && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-300">
-                <div className="bg-[#33172c] p-8 text-white text-center relative overflow-hidden">
+             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm animate-in fade-in zoom-in duration-300 max-h-[92vh] overflow-y-auto custom-scrollbar overflow-x-hidden">
+                <div className="bg-[#33172c] p-4 text-white text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
                         <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full -mr-20 -mt-20"></div>
                         <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full -ml-12 -mb-12"></div>
                     </div>
-                    <h2 className="text-xl font-black uppercase tracking-widest mb-1">Cierre de Caja</h2>
-                    <p className="opacity-60 text-xs">Arqueo de efectivo final</p>
-                    <div className="mt-6">
-                        <p className="text-[10px] font-bold uppercase opacity-50 tracking-widest mb-1">Efectivo Esperado</p>
-                        <p className="text-4xl font-black">${activeSession.expectedClosingBalance.toFixed(2)}</p>
+                    <h2 className="text-base font-black uppercase tracking-widest">Cierre de Caja</h2>
+                    
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                            <p className="text-[8px] font-bold uppercase opacity-50 tracking-widest">Fondo</p>
+                            <p className="text-sm font-black">${activeSession.openingBalance.toFixed(2)}</p>
+                        </div>
+                        <div className="bg-white/5 rounded-lg p-2 border border-white/5">
+                            <p className="text-[8px] font-bold uppercase opacity-50 tracking-widest">Ventas</p>
+                            <p className="text-sm font-black text-emerald-300">
+                                +${cashBreakdown.sales.toFixed(2)}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-3 flex items-center justify-between px-2">
+                        <div className="text-left">
+                           <p className="text-[8px] font-bold uppercase opacity-50 tracking-widest">Total Esperado</p>
+                           <p className="text-2xl font-black">${activeSession.expectedClosingBalance.toFixed(2)}</p>
+                        </div>
+                        {cashBreakdown.others !== 0 && (
+                            <div className="text-right">
+                                 <p className="text-[8px] font-bold uppercase opacity-50 tracking-widest">Movs Extras</p>
+                                 <p className="text-[10px] font-bold">{cashBreakdown.others > 0 ? "+" : ""}${cashBreakdown.others.toFixed(2)}</p>
+                            </div>
+                        )}
                     </div>
                 </div>
                 
-                <form onSubmit={handleCloseCaja} className="p-8 space-y-6">
-                    <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5 text-center">Efectivo físicamente en caja</label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
-                            <input 
-                                required 
-                                type="number" 
-                                min="0" 
-                                step="0.01"
-                                autoFocus
-                                value={closingBalanceInput}
-                                onChange={e => setClosingBalanceInput(e.target.value)}
-                                className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-8 pr-4 py-4 text-2xl font-black text-gray-800 outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all text-center"
-                                placeholder="0.00"
-                            />
-                        </div>
+                <form onSubmit={handleCloseCaja} className="p-5 space-y-4">
+                    <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
+                        <button type="button" onClick={() => setClosingMode("SIMPLE")} className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors ${closingMode === "SIMPLE" ? "bg-white shadow-sm text-gray-800" : "text-gray-400"}`}>Ingreso Manual</button>
+                        <button type="button" onClick={() => setClosingMode("DETAILED")} className={`flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors ${closingMode === "DETAILED" ? "bg-white shadow-sm text-gray-800" : "text-gray-400"}`}>Arqueo Billetes</button>
                     </div>
 
-                    <div className="bg-gray-50 rounded-xl p-4 flex justify-between items-center text-xs">
+                    {closingMode === "SIMPLE" ? (
+                        <div>
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5 text-center">Efectivo físicamente en caja</label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                <input 
+                                    required 
+                                    type="number" 
+                                    min="0" 
+                                    step="0.01"
+                                    autoFocus
+                                    value={closingBalanceInput}
+                                    onChange={e => setClosingBalanceInput(e.target.value)}
+                                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-8 pr-4 py-4 text-2xl font-black text-gray-800 outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 transition-all text-center"
+                                    placeholder="0.00"
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div>
+                            <div className="max-h-56 overflow-y-auto pr-1 space-y-1.5 mb-3 custom-scrollbar">
+                                {Object.keys(denominations).sort((a,b) => parseFloat(b) - parseFloat(a)).map(val => (
+                                    <div key={val} className="flex justify-between items-center bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
+                                        <span className="text-xs font-bold text-gray-600">${val}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-gray-400">x</span>
+                                            <input 
+                                                type="number" min="0" step="1"
+                                                value={denominations[val] || ""}
+                                                onChange={e => setDenominations(p => ({ ...p, [val]: parseInt(e.target.value) || 0 }))}
+                                                className="w-16 bg-white border border-gray-200 rounded-md text-center text-xs font-bold py-1.5 outline-none focus:border-red-400"
+                                                placeholder="0"
+                                            />
+                                            <span className="w-14 text-right text-xs font-black text-gray-800">${(parseFloat(val) * (denominations[val] || 0)).toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="bg-gray-800 text-white rounded-xl p-2.5 text-center shadow-lg">
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400 block mb-0.5">Suma Total</span>
+                                <span className="text-xl font-black">${totalDenominations.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="bg-gray-50 rounded-xl p-3 flex justify-between items-center text-[10px]">
                         <span className="text-gray-500 font-bold uppercase tracking-tight">Diferencia:</span>
-                        <span className={`font-black text-sm ${(parseFloat(closingBalanceInput || "0") - activeSession.expectedClosingBalance) === 0 ? "text-gray-400" : (parseFloat(closingBalanceInput || "0") - activeSession.expectedClosingBalance) > 0 ? "text-emerald-500" : "text-red-500"}`}>
+                        <span className={`font-black text-xs ${(parseFloat(closingBalanceInput || "0") - activeSession.expectedClosingBalance) === 0 ? "text-gray-400" : (parseFloat(closingBalanceInput || "0") - activeSession.expectedClosingBalance) > 0 ? "text-emerald-500" : "text-rose-500"}`}>
                             ${(parseFloat(closingBalanceInput || "0") - activeSession.expectedClosingBalance).toFixed(2)}
                         </span>
                     </div>
 
-                    <div className="flex gap-3">
-                        <button type="button" onClick={() => setShowClosingModal(false)} className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl text-[10px] font-bold uppercase tracking-widest">Cancelar</button>
+                    <div className="flex gap-3 pt-1">
+                        <button type="button" onClick={() => setShowClosingModal(false)} className="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl text-[9px] font-bold uppercase tracking-widest">Cancelar</button>
                         <button 
                             type="submit" 
                             disabled={processing}
-                            className="flex-[2] bg-[#33172c] text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#33172c]/20"
+                            className="flex-[2] bg-[#33172c] text-white py-3 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-[#33172c]/20"
                         >
-                            {processing ? "Procesando..." : "Finalizar Turno"}
+                            {processing ? "..." : "Finalizar Turno"}
                         </button>
                     </div>
                 </form>
             </div>
           </div>
       )}
+      
+      {/* SUCCESS CERRAR CAJA MODAL */}
+      {closedSessionResult && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 print:hidden">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden p-8 text-center animate-in zoom-in duration-300">
+                  <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <span className="material-symbols-outlined text-5xl">check_circle</span>
+                  </div>
+                  <h2 className="text-2xl font-black text-gray-800 mb-2">Caja Cerrada</h2>
+                  <p className="text-sm text-gray-500 mb-6">Tu turno ha finalizado correctamente.</p>
+                  
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="bg-gray-50 rounded-xl p-3">
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Fondo e Ingresos</p>
+                          <p className="text-sm font-black text-gray-800">${closedSessionResult.expectedClosingBalance.toFixed(2)}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-xl p-3">
+                          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Efec. Real</p>
+                          <p className="text-sm font-black text-gray-800">${closedSessionResult.actualClosingBalance.toFixed(2)}</p>
+                      </div>
+                  </div>
+                  
+                  <div className="bg-rose-50 rounded-2xl p-4 mb-6 border border-rose-100">
+                      <p className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-1">Diferencia Final</p>
+                      <p className={`text-2xl font-black ${closedSessionResult.difference === 0 ? "text-gray-800" : closedSessionResult.difference > 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                        {closedSessionResult.difference > 0 ? "+" : ""}{(closedSessionResult.difference || 0).toFixed(2)}
+                      </p>
+                  </div>
 
+                  <div className="space-y-3">
+                      <button onClick={() => window.print()} className="w-full py-4 bg-[#33172c] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#33172c]/20 hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
+                          <span className="material-symbols-outlined text-[18px]">print</span>
+                          Imprimir Corte Z
+                      </button>
+                      <button onClick={() => { setClosedSessionResult(null); setShowOpeningModal(true); }} className="w-full py-3 bg-white border-2 border-gray-100 text-gray-700 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:bg-gray-50 transition-colors">
+                          Continuar (Nueva Caja)
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
+
+
+      {/* TICKET IMPRESORA TÉRMICA (Corte Z POS) */}
+      {closedSessionResult && (
+        <div className="hidden print:block print:w-[80mm] print:m-0 print:p-4 text-black text-sm bg-white" style={{ fontFamily: "monospace" }}>
+          <div>
+            <div className="text-center mb-4 pb-4 border-b border-black border-dashed">
+               <h1 className="text-xl font-bold uppercase mb-1">CORTE Z</h1>
+               <p className="text-sm">Sucursal: {closedSessionResult.branch?.name || "Tienda"}</p>
+               <p className="text-xs mt-1">Ticket #: {closedSessionResult.id.slice(-6).toUpperCase()}</p>
+            </div>
+            
+            <div className="mb-4 text-xs font-bold space-y-1">
+               <p>Cajero: {closedSessionResult.admin?.name || "Desconocido"}</p>
+               <p>Apertura: {new Date(closedSessionResult.openedAt).toLocaleString()}</p>
+               <p>Cierre: {new Date(closedSessionResult.closedAt).toLocaleString()}</p>
+            </div>
+
+            <div className="mb-4 pb-4 border-b border-black border-dashed">
+               <div className="flex justify-between font-bold mb-1"><span className="uppercase">Fondo Inicial:</span><span>${closedSessionResult.openingBalance.toFixed(2)}</span></div>
+               <div className="flex justify-between font-bold mb-1">
+                  <span className="uppercase">Ventas Netas:</span>
+                  <span>
+                    ${(closedSessionResult.movements?.filter((m:any) => m.reason.startsWith("Venta POS")).reduce((a:number,m:any)=>a+(m.type==="IN"?m.amount:-m.amount),0) || 0).toFixed(2)}
+                  </span>
+               </div>
+               <div className="flex justify-between font-bold mb-1">
+                  <span className="uppercase">Otros Movs:</span>
+                  <span>
+                    ${(closedSessionResult.movements?.filter((m:any) => !m.reason.startsWith("Venta POS")).reduce((a:number,m:any)=>a+(m.type==="IN"?m.amount:-m.amount),0) || 0).toFixed(2)}
+                  </span>
+               </div>
+               <div className="flex justify-between font-bold mt-3 text-[16px]"><span className="uppercase">Total General:</span><span>${closedSessionResult.expectedClosingBalance.toFixed(2)}</span></div>
+            </div>
+
+            <div className="mb-4 pb-4 border-b border-black border-dashed">
+                <div className="flex justify-between font-bold mb-1"><span className="uppercase">Efectivo Físico:</span><span>${closedSessionResult.actualClosingBalance.toFixed(2)}</span></div>
+                <div className="flex justify-between font-bold mt-2 text-lg"><span className="uppercase">Diferencia:</span><span>{closedSessionResult.difference > 0 ? "+" : ""}{(closedSessionResult.difference).toFixed(2)}</span></div>
+            </div>
+
+            {closedSessionResult.movements && closedSessionResult.movements.length > 0 && (
+              <div className="mb-4">
+                 <p className="text-center font-bold uppercase mb-2 border-b border-black border-solid pb-1">Movimientos (Caja Chica)</p>
+                 {closedSessionResult.movements.map((m: any) => (
+                   <div key={m.id} className="flex justify-between text-xs mb-1">
+                     <span className="truncate w-3/4">{m.type === "IN" ? "+" : "-"}{m.reason.slice(0,20)}</span>
+                     <span className="font-bold w-1/4 text-right">${m.amount.toFixed(2)}</span>
+                   </div>
+                 ))}
+              </div>
+            )}
+
+            <div className="text-center mt-8 pt-8">
+               <p className="border-t border-black inline-block px-8 pb-2 mt-4 text-xs font-bold uppercase">{closedSessionResult.admin?.name || "Firma de Conformidad"}</p>
+               <p className="text-[10px]">Firma Cajero</p>
+            </div>
+            
+            <p className="text-center text-[10px] mt-8 uppercase font-bold">-- FIN DEL REPORTE --</p>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

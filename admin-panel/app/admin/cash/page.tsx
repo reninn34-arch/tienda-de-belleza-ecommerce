@@ -70,7 +70,8 @@ export default function CashPage() {
   if (loading) return <div className="p-8 flex justify-center"><div className="w-8 h-8 border-2 border-[#33172c] border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
-    <div className="p-4 sm:p-8 max-w-6xl mx-auto">
+    <>
+    <div className="p-4 sm:p-8 max-w-6xl mx-auto print:hidden">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -195,16 +196,33 @@ export default function CashPage() {
             {/* Expanded detail */}
             {expandedId === s.id && (
               <div className="border-t border-gray-100 bg-gray-50/50 p-5">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
+                <div className="flex items-center justify-between mb-5">
+                   <h4 className="text-xs font-bold text-gray-800 uppercase tracking-widest">Detalle de Sesión</h4>
+                   {s.status === "CLOSED" && (
+                     <button onClick={() => window.print()} className="flex items-center gap-2 bg-white border border-gray-200 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors shadow-sm">
+                       <span className="material-symbols-outlined text-[16px]">print</span>
+                       Imprimir Corte Z
+                     </button>
+                   )}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-5">
                   {[
-                    { label: "Apertura", value: `$${s.openingBalance.toFixed(2)}` },
-                    { label: "Balance Esperado", value: `$${s.expectedClosingBalance.toFixed(2)}` },
-                    { label: "Balance Real", value: s.actualClosingBalance !== null ? `$${s.actualClosingBalance.toFixed(2)}` : "—" },
-                    { label: "Cierre", value: s.closedAt ? fmtDate(s.closedAt) : "En curso" },
+                    { label: "Fondo Inicial", value: `$${s.openingBalance.toFixed(2)}` },
+                    { 
+                      label: "Ventas (Cash)", 
+                      value: `$${(s.movements?.filter(m => m.reason.startsWith("Venta POS")).reduce((acc, m) => acc + (m.type === "IN" ? m.amount : -m.amount), 0) || 0).toFixed(2)}`,
+                      color: "text-emerald-600"
+                    },
+                    { 
+                      label: "Otros Movs", 
+                      value: `${(s.movements?.filter(m => !m.reason.startsWith("Venta POS")).reduce((acc, m) => acc + (m.type === "IN" ? m.amount : -m.amount), 0) || 0) >= 0 ? "+" : ""}${(s.movements?.filter(m => !m.reason.startsWith("Venta POS")).reduce((acc, m) => acc + (m.type === "IN" ? m.amount : -m.amount), 0) || 0).toFixed(2)}`
+                    },
+                    { label: "Total Esperado", value: `$${s.expectedClosingBalance.toFixed(2)}`, color: "text-gray-900" },
+                    { label: "Balance Real", value: s.actualClosingBalance !== null ? `$${s.actualClosingBalance.toFixed(2)}` : "—", color: s.difference !== 0 ? "text-rose-600" : "text-gray-900" },
                   ].map(k => (
                     <div key={k.label} className="bg-white rounded-xl p-3 border border-gray-100">
                       <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{k.label}</p>
-                      <p className="text-sm font-black text-gray-800">{k.value}</p>
+                      <p className={`text-sm font-black ${k.color || "text-gray-800"}`}>{k.value}</p>
                     </div>
                   ))}
                 </div>
@@ -239,5 +257,70 @@ export default function CashPage() {
         ))}
       </div>
     </div>
+
+    {/* TICKETS PARA IMPRESORA TÉRMICA (Corte Z) */}
+    {expandedId && (
+      <div className="hidden print:block print:w-[80mm] print:m-0 print:p-4 text-black text-sm bg-white" style={{ fontFamily: "monospace" }}>
+        {sessions.filter(s => s.id === expandedId).map(s => (
+          <div key={`print-${s.id}`}>
+            <div className="text-center mb-4 pb-4 border-b border-black border-dashed">
+               <h1 className="text-xl font-bold uppercase mb-1">CORTE Z</h1>
+               <p className="text-sm">Sucursal: {s.branch?.name}</p>
+               <p className="text-xs mt-1">Ticket #: {s.id.slice(-6).toUpperCase()}</p>
+            </div>
+            
+            <div className="mb-4 text-xs font-bold space-y-1">
+               <p>Cajero: {s.admin?.name}</p>
+               <p>Apertura: {fmtDate(s.openedAt)}</p>
+               <p>Cierre: {s.closedAt ? fmtDate(s.closedAt) : "EN CURSO"}</p>
+            </div>
+
+            <div className="mb-4 pb-4 border-b border-black border-dashed">
+               <div className="flex justify-between font-bold mb-1"><span className="uppercase">Fondo Inicial:</span><span>${s.openingBalance.toFixed(2)}</span></div>
+               <div className="flex justify-between font-bold mb-1">
+                  <span className="uppercase">Ventas Netas:</span>
+                  <span>
+                    ${(s.movements?.filter(m => m.reason.startsWith("Venta POS")).reduce((acc, m) => acc + (m.type === "IN" ? m.amount : -m.amount), 0) || 0).toFixed(2)}
+                  </span>
+               </div>
+               <div className="flex justify-between font-bold mb-1">
+                  <span className="uppercase">Otros Movs:</span>
+                  <span>
+                    ${(s.movements?.filter(m => !m.reason.startsWith("Venta POS")).reduce((acc, m) => acc + (m.type === "IN" ? m.amount : -m.amount), 0) || 0).toFixed(2)}
+                  </span>
+               </div>
+               <div className="flex justify-between font-bold mt-3 text-[16px]"><span className="uppercase">Total General:</span><span>${s.expectedClosingBalance.toFixed(2)}</span></div>
+            </div>
+
+            {s.status === "CLOSED" && (
+              <div className="mb-4 pb-4 border-b border-black border-dashed">
+                 <div className="flex justify-between font-bold mb-1"><span className="uppercase">Efectivo Físico:</span><span>${(s.actualClosingBalance || 0).toFixed(2)}</span></div>
+                 <div className="flex justify-between font-bold mt-2 text-lg"><span className="uppercase">Diferencia:</span><span>{s.difference !== null && s.difference > 0 ? "+" : ""}{(s.difference || 0).toFixed(2)}</span></div>
+              </div>
+            )}
+
+            {s.movements && s.movements.length > 0 && (
+              <div className="mb-4">
+                 <p className="text-center font-bold uppercase mb-2 border-b border-black border-solid pb-1">Movimientos (Caja Chica)</p>
+                 {s.movements.map(m => (
+                   <div key={m.id} className="flex justify-between text-xs mb-1">
+                     <span className="truncate w-3/4">{m.type === "IN" ? "+" : "-"}{m.reason.slice(0,20)}</span>
+                     <span className="font-bold w-1/4 text-right">${m.amount.toFixed(2)}</span>
+                   </div>
+                 ))}
+              </div>
+            )}
+
+            <div className="text-center mt-8 pt-8">
+               <p className="border-t border-black inline-block px-8 pb-2 mt-4 text-xs font-bold uppercase">{s.admin?.name}</p>
+               <p className="text-[10px]">Firma Cajero</p>
+            </div>
+            
+            <p className="text-center text-[10px] mt-8 uppercase font-bold">-- FIN DEL REPORTE --</p>
+          </div>
+        ))}
+      </div>
+    )}
+    </>
   );
 }

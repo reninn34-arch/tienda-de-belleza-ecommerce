@@ -130,6 +130,11 @@ router.post("/close", requireAuth, async (req, res) => {
       difference: diff,
       notes: notes || session.notes,
       closedAt: new Date()
+    },
+    include: {
+      admin: { select: { name: true } },
+      branch: { select: { name: true } },
+      movements: true
     }
   });
 

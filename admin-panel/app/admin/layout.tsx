@@ -253,7 +253,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="flex h-screen bg-[#f6f7f9] overflow-hidden" style={{ fontFamily: "Manrope, sans-serif" }}>
 
       {/* ── Mobile top bar ─────────────────────────────────────── */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-50 h-14 bg-[#1f1030] flex items-center gap-3 px-4 shadow-lg">
+      <div className="lg:hidden fixed top-0 inset-x-0 z-50 h-14 bg-[#1f1030] flex items-center gap-3 px-4 shadow-lg print:hidden">
         <button
           onClick={() => setSidebarOpen(true)}
           className="p-1.5 rounded-lg hover:bg-white/10 text-white transition-colors flex-shrink-0"
@@ -297,6 +297,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-[#1f1030] text-white overflow-y-auto transition-transform duration-300
         lg:static lg:z-auto lg:w-56 lg:flex-shrink-0 lg:translate-x-0
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        print:hidden
       `}>
         {/* Brand */}
         <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
@@ -430,7 +431,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       />
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto pt-14 lg:pt-0">{children}</main>
+      <main className="flex-1 overflow-y-auto pt-14 lg:pt-0 print:overflow-visible print:pt-0 print:block">{children}</main>
     </div>
   );
 }
