@@ -3,6 +3,7 @@ import { db } from "../../../lib/db";
 import { sendError } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
 import { requireAuth } from "../middleware/auth";
+import { posEventEmitter } from "../lib/events";
 
 // Cash Management Routes — v1.0
 const router = Router();
@@ -65,6 +66,7 @@ router.post("/open", requireAuth, async (req, res) => {
     details: { branchId, openingBalance }
   });
 
+  posEventEmitter.emit("pos_update");
   res.status(201).json(session);
 });
 
@@ -100,6 +102,7 @@ router.post("/movement", requireAuth, async (req, res) => {
     }
   });
 
+  posEventEmitter.emit("pos_update");
   res.status(201).json(movement);
 });
 
@@ -137,6 +140,7 @@ router.post("/close", requireAuth, async (req, res) => {
     details: { expected: session.expectedClosingBalance, actual, diff }
   });
 
+  posEventEmitter.emit("pos_update");
   res.json(closedSession);
 });
 

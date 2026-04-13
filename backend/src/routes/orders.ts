@@ -4,6 +4,7 @@ import { db } from "../../../lib/db";
 import { sendError, type ErrorCode } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
 import { AuthenticatedRequest } from "../middleware/auth";
+import { posEventEmitter } from "../lib/events";
 
 interface OrderItemRow {
   id: number;
@@ -249,6 +250,7 @@ router.post("/", async (req: Request, res: Response) => {
       });
     });
 
+    posEventEmitter.emit("pos_update");
     res.status(201).json(newOrder);
   } catch (error) {
     if (error instanceof StockError) {
@@ -355,6 +357,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     details: { fields: Object.keys(body), status: body.status ?? existing.status },
   });
 
+  posEventEmitter.emit("pos_update");
   res.json(updated);
 });
 

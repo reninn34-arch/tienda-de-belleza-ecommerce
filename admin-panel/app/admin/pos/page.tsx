@@ -20,6 +20,7 @@ export default function POSPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
+  const [isAdmin, setIsAdmin] = useState(false);
   
   const [activeSession, setActiveSession] = useState<CashSession | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -39,14 +40,22 @@ export default function POSPage() {
   const [openingBalanceInput, setOpeningBalanceInput] = useState("");
   const [closingBalanceInput, setClosingBalanceInput] = useState("");
 
-  const checkSession = async (branchId: string) => {
+  // Un ADMIN puede operar el POS sin necesidad de abrir caja.
+  // Solo los VENDEDOR están obligados a tener una sesión activa.
+  const requiresCashSession = !isAdmin;
+  const canOperate = isAdmin || !!activeSession;
+
+  const checkSession = async (branchId: string, adminRole: boolean) => {
     if (!branchId) return;
     setCheckingSession(true);
     try {
       const res = await fetch(`/api/admin/cash/active?branchId=${branchId}`);
       const data = await res.json();
       setActiveSession(data);
-      if (!data) setShowOpeningModal(true);
+      // Evitar forzar apertura de caja para Vendedores si están viendo la Tienda Online
+      // (Aunque normalmente un vendedor no debería ver Tienda Online, por seguridad lo validamos).
+      // Aquí usamos isOnlineStore derivado del branch actual.
+      // Pero mejor, hacemos el chequeo solo cuando NO es Tienda Online y NO es admin.
     } catch (e) {
       console.error("Error checking session", e);
     } finally {
@@ -56,25 +65,69 @@ export default function POSPage() {
 
   useEffect(() => {
     const profile = getAdminProfile();
+    const adminRole = profile.role === "ADMIN";
+    setIsAdmin(adminRole);
     
     Promise.all([
       fetch("/api/admin/branches").then(r => r.json()),
       fetch("/api/admin/products").then(r => r.json())
     ]).then(([b, p]) => {
-      setBranches(b);
+      // Mostrar todas las sucursales, incluyendo "tienda-online"
+      const allBranches = b as Branch[];
+      setBranches(allBranches);
       setProducts(p.filter((prod: any) => !prod.deleted));
       
       let bid = "";
       if (profile.role === "VENDEDOR" && profile.branchId) {
         bid = profile.branchId;
-      } else if (b.length > 0) {
-        bid = b[0].id;
+      } else if (allBranches.length > 0) {
+        bid = allBranches[0].id;
       }
       setSelectedBranchId(bid);
-      checkSession(bid);
+      if (bid) checkSession(bid, adminRole);
+      else setCheckingSession(false);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
+
+  // Sincronización en tiempo real (Server-Sent Events)
+  // Mantiene actualizados los saldos de caja y el inventario entre vendedores y admins (Push Reactivo)
+  useEffect(() => {
+    if (!selectedBranchId) return;
+
+    const syncData = async () => {
+      try {
+        const [sessionRes, productsRes] = await Promise.all([
+          fetch(`/api/admin/cash/active?branchId=${selectedBranchId}`),
+          fetch("/api/admin/products")
+        ]);
+        if (sessionRes.ok) {
+          const sessionData = await sessionRes.json();
+          setActiveSession(sessionData);
+        }
+        if (productsRes.ok) {
+          const productsData = await productsRes.json();
+          setProducts(productsData.filter((prod: any) => !prod.deleted));
+        }
+      } catch (e) {
+        // Fallar silenciosamente si hay problemas de red
+      }
+    };
+
+    const eventSource = new EventSource("/api/admin/events");
+
+    eventSource.addEventListener("pos_update", () => {
+       syncData();
+    });
+
+    eventSource.onerror = () => {
+       console.warn("SSE eventSource connection interrupted/reconnecting...");
+    };
+
+    return () => {
+       eventSource.close();
+    };
+  }, [selectedBranchId]);
 
   const handleOpenCaja = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,7 +189,7 @@ export default function POSPage() {
   }, [products, search, selectedBranchId]);
 
   const addToCart = (product: Product) => {
-    if (!activeSession) {
+    if (!canOperate) {
       setShowOpeningModal(true);
       return;
     }
@@ -177,7 +230,7 @@ export default function POSPage() {
   const total = Math.max(0, subtotal - discount);
 
   const handleCheckout = async () => {
-    if (cart.length === 0 || !activeSession) return;
+    if (cart.length === 0 || !canOperate) return;
     setProcessing(true);
     
     const orderData = {
@@ -186,7 +239,7 @@ export default function POSPage() {
       status: "completed",
       shippingMethod: "pickup",
       branchId: selectedBranchId,
-      cashSessionId: activeSession.id,
+      cashSessionId: activeSession?.id ?? null,
       paymentMethod,
       subtotal,
       total,
@@ -213,8 +266,8 @@ export default function POSPage() {
         throw new Error(err.error?.message || "Error procesando orden");
       }
 
-      // Si fue pago en efectivo, registrar el movimiento en la caja automáticamente
-      if (paymentMethod === "cash") {
+      // Si fue pago en efectivo Y hay sesión activa, registrar movimiento en caja
+      if (paymentMethod === "cash" && activeSession) {
           await fetch("/api/admin/cash/movement", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -257,6 +310,8 @@ export default function POSPage() {
     return <div className="flex h-full items-center justify-center p-20"><div className="w-8 h-8 border-2 border-[#33172c] border-t-transparent rounded-full animate-spin"/></div>;
   }
 
+  const isOnlineStore = branches.find(b => b.id === selectedBranchId)?.name === "tienda-online";
+
   return (
     <div className="flex h-[calc(100vh-56px)] lg:h-screen bg-gray-100 overflow-hidden">
       
@@ -267,34 +322,36 @@ export default function POSPage() {
           <div>
             <h1 className="text-sm font-bold text-gray-800">Caja Actual</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
-               <span className={`w-2 h-2 rounded-full ${activeSession ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`}></span>
+               <span className={`w-2 h-2 rounded-full ${isOnlineStore ? "bg-blue-500" : activeSession ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`}></span>
                <p className="text-[10px] text-gray-400 font-medium">
-                 {activeSession ? `Abierta por ${activeSession.admin?.name ?? ""}` : "Cerrada / Sin apertura"}
+                 {isOnlineStore ? "Venta directa sin apertura" : activeSession ? `Abierta por ${activeSession.admin?.name ?? ""}` : "Cerrada / Sin apertura"}
                </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {activeSession ? (
-                <button onClick={() => setShowClosingModal(true)} className="px-2 py-1 bg-red-50 text-red-600 rounded-md text-[10px] font-bold uppercase hover:bg-red-100 transition-all">
-                   Cerrar Caja
-                </button>
-            ) : (
-                <button onClick={() => setShowOpeningModal(true)} className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold uppercase hover:bg-emerald-100 transition-all">
-                   Abrir Caja
-                </button>
+            {!isOnlineStore && (
+              activeSession ? (
+                  <button onClick={() => setShowClosingModal(true)} className="px-2 py-1 bg-red-50 text-red-600 rounded-md text-[10px] font-bold uppercase hover:bg-red-100 transition-all">
+                     Cerrar Caja
+                  </button>
+              ) : (
+                  <button onClick={() => setShowOpeningModal(true)} className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold uppercase hover:bg-emerald-100 transition-all">
+                     Abrir Caja
+                  </button>
+              )
             )}
-            {branches.length > 1 && getAdminProfile().role === "ADMIN" && (
+            {branches.length > 1 && isAdmin && (
                 <select 
                 value={selectedBranchId}
                 onChange={(e) => {
                     const newId = e.target.value;
                     setSelectedBranchId(newId);
                     setCart([]);
-                    checkSession(newId);
+                    checkSession(newId, true);
                 }}
                 className="bg-white border border-gray-200 rounded-lg px-2 py-1 text-[10px] font-bold text-gray-700 outline-none"
                 >
-                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name === "tienda-online" ? "Tienda Online" : b.name}</option>)}
                 </select>
             )}
           </div>
@@ -302,7 +359,7 @@ export default function POSPage() {
 
         {/* Cart List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 relative">
-          {!activeSession && (
+          {!canOperate && (
               <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center p-8 text-center">
                   <span className="material-symbols-outlined text-red-400 text-4xl mb-3">lock</span>
                   <p className="text-sm font-bold text-gray-800">Caja Cerrada</p>
@@ -318,7 +375,7 @@ export default function POSPage() {
           ) : (
             cart.map(item => (
               <div key={item.id} className="flex gap-3 bg-white p-3 rounded-xl border border-gray-100 shadow-sm relative group">
-                <button disabled={!activeSession} onClick={() => removeFromCart(item.id)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-100 text-red-500 rounded-full text-[12px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <button disabled={!canOperate} onClick={() => removeFromCart(item.id)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-100 text-red-500 rounded-full text-[12px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="material-symbols-outlined text-[10px] font-bold">close</span>
                 </button>
                 <div className="w-12 h-12 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 relative">
@@ -329,9 +386,9 @@ export default function POSPage() {
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold text-[#33172c]">${item.price.toFixed(2)}</p>
                     <div className="flex items-center gap-2 bg-gray-50 rounded-md border border-gray-100">
-                      <button disabled={!activeSession} onClick={() => modifyQuantity(item.id, -1)} className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-l-md"><span className="material-symbols-outlined text-[14px]">remove</span></button>
+                      <button disabled={!canOperate} onClick={() => modifyQuantity(item.id, -1)} className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-l-md"><span className="material-symbols-outlined text-[14px]">remove</span></button>
                       <span className="text-xs font-mono font-medium min-w-[16px] text-center">{item.quantity}</span>
-                      <button disabled={!activeSession} onClick={() => modifyQuantity(item.id, 1)} className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-r-md"><span className="material-symbols-outlined text-[14px]">add</span></button>
+                      <button disabled={!canOperate} onClick={() => modifyQuantity(item.id, 1)} className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 rounded-r-md"><span className="material-symbols-outlined text-[14px]">add</span></button>
                     </div>
                   </div>
                 </div>
@@ -348,7 +405,7 @@ export default function POSPage() {
               <span>${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center text-xs text-gray-500">
-              <span className="cursor-pointer border-b border-dashed border-gray-300 hover:text-gray-800" onClick={() => { if(!activeSession) return; setDiscount(Number(window.prompt("Descuento en $:") || 0))}}>Aplicar Descuento</span>
+              <span className="cursor-pointer border-b border-dashed border-gray-300 hover:text-gray-800" onClick={() => { if(!canOperate) return; setDiscount(Number(window.prompt("Descuento en $:") || 0))}}>Aplicar Descuento</span>
               <span>-${discount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-end border-t border-gray-200 pt-2 mt-2">
@@ -361,7 +418,7 @@ export default function POSPage() {
             {(["cash", "card", "transfer"] as const).map(met => (
               <button 
                 key={met}
-                disabled={!activeSession}
+                disabled={!canOperate}
                 onClick={() => setPaymentMethod(met)}
                 className={`py-2 px-1 text-[11px] font-bold rounded-lg uppercase tracking-wider flex flex-col items-center gap-1 transition-all
                   ${paymentMethod === met ? "bg-[#33172c] text-white shadow-md" : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 disabled:opacity-50"}`}
@@ -380,13 +437,32 @@ export default function POSPage() {
               <div className="flex gap-2 mb-2">
                 <input
                   type="number"
-                  disabled={!activeSession}
+                  disabled={!canOperate}
                   placeholder="Recibido..."
                   value={cashTendered}
                   onChange={(e) => setCashTendered(e.target.value)}
                   className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-[#33172c]/20"
                 />
-                <button disabled={!activeSession} onClick={() => setCashTendered(total.toString())} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-700 transition-colors">Exacto</button>
+                <button disabled={!canOperate} onClick={() => setCashTendered(total.toString())} className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-bold text-gray-700 transition-colors">Exacto</button>
+              </div>
+              <div className="flex flex-wrap gap-1 mb-3">
+                 {[5, 10, 20, 50, 100].map(bill => (
+                    <button 
+                      key={bill} 
+                      disabled={!canOperate}
+                      onClick={() => setCashTendered((parseFloat(cashTendered || "0") + bill).toString())}
+                      className="flex-1 py-1 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded text-[11px] font-bold text-gray-600 transition-colors disabled:opacity-50"
+                    >
+                      +${bill}
+                    </button>
+                 ))}
+                 <button 
+                    disabled={!canOperate || !cashTendered}
+                    onClick={() => setCashTendered("")}
+                    className="flex-[1.2] py-1 bg-red-50 hover:bg-red-100 text-red-500 rounded text-[11px] font-bold transition-colors disabled:opacity-50"
+                 >
+                    Borrar
+                 </button>
               </div>
               <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-100">
                 <span className="text-gray-500 font-medium">Cambio:</span>
@@ -399,7 +475,7 @@ export default function POSPage() {
 
           <button
             onClick={handleCheckout}
-            disabled={cart.length === 0 || processing || !activeSession}
+            disabled={cart.length === 0 || processing || !canOperate || (paymentMethod === "cash" && parseFloat(cashTendered || "0") < total)}
             className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white py-3.5 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-colors"
           >
             {processing ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <span className="material-symbols-outlined text-[18px]">shopping_cart_checkout</span>}
@@ -427,7 +503,7 @@ export default function POSPage() {
             />
           </div>
           <div className="flex items-center gap-4">
-             {activeSession && (
+             {(!isOnlineStore && activeSession) && (
                  <div className="flex flex-col items-right text-right">
                     <p className="text-[10px] font-bold text-gray-400 uppercase">Efectivo en Caja</p>
                     <p className="text-sm font-black text-emerald-600">${activeSession.expectedClosingBalance.toFixed(2)}</p>
@@ -448,7 +524,7 @@ export default function POSPage() {
                 <div 
                   key={product.id} 
                   onClick={() => addToCart(product)}
-                  className={`bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#33172c]/20 cursor-pointer transition-all flex flex-col ${!activeSession ? "opacity-60 grayscale-[0.5]" : ""}`}
+                  className={`bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#33172c]/20 cursor-pointer transition-all flex flex-col ${!canOperate ? "opacity-60 grayscale-[0.5]" : ""}`}
                 >
                   <div className="w-full pt-[100%] relative bg-gray-50 rounded-xl overflow-hidden mb-3">
                     {product.image ? (

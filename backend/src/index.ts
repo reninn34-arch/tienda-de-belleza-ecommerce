@@ -11,6 +11,7 @@ import adminRouter from "./routes/admin";
 import branchesRouter from "./routes/branches";
 import inventoryRouter from "./routes/inventory";
 import cashRouter from "./routes/cash";
+import eventsRouter from "./routes/events";
 import { requireAuth, requireRole } from "./middleware/auth";
 import { sendError } from "./lib/errors";
 import { validateEnv } from "./lib/env";
@@ -98,6 +99,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/branches", branchesRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/admin/cash", cashRouter);
+app.use("/api/admin/events", eventsRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   const req = _req as RequestWithId;
