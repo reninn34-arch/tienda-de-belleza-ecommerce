@@ -8,7 +8,10 @@ import settingsRouter from "./routes/settings";
 import pagesRouter from "./routes/pages";
 import tutorialsRouter from "./routes/tutorials";
 import adminRouter from "./routes/admin";
-import { requireAuth } from "./middleware/auth";
+import branchesRouter from "./routes/branches";
+import inventoryRouter from "./routes/inventory";
+import cashRouter from "./routes/cash";
+import { requireAuth, requireRole } from "./middleware/auth";
 import { sendError } from "./lib/errors";
 import { validateEnv } from "./lib/env";
 import { requestLogger, logger, type RequestWithId } from "./lib/logger";
@@ -68,11 +71,21 @@ app.use("/api/orders", (req, res, next) => {
   next();
 });
 
-// Middleware para proteger endpoints de escritura excepto órdenes y login
+// Middleware para proteger endpoints
 app.use((req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  // Si hay un token presente, siempre lo procesamos para identificar al usuario
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return requireAuth(req, res, next);
+  }
+
+  // Rutas públicas que no requieren autenticación si no hay token
   if (req.method === "GET") return next();
   if (req.path.startsWith("/api/admin/login")) return next();
   if (req.method === "POST" && req.path === "/api/orders") return next();
+
+  // Para el resto de rutas protegidas sin token
   requireAuth(req, res, next);
 });
 
@@ -82,6 +95,9 @@ app.use("/api/settings", settingsRouter);
 app.use("/api/pages", pagesRouter);
 app.use("/api/tutorials", tutorialsRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/branches", branchesRouter);
+app.use("/api/inventory", inventoryRouter);
+app.use("/api/admin/cash", cashRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   const req = _req as RequestWithId;

@@ -23,6 +23,7 @@ interface RawProduct {
   category: string;
   image?: string;
   badge?: string;
+  /** Campo legacy — si el JSON tiene stock, se usará para inicializar el Inventory */
   stock?: number;
   features?: string[];
   gallery?: string[];
@@ -85,7 +86,6 @@ async function main() {
         category: p.category,
         image: p.image ?? null,
         badge: p.badge ?? null,
-        stock: p.stock ?? 0,
         features: (p.features ?? []) as string[],
         gallery: (p.gallery ?? []) as string[],
         swatches: (p.swatches ?? []) as Prisma.JsonArray,
@@ -95,6 +95,27 @@ async function main() {
     });
   }
   console.log(`  ✔ ${products.length} products`);
+
+  // Crear la sucursal por defecto y los inventarios asociados
+  const onlineBranch = await db.branch.upsert({
+    where: { name: "tienda-online" },
+    update: {},
+    create: { name: "tienda-online", address: "Tienda en línea" },
+  });
+  for (const p of products) {
+    await db.inventory.upsert({
+      where: {
+        productId_branchId: { productId: p.id, branchId: onlineBranch.id },
+      },
+      update: {},
+      create: {
+        productId: p.id,
+        branchId: onlineBranch.id,
+        stock: p.stock ?? 0,
+      },
+    });
+  }
+  console.log(`  ✔ sucursal 'tienda-online' + inventarios`);
 
   const orders = readJson<RawOrder[]>("orders.json");
   for (const o of orders) {

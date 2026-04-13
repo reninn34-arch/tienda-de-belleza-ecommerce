@@ -7,12 +7,12 @@ import { useState, useEffect } from "react";
 
 const TAX_RATE = 0.08; // fallback, overridden by settings
 
-interface AdminShippingMethod { id: string; name: string; description: string; price: number; enabled: boolean; }
+interface AdminShippingMethod { id: string; name: string; description: string; price: number; enabled: boolean; carrier?: string; }
 interface AccountDetails { bank: string; accountNumber: string; accountType: string; holderName: string; ruc: string; email: string; }
 interface AdminPaymentMethod { id: string; name: string; enabled: boolean; instructions: string; accountDetails?: AccountDetails; email?: string; }
 
 export default function CheckoutPage() {
-  const { cart, cartTotal, clearCart } = useCart();
+  const { cart, cartTotal, clearCart, isLoaded, validateCart } = useCart();
   const [submitted, setSubmitted] = useState(false);
   const [shippingMethod, setShippingMethod] = useState("standard");
   const [paymentMethod, setPaymentMethod] = useState("card");
@@ -47,7 +47,10 @@ export default function CheckoutPage() {
       .then((s) => {
         const enabledShipping = (s.shipping?.methods ?? []).filter((m: AdminShippingMethod) => m.enabled);
         const enabledPayments = (s.payments?.methods ?? []).filter((m: AdminPaymentMethod) => m.enabled);
-        if (enabledShipping.length) setShippingMethods(enabledShipping);
+        if (enabledShipping.length) {
+          setShippingMethods(enabledShipping);
+          setShippingMethod(enabledShipping[0]?.id ?? "standard");
+        }
         if (enabledPayments.length) {
           setPaymentMethods(enabledPayments);
           setPaymentMethod(enabledPayments[0]?.id ?? "card");
@@ -55,6 +58,10 @@ export default function CheckoutPage() {
         if (s.taxRate !== undefined) setTaxRate(s.taxRate / 100);
       })
       .catch(() => {});
+    
+    // Auto-validate real-time stock on mount
+    validateCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const selectedShipping = shippingMethods.find((m) => m.id === shippingMethod) ?? shippingMethods[0];
@@ -73,28 +80,46 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const transferMethod = paymentMethods.find((m) => m.id === "transfer" && m.id === paymentMethod) ?? null;
-    await fetch("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customer: `${form.firstName} ${form.lastName}`,
-        email: form.email,
-        total,
-        subtotal: cartTotal,
-        shipping: shippingCost,
-        tax,
-        status: "pending",
-        shippingMethod: selectedShipping?.name ?? shippingMethod,
-        paymentMethod,
-        address: `${form.address}${form.apartment ? ", " + form.apartment : ""}, ${form.city}, ${form.province}, ${form.country}`,
-        notes: "",
-        products: cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
-      }),
-    }).catch(() => {});
-    clearCart();
-    setConfirmedTransfer(transferMethod);
-    setSubmitted(true);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer: `${form.firstName} ${form.lastName}`,
+          email: form.email,
+          total,
+          subtotal: cartTotal,
+          shipping: shippingCost,
+          tax,
+          status: "pending",
+          shippingMethod: selectedShipping?.name ?? shippingMethod,
+          paymentMethod,
+          address: `${form.address}${form.apartment ? ", " + form.apartment : ""}, ${form.city}, ${form.province}, ${form.country}`,
+          notes: "",
+          products: cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || "Error procesando el pedido.");
+      }
+
+      clearCart();
+      setConfirmedTransfer(transferMethod);
+      setSubmitted(true);
+    } catch (e: any) {
+      alert(e.message || "Ocurrió un error inesperado al procesar el pedido.");
+    }
   };
+
+  if (!isLoaded) {
+    return (
+      <div className="pt-32 pb-24 min-h-screen bg-background flex items-center justify-center">
+        <span className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -344,7 +369,10 @@ export default function CheckoutPage() {
                           className="text-primary-container focus:ring-primary-container"
                         />
                         <div>
-                          <span className="text-sm font-medium block">{method.name}</span>
+                          <span className="text-sm font-medium block">
+                            {method.name}
+                            {method.carrier && <span className="ml-2 text-[10px] font-bold tracking-widest uppercase bg-surface-variant text-on-surface px-1.5 py-0.5 rounded">{method.carrier}</span>}
+                          </span>
                           <span className="text-xs text-outline">{method.description}</span>
                         </div>
                       </div>

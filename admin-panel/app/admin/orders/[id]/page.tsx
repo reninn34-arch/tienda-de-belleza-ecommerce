@@ -32,6 +32,13 @@ const STATUS_OPTIONS = [
   { value: "refunded", label: "Reembolsado", color: "bg-purple-100 text-purple-700" },
 ];
 
+const PAYMENT_LABEL: Record<string, string> = {
+  card: "Tarjeta",
+  transfer: "Transferencia",
+  paypal: "PayPal",
+  cash: "Efectivo",
+};
+
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -240,7 +247,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               <div>
                 <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Método de pago</p>
                 <p className="text-sm font-semibold text-gray-800">
-                  {order.paymentMethod === "card" ? "Tarjeta" : order.paymentMethod === "transfer" ? "Transferencia" : "PayPal"}
+                  {PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}
                 </p>
               </div>
               <div>

@@ -1,7 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+
+import { getAdminProfile } from "@/components/ProfileModal";
 
 interface Product { id: string; name: string; price: number; category: string; }
 interface OrderProduct { id: string; name: string; price: number; quantity: number; }
@@ -56,15 +58,30 @@ export default function AdminDashboardPage() {
   const [loaded, setLoaded] = useState(false);
   const [hovered, setHovered] = useState<number | null>(null);
 
+  const [adminRole, setAdminRole] = useState<"ADMIN" | "VENDEDOR">("ADMIN");
+
   useEffect(() => {
+    const profile = getAdminProfile();
+    setAdminRole(profile.role);
+    
     Promise.all([
       fetch("/api/admin/products").then((r) => r.json()),
       fetch("/api/admin/orders").then((r) => r.json()),
       fetch("/api/admin/settings").then((r) => r.json()),
-    ]).then(([p, o, s]) => {
+      fetch("/api/admin/branches").then((r) => r.json()),
+    ]).then(([p, o, s, b]) => {
       setProducts(p);
       setOrders(o);
       setStoreName(s.storeName ?? "Mi Tienda");
+      
+      // Si es VENDEDOR, intentar mostrar el nombre de la sucursal
+      if (profile.role === "VENDEDOR" && profile.branchId) {
+        const branch = b.find((bx: any) => bx.id === profile.branchId);
+        if (branch) {
+          setStoreName(branch.name === "tienda-online" ? "Tienda Online" : branch.name);
+        }
+      }
+      
       setLoaded(true);
     });
   }, []);
@@ -120,6 +137,22 @@ export default function AdminDashboardPage() {
     { label: "Ingresos", value: loaded ? `$${revenue.toFixed(2)}` : "---", icon: "payments", href: "/admin/orders", color: "text-emerald-600 bg-emerald-50" },
   ];
 
+  const QUICK_ACTIONS = [
+    { label: "Analitica", href: "/admin/analytics", icon: "analytics" },
+    { label: "Agregar Producto", href: "/admin/products/new", icon: "add_circle" },
+    { label: "Ver Pedidos", href: "/admin/orders", icon: "receipt_long" },
+    { label: "Editar Contenido", href: "/admin/content", icon: "edit" },
+    { label: "Metodos de Pago", href: "/admin/payments", icon: "credit_card" },
+    { label: "Metodos de Envio", href: "/admin/shipping", icon: "local_shipping" },
+    { label: "Politicas", href: "/admin/policies", icon: "policy" },
+  ].filter((a) => {
+    if (adminRole === "VENDEDOR") {
+      // Vendedores no ven cosas de configuración profunda ni analítica general, tampoco agregan productos globales
+      return !["Analitica", "Agregar Producto", "Editar Contenido", "Metodos de Pago", "Metodos de Envio", "Politicas"].includes(a.label);
+    }
+    return true;
+  });
+
   return (
     <div className="p-4 sm:p-8 max-w-6xl">
       <div className="mb-8">
@@ -149,7 +182,7 @@ export default function AdminDashboardPage() {
                 <p className="text-[11px] text-gray-500 mt-0.5">Ultimos 14 dias sin cancelados ni reembolsos</p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-[#33172c]">${revenue.toFixed(0)}</p>
+                <p className="text-xl font-bold text-[#33172c]">${revenue.toFixed(2)}</p>
                 <p className="text-[10px] text-gray-500 mt-0.5">acumulado</p>
               </div>
             </div>
@@ -271,15 +304,7 @@ export default function AdminDashboardPage() {
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Acciones Rapidas</h2>
           <div className="space-y-1">
-            {[
-              { label: "Analitica", href: "/admin/analytics", icon: "analytics" },
-              { label: "Agregar Producto", href: "/admin/products/new", icon: "add_circle" },
-              { label: "Ver Pedidos", href: "/admin/orders", icon: "receipt_long" },
-              { label: "Editar Contenido", href: "/admin/content", icon: "edit" },
-              { label: "Metodos de Pago", href: "/admin/payments", icon: "credit_card" },
-              { label: "Metodos de Envio", href: "/admin/shipping", icon: "local_shipping" },
-              { label: "Politicas", href: "/admin/policies", icon: "policy" },
-            ].map((a) => (
+            {QUICK_ACTIONS.map((a) => (
               <Link key={a.href} href={a.href}
                 className="flex items-center gap-3 text-sm text-gray-600 hover:text-[#33172c] hover:bg-gray-50 px-3 py-2.5 rounded-xl transition-colors">
                 <span className="material-symbols-outlined text-[18px] text-gray-500">{a.icon}</span>

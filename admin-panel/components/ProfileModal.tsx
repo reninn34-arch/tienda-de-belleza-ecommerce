@@ -5,20 +5,33 @@ import { useState } from "react";
 export interface AdminProfile {
   name: string;
   email: string;
-  password: string;
+  password?: string;
+  role: "ADMIN" | "VENDEDOR";
+  branchId?: string | null;
 }
 
 const DEFAULT_PROFILE: AdminProfile = {
   name: "Administrador",
   email: "admin@blush.com",
-  password: "blush2024",
+  role: "ADMIN",
 };
 
 export function getAdminProfile(): AdminProfile {
   if (typeof window === "undefined") return DEFAULT_PROFILE;
   try {
+    const auth = localStorage.getItem("adminAuth");
     const stored = localStorage.getItem("adminProfile");
-    return stored ? { ...DEFAULT_PROFILE, ...JSON.parse(stored) } : DEFAULT_PROFILE;
+    
+    const parsedAuth = auth && auth !== "true" ? JSON.parse(auth) : null;
+    const parsedProfile = stored ? JSON.parse(stored) : null;
+    
+    // Prioridad: 1. Auth data, 2. Stored profile
+    const userRole = parsedAuth?.user?.role || parsedProfile?.role;
+    const branchId = parsedAuth?.user?.branchId || parsedProfile?.branchId || null;
+    
+    return stored 
+      ? { ...DEFAULT_PROFILE, ...parsedProfile, role: userRole as any, branchId } 
+      : { ...DEFAULT_PROFILE, role: userRole as any, branchId };
   } catch {
     return DEFAULT_PROFILE;
   }
@@ -116,11 +129,24 @@ export default function ProfileModal({ onClose }: Props) {
           <h2 className="text-lg font-bold">{profile.name}</h2>
           <p className="text-xs text-white/60 mt-0.5">{profile.email}</p>
           <span className="inline-block mt-2 px-3 py-0.5 rounded-full bg-white/10 text-[9px] uppercase tracking-[0.15em] font-bold">
-            Administrador
+            {profile.role === "ADMIN" ? "Administrador" : "Vendedor"}
           </span>
         </div>
 
-        <div className="divide-y divide-gray-100 max-h-[62vh] overflow-y-auto">
+        {profile.role === "VENDEDOR" ? (
+          <div className="px-8 py-12 text-center">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mx-auto mb-4">
+              <span className="material-symbols-outlined text-2xl text-amber-500">lock_person</span>
+            </div>
+            <h3 className="text-sm font-bold text-gray-800 mb-2">Edición Deshabilitada</h3>
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Tus credenciales están protegidas. No puedes modificarlas directamente. 
+              Contacta a un administrador si necesitas actualizar tu nombre, correo o contraseña.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100 max-h-[62vh] overflow-y-auto">
+
           {/* ── Información del perfil ── */}
           <form onSubmit={saveInfo} className="px-6 py-5 space-y-4">
             <h3 className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
@@ -277,7 +303,8 @@ export default function ProfileModal({ onClose }: Props) {
             </button>
           </form>
         </div>
-      </div>
+      )}
+    </div>
     </div>
   );
 }

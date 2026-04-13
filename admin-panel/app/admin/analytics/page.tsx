@@ -1,12 +1,13 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-interface Product { id: string; name: string; price: number; category: string; cost?: number; stock?: number; image?: string; }
+interface Product { id: string; name: string; price: number; category: string; cost?: number; totalStock?: number; image?: string; }
 interface OrderProduct { id: string; productId?: string; name: string; price: number; quantity: number; }
-interface Order { id: string; customer: string; total: number; status: string; date: string; items: number; paymentMethod: string; products?: OrderProduct[]; }
+interface Order { id: string; customer: string; total: number; status: string; date: string; items: number; paymentMethod: string; products?: OrderProduct[]; branchId?: string; }
+interface Branch { id: string; name: string; }
 
 const STATUS_LABEL: Record<string, string> = {
   completed: "Completado", pending: "Pendiente", processing: "En proceso",
@@ -71,8 +72,10 @@ function TrendBadge({ cur, prev, visible }: { cur: number; prev: number; visible
 export default function AnalyticsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [range, setRange] = useState(30);
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
   const [profitSort, setProfitSort] = useState<"profit" | "margin" | "units">("profit");
   const [showNoSalesDetail, setShowNoSalesDetail] = useState(false);
@@ -83,13 +86,15 @@ export default function AnalyticsPage() {
     let alive = true;
 
     const fetchData = async () => {
-      const [p, o] = await Promise.all([
+      const [p, o, b] = await Promise.all([
         fetch("/api/admin/products").then((r) => r.json()),
         fetch("/api/admin/orders").then((r) => r.json()),
+        fetch("/api/admin/branches").then((r) => r.json()),
       ]);
       if (!alive) return;
       setProducts(p);
       setOrders(o);
+      setBranches(b);
       setLoaded(true);
     };
 
@@ -115,8 +120,19 @@ export default function AnalyticsPage() {
   const rangeStart = rangeMs ? new Date(today.getTime() - rangeMs) : null;
   const prevStart = rangeMs ? new Date(today.getTime() - 2 * rangeMs) : null;
 
-  const inRange = (o: Order) => !rangeStart || new Date(o.date) >= rangeStart;
+  const matchesBranch = (o: Order) => {
+    if (!selectedBranchId) return true;
+    
+    // Si la sucursal seleccionada es la Tienda Online, incluimos pedidos sin branchId
+    const selectedBranch = branches.find(b => b.id === selectedBranchId);
+    if (selectedBranch?.name === "tienda-online" && !o.branchId) return true;
+    
+    return o.branchId === selectedBranchId;
+  };
+
+  const inRange = (o: Order) => matchesBranch(o) && (!rangeStart || new Date(o.date) >= rangeStart);
   const inPrev = (o: Order) =>
+    matchesBranch(o) &&
     !!prevStart && !!rangeStart &&
     new Date(o.date) >= prevStart && new Date(o.date) < rangeStart;
 
@@ -209,9 +225,9 @@ export default function AnalyticsPage() {
   const noSalesHighMargin = productMarginsBase.filter((p) => p.margin >= 50 && p.unitsSold === 0);
 
   // ── Inventario ────────────────────────────────────────────────
-  const inventoryCost = products.reduce((s, p) => s + (p.stock ?? 0) * (p.cost ?? 0), 0);
-  const inventorySell = products.reduce((s, p) => s + (p.stock ?? 0) * p.price, 0);
-  const stockItems = products.map((p) => ({ id: p.id, name: p.name, stock: p.stock ?? 0, cost: p.cost ?? 0, price: p.price, image: p.image })).sort((a, b) => a.stock - b.stock);
+  const inventoryCost = products.reduce((s, p) => s + (p.totalStock ?? 0) * (p.cost ?? 0), 0);
+  const inventorySell = products.reduce((s, p) => s + (p.totalStock ?? 0) * p.price, 0);
+  const stockItems = products.map((p) => ({ id: p.id, name: p.name, stock: p.totalStock ?? 0, cost: p.cost ?? 0, price: p.price, image: p.image })).sort((a, b) => a.stock - b.stock);
   const outOfStock = stockItems.filter((p) => p.stock === 0);
   const lowStock = stockItems.filter((p) => p.stock > 0 && p.stock <= 5);
   const healthyStock = stockItems.filter((p) => p.stock > 5);
@@ -235,6 +251,22 @@ export default function AnalyticsPage() {
   const catRevData = [...catRevMap.entries()]
     .sort((a, b) => b[1].rev - a[1].rev)
     .map(([cat, d]) => ({ cat, ...d, avg: d.rev / Math.max(d.orders, 1) }));
+
+  // ── Ingresos por sucursal ─────────────────────────────────────
+  const branchMap = new Map(branches.map(b => [b.id, b.name]));
+  const branchRevenueMap = new Map<string, { total: number, count: number }>();
+  for (const o of activeOrders) {
+    let actualName = branchMap.get(o.branchId ?? "") ?? "Tienda Online";
+    if (actualName.toLowerCase() === "tienda-online") actualName = "Tienda Online";
+    const prev = branchRevenueMap.get(actualName) ?? { total: 0, count: 0 };
+    branchRevenueMap.set(actualName, { total: prev.total + o.total, count: prev.count + 1 });
+  }
+  const branchData = [...branchRevenueMap.entries()]
+    .sort((a,b) => b[1].total - a[1].total)
+    .map(([name, d]) => ({ 
+      name, total: d.total, count: d.count, 
+      share: revenue > 0 ? (d.total / revenue) * 100 : 0 
+    }));
 
   // ── Desglose de productos por categoria ──────────────────────
   const productImageMap = new Map(productMarginsBase.map((p) => [p.id, p.image]));
@@ -306,6 +338,23 @@ export default function AnalyticsPage() {
               </button>
             ))}
           </div>
+          {/* Branch selector */}
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px] text-gray-400">storefront</span>
+            <select
+              value={selectedBranchId ?? ""}
+              onChange={(e) => setSelectedBranchId(e.target.value || null)}
+              className="bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-[11px] font-bold text-[#33172c] focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none shadow-sm min-w-[140px]"
+            >
+              <option value="">Todas las sucursales</option>
+              {branches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name === "tienda-online" ? "Tienda Online" : b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <Link href="/admin" className="flex items-center gap-2 text-xs text-gray-500 hover:text-[#33172c] transition-colors">
             <span className="material-symbols-outlined text-[16px]">arrow_back</span>
             Dashboard
@@ -317,7 +366,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Ingresos", icon: "payments", color: "text-emerald-600 bg-emerald-50",
-            value: loaded ? `$${revenue.toFixed(0)}` : "—", cur: revenue, prev: prevRevenue },
+            value: loaded ? `$${revenue.toFixed(2)}` : "—", cur: revenue, prev: prevRevenue },
           { label: "Ticket Promedio", icon: "receipt", color: "text-teal-600 bg-teal-50",
             value: loaded && activeOrders.length > 0 ? `$${avgTicket.toFixed(2)}` : "—", cur: avgTicket, prev: prevAvgTicket },
           { label: "Articulos Vendidos", icon: "shopping_bag", color: "text-indigo-600 bg-indigo-50",
@@ -351,7 +400,7 @@ export default function AnalyticsPage() {
             </div>
             {chartHasData && (
               <div className="text-right">
-                <p className="text-xl font-bold text-[#33172c]">${revenue.toFixed(0)}</p>
+                <p className="text-xl font-bold text-[#33172c]">${revenue.toFixed(2)}</p>
                 <p className="text-[10px] text-gray-500 mt-0.5">total en el periodo</p>
               </div>
             )}
@@ -454,7 +503,7 @@ export default function AnalyticsPage() {
                         <span className="text-xs font-semibold text-gray-700 truncate pr-2">{p.name}</span>
                         <div className="flex items-center gap-3 flex-shrink-0">
                           <span className="text-[10px] text-gray-500">{p.units} uds.</span>
-                          <span className="text-xs font-bold text-gray-800">${p.revenue.toFixed(0)}</span>
+                          <span className="text-xs font-bold text-gray-800">${p.revenue.toFixed(2)}</span>
                         </div>
                       </div>
                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -507,6 +556,87 @@ export default function AnalyticsPage() {
         </div>
       )}
 
+      {/* Ventas por Sucursal + Metodos de Pago */}
+      {loaded && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h2 className="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Ventas por Sucursal</h2>
+            <p className="text-[11px] text-gray-500 mb-5">Ingresos generados por cada local y tienda online</p>
+            {branchData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-32 gap-2">
+                <span className="material-symbols-outlined text-4xl text-gray-200">storefront</span>
+                <p className="text-sm text-gray-500">Sin ingresos en el periodo</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {branchData.map((b, i) => {
+                  const isSelected = selectedBranchId ? (branchMap.get(selectedBranchId) === b.name || (selectedBranchId && b.name === "Tienda Online" && branchMap.get(selectedBranchId) === "tienda-online")) : false;
+                  return (
+                    <div key={b.name} className={`flex items-center gap-4 transition-all ${isSelected ? "p-3 bg-indigo-50/50 rounded-2xl border border-indigo-100 shadow-sm" : ""}`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${b.name === "Tienda Online" ? "bg-indigo-50 text-indigo-600" : "bg-emerald-50 text-emerald-600"}`}>
+                        <span className="material-symbols-outlined text-[20px]">{b.name === "Tienda Online" ? "language" : "storefront"}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className={`text-sm font-semibold truncate ${isSelected ? "text-indigo-900" : "text-gray-800"}`}>{b.name}</span>
+                          <div className="text-right">
+                            <span className="text-sm font-bold text-[#33172c]">${b.total.toFixed(2)}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-700 ${b.name === "Tienda Online" ? "bg-indigo-500" : "bg-emerald-500"}`} style={{ width: `${b.share}%` }} />
+                          </div>
+                          <span className="text-[10px] text-gray-500 w-8 text-right flex-shrink-0">{b.share.toFixed(0)}%</span>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">{b.count} {b.count === 1 ? "pedido" : "pedidos"}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h2 className="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Métodos de Pago</h2>
+            <p className="text-[11px] text-gray-500 mb-5">Ingresos por pasarela o efectivo</p>
+            {paymentData.length === 0 ? (
+               <div className="flex flex-col items-center justify-center h-32 gap-2">
+                 <span className="material-symbols-outlined text-4xl text-gray-200">payments</span>
+                 <p className="text-sm text-gray-500">Sin pagos en el periodo</p>
+               </div>
+            ) : (
+              <div className="space-y-4">
+                {paymentData.map((p) => {
+                  const style = PAYMENT_STYLE[p.method] ?? PAYMENT_STYLE.cash;
+                  return (
+                    <div key={p.method} className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${style.bg}`}>
+                        <span className="material-symbols-outlined text-[20px]" style={{ color: style.accent }}>{p.icon}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-sm font-semibold text-gray-800 tracking-wide">{p.label}</span>
+                          <span className="text-sm font-bold text-[#33172c]">${p.total.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${p.share}%`, backgroundColor: style.accent }} />
+                          </div>
+                          <span className="text-[10px] text-gray-500 w-8 text-right flex-shrink-0">{p.share.toFixed(0)}%</span>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">{p.count} {p.count === 1 ? "pedido" : "pedidos"}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Rentabilidad + Inventario */}
       {loaded && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
@@ -518,7 +648,7 @@ export default function AnalyticsPage() {
                 <p className="text-[11px] text-gray-500 mt-0.5">Por producto · periodo seleccionado</p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-emerald-600">${grossProfit.toFixed(0)}</p>
+                <p className="text-xl font-bold text-emerald-600">${grossProfit.toFixed(2)}</p>
                 <p className="text-[10px] text-gray-500 mt-0.5">{grossMarginPct.toFixed(1)}% margen bruto</p>
               </div>
             </div>
@@ -527,9 +657,9 @@ export default function AnalyticsPage() {
             <div className="relative mb-5">
               <div className="grid grid-cols-3 gap-2 mb-3">
                 {[
-                  { label: "Ingresos", value: `$${revenue.toFixed(0)}`, color: "text-gray-800", bg: "bg-gray-50" },
-                  { label: "Costo Vendido", value: `-$${cogs.toFixed(0)}`, color: "text-red-500", bg: "bg-red-50" },
-                  { label: "Ganancia Bruta", value: `$${grossProfit.toFixed(0)}`, color: grossProfit >= 0 ? "text-emerald-600" : "text-red-600", bg: grossProfit >= 0 ? "bg-emerald-50" : "bg-red-50" },
+                  { label: "Ingresos", value: `$${revenue.toFixed(2)}`, color: "text-gray-800", bg: "bg-gray-50" },
+                  { label: "Costo Vendido", value: `-$${cogs.toFixed(2)}`, color: "text-red-500", bg: "bg-red-50" },
+                  { label: "Ganancia Bruta", value: `$${grossProfit.toFixed(2)}`, color: grossProfit >= 0 ? "text-emerald-600" : "text-red-600", bg: grossProfit >= 0 ? "bg-emerald-50" : "bg-red-50" },
                 ].map((k) => (
                   <div key={k.label} className={`${k.bg} rounded-xl p-3 text-center`}>
                     <p className={`text-base font-bold ${k.color}`}>{k.value}</p>

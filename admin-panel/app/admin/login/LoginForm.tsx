@@ -42,7 +42,7 @@ export default function LoginForm({ storeName }: { storeName: string }) {
 
       const data = await res.json();
       localStorage.setItem("adminProfile", JSON.stringify(data.user));
-      localStorage.setItem("adminAuth", "true");
+      localStorage.setItem("adminAuth", JSON.stringify(data));
       router.replace("/admin");
     } catch (err) {
       console.error(err);

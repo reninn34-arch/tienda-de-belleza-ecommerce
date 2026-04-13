@@ -9,6 +9,9 @@ export type ErrorCode =
   | "RATE_LIMITED"
   | "INVALID_CREDENTIALS"
   | "STOCK_INSUFFICIENT"
+  | "ALREADY_EXISTS"
+  | "ALREADY_OPEN"
+  | "INVALID_SESSION"
   | "INTERNAL_ERROR";
 
 export interface ErrorPayload {

@@ -9,6 +9,7 @@ interface ShippingMethod {
   price: number;
   enabled: boolean;
   minOrder?: number;
+  carrier?: string;
 }
 
 export default function AdminShippingPage() {
@@ -21,7 +22,7 @@ export default function AdminShippingPage() {
   const [showNew, setShowNew] = useState(false);
   const [toast, setToast] = useState("");
   const [newMethod, setNewMethod] = useState<Omit<ShippingMethod, "id">>(
-    { name: "", description: "", price: 0, enabled: true },
+    { name: "", description: "", price: 0, enabled: true, carrier: "" },
   );
 
   useEffect(() => {
@@ -88,7 +89,7 @@ export default function AdminShippingPage() {
     setMethods(updated);
     await save(updated);
     setShowNew(false);
-    setNewMethod({ name: "", description: "", price: 0, enabled: true });
+    setNewMethod({ name: "", description: "", price: 0, enabled: true, carrier: "" });
   }
 
   return (
@@ -168,6 +169,10 @@ export default function AdminShippingPage() {
               <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Descripción</label>
               <input value={newMethod.description} onChange={(e) => setNewMethod((p) => ({ ...p, description: e.target.value }))} placeholder="1–2 días hábiles" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none" />
             </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Empresa de Envío</label>
+              <input value={newMethod.carrier || ""} onChange={(e) => setNewMethod((p) => ({ ...p, carrier: e.target.value }))} placeholder="DHL, Servientrega..." className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none" />
+            </div>
           </div>
           <div className="flex gap-3">
             <button onClick={() => setShowNew(false)} className="px-5 py-2 border border-gray-200 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors">Cancelar</button>
@@ -187,7 +192,10 @@ export default function AdminShippingPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">{method.name}</p>
-                  <p className="text-xs text-gray-400">{method.description} · <strong>${method.price.toFixed(2)}</strong></p>
+                  <p className="text-xs text-gray-400">
+                    {method.carrier && <span className="font-semibold text-[#33172c] bg-[#33172c]/10 px-1.5 py-0.5 rounded mr-1.5">{method.carrier}</span>}
+                    {method.description} · <strong>${method.price.toFixed(2)}</strong>
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -218,6 +226,10 @@ export default function AdminShippingPage() {
                   <div>
                     <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Descripción</label>
                     <input value={method.description} onChange={(e) => updateMethod(method.id, "description", e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Empresa de Envío</label>
+                    <input value={method.carrier || ""} onChange={(e) => updateMethod(method.id, "carrier", e.target.value)} placeholder="DHL, Servientrega..." className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none" />
                   </div>
                 </div>
                 <div className="flex gap-3 mt-4">

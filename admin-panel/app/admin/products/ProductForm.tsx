@@ -9,13 +9,23 @@ interface Category {
   label: string;
 }
 
+interface Branch {
+  id: string;
+  name: string;
+  address?: string | null;
+}
+
+interface InventoryEntry {
+  branchId: string;
+  stock: string; // string para el input, se parsea al enviar
+}
+
 interface ProductFormData {
   id: string;
   name: string;
   description: string;
   price: string;
   cost: string;
-  stock: string;
   sku: string;
   category: string;
   image: string;
@@ -36,7 +46,9 @@ interface ProductFormData {
 }
 
 interface ProductFormProps {
-  initial?: Partial<ProductFormData>;
+  initial?: Partial<ProductFormData> & {
+    inventories?: { branchId: string; stock: number }[];
+  };
   mode: "new" | "edit";
   productId?: string;
 }
@@ -77,6 +89,8 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
   const [scienceIconPickerOpen, setScienceIconPickerOpen] = useState<number | null>(null);
   const [toast, setToast] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [inventories, setInventories] = useState<InventoryEntry[]>([]);
 
   const slugify = (value: string) =>
     value
@@ -88,13 +102,31 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
     fetch("/api/admin/settings")
       .then((r) => r.json())
       .then((data) => setCategories(data.categories ?? []));
+
+    // Cargar sucursales para el panel de inventario
+    fetch("/api/admin/branches")
+      .then((r) => r.json())
+      .then((data: Branch[]) => {
+        setBranches(data);
+        // Inicializar inventarios: si el producto ya tiene datos, usarlos; si no, crear entradas vacías
+        const existingInventories = initial?.inventories ?? [];
+        setInventories(
+          data.map((branch) => {
+            const existing = existingInventories.find((inv) => inv.branchId === branch.id);
+            return {
+              branchId: branch.id,
+              stock: existing ? String(existing.stock) : "0",
+            };
+          })
+        );
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [form, setForm] = useState<ProductFormData>({
     id: initial?.id ?? "",
     name: initial?.name ?? "",
     description: initial?.description ?? "",
     sku: initial?.sku ?? "",
-    stock: initial?.stock !== undefined ? initial.stock.toString() : "",
     cost: initial?.cost !== undefined ? initial.cost.toString() : "",
     price: initial?.price ?? "",
     category: initial?.category ?? "permanent",
@@ -219,7 +251,6 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
       ...form,
       id: autoId || undefined,
       price: parseFloat(form.price) || 0,
-      stock: form.stock ? parseInt(form.stock, 10) : undefined,
       cost: form.cost ? parseFloat(form.cost) : undefined,
       sku: form.sku || undefined,
       features: form.features.filter(Boolean),
@@ -238,6 +269,10 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
       scienceTitle: form.scienceTitle || undefined,
       scienceDesc: form.scienceDesc || undefined,
       scienceItems: form.scienceItems.filter((s) => s.title).length ? form.scienceItems.filter((s) => s.title) : undefined,
+      // Inventario por sucursal
+      inventories: inventories
+        .filter((inv) => inv.stock !== "" && !isNaN(parseInt(inv.stock, 10)))
+        .map((inv) => ({ branchId: inv.branchId, stock: parseInt(inv.stock, 10) })),
     };
     let res;
     if (mode === "new") {
@@ -338,13 +373,6 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
               <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">SKU <span className="font-normal lowercase text-gray-300">(opcional)</span></label>
               <input value={form.sku || ''} onChange={(e) => set("sku", e.target.value)} placeholder="MP-SERUM-001" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none" />
             </div>
-            <div className="col-span-2 md:col-span-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Stock</label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]">inventory_2</span>
-                <input value={form.stock || ''} onChange={(e) => set("stock", e.target.value)} type="number" min="0" placeholder="100" className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none" />
-              </div>
-            </div>
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Costo (USD) <span className="font-normal lowercase text-gray-300">(opcional)</span></label>
               <div className="relative">
@@ -379,6 +407,80 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
               <input value={form.id} onChange={(e) => set("id", e.target.value)} placeholder="midnight-plum-serum" className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none font-mono text-xs" />
             </div>
           </div>
+        </div>
+
+        {/* Inventory per branch */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Inventario por Sucursal</h2>
+              <p className="text-[11px] text-gray-400 mt-1">Asigna el stock disponible en cada sucursal. El stock total se calcula automáticamente.</p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg">
+              <span className="material-symbols-outlined text-[14px]">calculate</span>
+              Total:{" "}
+              <span className="font-bold text-gray-700">
+                {inventories.reduce((sum, inv) => sum + (parseInt(inv.stock, 10) || 0), 0)}
+              </span>
+            </div>
+          </div>
+
+          {branches.length === 0 ? (
+            <div className="mt-4 border border-dashed border-gray-200 rounded-xl p-6 text-center">
+              <span className="material-symbols-outlined text-gray-300 text-3xl block mb-2">store</span>
+              <p className="text-sm text-gray-400">No hay sucursales configuradas aún.</p>
+              <p className="text-xs text-gray-300 mt-1">Crea sucursales desde el panel de administración para asignar stock.</p>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {inventories.map((inv, i) => {
+                const branch = branches.find((b) => b.id === inv.branchId);
+                if (!branch) return null;
+                const stockNum = parseInt(inv.stock, 10) || 0;
+                const stockColor =
+                  stockNum === 0
+                    ? "text-red-500"
+                    : stockNum <= 5
+                    ? "text-amber-500"
+                    : "text-emerald-600";
+                return (
+                  <div key={inv.branchId} className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="material-symbols-outlined text-[18px] text-[#33172c] flex-shrink-0">
+                        {branch.name === "tienda-online" ? "language" : "store"}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{branch.name}</p>
+                        {branch.address && (
+                          <p className="text-[11px] text-gray-400 truncate">{branch.address}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`text-xs font-medium ${stockColor}`}>
+                        {stockNum === 0 ? "Sin stock" : stockNum <= 5 ? "Bajo" : "OK"}
+                      </span>
+                      <input
+                        id={`inventory-${inv.branchId}`}
+                        type="number"
+                        min="0"
+                        value={inv.stock}
+                        onChange={(e) =>
+                          setInventories((prev) =>
+                            prev.map((item, idx) =>
+                              idx === i ? { ...item, stock: e.target.value } : item
+                            )
+                          )
+                        }
+                        className="w-24 border border-gray-200 rounded-lg px-3 py-2 text-sm text-right font-mono font-medium focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none"
+                      />
+                      <span className="text-xs text-gray-400">uds.</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Features */}

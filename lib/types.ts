@@ -10,6 +10,21 @@ export interface ProductReview {
   stars: number;
 }
 
+export interface Branch {
+  id: string;
+  name: string;
+  address?: string | null;
+  createdAt?: string;
+}
+
+export interface InventoryItem {
+  id: number;
+  productId: string;
+  branchId: string;
+  stock: number;
+  branch: Branch;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -17,10 +32,13 @@ export interface Product {
   price: number;
   category: string;
   image: string;
-  stock?: number;
+  /** Stock total calculado (suma de todos los Inventory) */
+  totalStock?: number;
+  /** Inventario desglosado por sucursal */
+  inventories?: InventoryItem[];
   cost?: number;
   sku?: string;
-  badge?: string; // Optional badge like "Top Rated" or "Pro Kit"
+  badge?: string;
   features?: string[];
   gallery?: string[];
   swatches?: ProductSwatch[];

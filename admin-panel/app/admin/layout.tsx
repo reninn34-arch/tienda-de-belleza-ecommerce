@@ -11,9 +11,12 @@ const NAV_SECTIONS = [
     section: "TIENDA",
     items: [
       { label: "Analítica", href: "/admin/analytics", icon: "analytics" },
-      { label: "Productos", href: "/admin/products", icon: "inventory_2" },
-      { label: "Categorías", href: "/admin/categories", icon: "category" },
+      { label: "Punto de Venta", href: "/admin/pos", icon: "point_of_sale" },
       { label: "Pedidos", href: "/admin/orders", icon: "receipt_long" },
+      { label: "Productos", href: "/admin/products", icon: "inventory_2" },
+      { label: "Inventario", href: "/admin/inventory", icon: "store" },
+      { label: "Categorías", href: "/admin/categories", icon: "category" },
+      { label: "Cajas", href: "/admin/cash", icon: "account_balance_wallet" },
     ],
   },
   {
@@ -28,6 +31,8 @@ const NAV_SECTIONS = [
   {
     section: "CONFIGURACIÓN",
     items: [
+      { label: "Gestión de Equipo", href: "/admin/staff", icon: "badge" },
+      { label: "Sucursales", href: "/admin/branches", icon: "storefront" },
       { label: "Métodos de Envío", href: "/admin/shipping", icon: "local_shipping" },
       { label: "Métodos de Pago", href: "/admin/payments", icon: "payments" },
     ],
@@ -40,10 +45,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [ready, setReady] = useState(false);
   const [adminName, setAdminName] = useState("Administrador");
   const [adminEmail, setAdminEmail] = useState("admin@blush.com");
+  const [adminRole, setAdminRole] = useState<"ADMIN" | "VENDEDOR">("ADMIN");
   const [storeName, setStoreName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notif[]>([]);
+  const [storeUrl, setStoreUrl] = useState("/");
 
   const buildNotifs = useCallback((orders: Record<string, unknown>[], products: Record<string, unknown>[], read: Set<string>): Notif[] => {
     const notifs: Notif[] = [];
@@ -85,7 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     // Out of stock
-    const oos = products.filter((p) => Number(p.stock) === 0);
+    const oos = products.filter((p) => Number(p.totalStock) === 0);
     if (oos.length > 0) {
       const id = "outofstock";
       notifs.push({
@@ -100,14 +107,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     // Low stock (1-5 units)
-    const low = products.filter((p) => Number(p.stock) > 0 && Number(p.stock) <= 5);
+    const low = products.filter((p) => Number(p.totalStock) > 0 && Number(p.totalStock) <= 5);
     if (low.length > 0) {
       const id = "lowstock";
       notifs.push({
         id,
         type: "stock",
         title: `${low.length} producto${low.length > 1 ? "s" : ""} con stock bajo`,
-        body: low.slice(0, 3).map((p) => `${p.name} (${p.stock})`).join(", ") + (low.length > 3 ? "..." : ""),
+        body: low.slice(0, 3).map((p) => `${p.name} (${p.totalStock})`).join(", ") + (low.length > 3 ? "..." : ""),
         href: "/admin/products",
         time: "Inventario",
         read: read.has(id),
@@ -142,6 +149,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       const p = getAdminProfile();
       setAdminName(p.name);
       setAdminEmail(p.email);
+      setAdminRole(p.role);
+
+      // Fetch settings and branches for naming
+      Promise.all([
+        fetch("/api/admin/settings").then(r => r.ok ? r.json() : { storeName: "Tienda" }),
+        fetch("/api/admin/branches").then(r => r.ok ? r.json() : []),
+      ]).then(([s, b]) => {
+        let name = s.storeName ?? "Tienda";
+        if (p.role === "VENDEDOR" && p.branchId) {
+          const branch = b.find((bx: any) => bx.id === p.branchId);
+          if (branch) {
+            name = branch.name === "tienda-online" ? "Tienda Online" : branch.name;
+          }
+        }
+        setStoreName(name);
+      }).catch(() => setStoreName("Tienda"));
 
       // Load read IDs
       const stored = localStorage.getItem("adminReadNotifs");
@@ -154,6 +177,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       ]).then(([orders, products]) => {
         setNotifications(buildNotifs(orders, products, read));
       }).catch(() => {});
+
+      // Determine Store URL automatically
+      if (typeof window !== "undefined") {
+        const hostname = window.location.hostname;
+        const protocol = window.location.protocol;
+        const port = window.location.port;
+
+        if (hostname.startsWith("admin.")) {
+          // production: admin.example.com -> example.com
+          const storeHost = hostname.replace("admin.", "");
+          setStoreUrl(`${protocol}//${storeHost}${port ? `:${port}` : ""}`);
+        } else if (hostname === "localhost") {
+          // dev fallback: usually store is on 3000 and admin on 3001
+          setStoreUrl(`${protocol}//localhost:3000`);
+        } else {
+          setStoreUrl("/");
+        }
+      }
     }
   }, [pathname, router, buildNotifs]);
 
@@ -301,28 +342,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             Dashboard
           </Link>
 
-          {NAV_SECTIONS.map(({ section, items }) => (
-            <div key={section} className="mt-5">
-              <p className="px-3 mb-1.5 text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase">
-                {section}
-              </p>
-              {items.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-colors ${
-                    isActive(item.href)
-                      ? "bg-white/15 text-white font-semibold"
-                      : "text-white/60 hover:bg-white/8 hover:text-white"
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          ))}
+          {NAV_SECTIONS.map(({ section, items }) => {
+            // Filtrar secciones para Vendedores
+            if (adminRole === "VENDEDOR") {
+              if (section === "CONFIGURACIÓN" || section === "CONTENIDO") return null;
+            }
+
+            const filteredItems = items.filter(item => {
+              if (adminRole === "VENDEDOR") {
+                // Vendedor no ve Analítica ni Categorías (o lo que decidas restringir)
+                if (item.href === "/admin/analytics" || item.href === "/admin/categories") return false;
+              }
+              return true;
+            });
+
+            if (filteredItems.length === 0) return null;
+
+            return (
+              <div key={section} className="mt-5">
+                <p className="px-3 mb-1.5 text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase">
+                  {section}
+                </p>
+                {filteredItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-colors ${
+                      isActive(item.href)
+                        ? "bg-white/15 text-white font-semibold"
+                        : "text-white/60 hover:bg-white/8 hover:text-white"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Profile button */}
@@ -345,7 +403,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Footer */}
         <div className="px-4 py-3 border-t border-white/10 space-y-1">
           <Link
-            href="/"
+            href={storeUrl}
             target="_blank"
             className="flex items-center gap-2 text-[12px] text-white/40 hover:text-white/70 transition-colors"
           >

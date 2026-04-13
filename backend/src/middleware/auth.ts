@@ -9,7 +9,14 @@ if (!JWT_SECRET) {
 // Forzar a TypeScript a tratarlo como string, ya que arriba se valida
 const JWT_SECRET_TYPED = JWT_SECRET as string;
 
-type AuthenticatedRequest = Request & { user?: jwt.JwtPayload | string };
+export type AuthenticatedRequest = Request & { 
+  user?: { 
+    userId: string; 
+    email: string; 
+    role: "ADMIN" | "VENDEDOR"; 
+    branchId: string | null;
+  }
+};
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
@@ -20,10 +27,32 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 
   const token = authHeader.split(" ")[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET_TYPED) as jwt.JwtPayload | string;
-    (req as AuthenticatedRequest).user = decoded;
+    const decoded = jwt.verify(token, JWT_SECRET_TYPED) as any;
+    (req as AuthenticatedRequest).user = {
+      userId: decoded.userId,
+      email: decoded.email,
+      role: decoded.role,
+      branchId: decoded.branchId,
+    };
     next();
   } catch {
     sendError(res, 401, { code: "UNAUTHORIZED", message: "Token inválido" });
   }
+}
+
+/**
+ * Middleware para requerir roles específicos
+ */
+export function requireRole(roles: ("ADMIN" | "VENDEDOR")[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const authReq = req as AuthenticatedRequest;
+    if (!authReq.user || !roles.includes(authReq.user.role)) {
+      sendError(res, 403, { 
+        code: "FORBIDDEN", 
+        message: "No tienes permisos para realizar esta acción" 
+      });
+      return;
+    }
+    next();
+  };
 }

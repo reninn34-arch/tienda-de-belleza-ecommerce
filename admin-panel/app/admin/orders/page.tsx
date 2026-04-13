@@ -29,10 +29,17 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: "bg-red-100 text-red-700",
   refunded: "bg-purple-100 text-purple-700",
 };
+const PAYMENT_LABEL: Record<string, string> = {
+  card: "Tarjeta",
+  transfer: "Transferencia",
+  paypal: "PayPal",
+  cash: "Efectivo",
+};
 const PAYMENT_ICON: Record<string, string> = {
   card: "credit_card",
   transfer: "account_balance",
   paypal: "payment",
+  cash: "payments",
 };
 
 export default function AdminOrdersPage() {
@@ -140,7 +147,7 @@ export default function AdminOrdersPage() {
                   <td className="px-5 py-4 hidden lg:table-cell">
                     <span className="flex items-center gap-1.5 text-gray-500">
                       <span className="material-symbols-outlined text-[16px]">{PAYMENT_ICON[order.paymentMethod] ?? "payments"}</span>
-                      {order.paymentMethod === "card" ? "Tarjeta" : order.paymentMethod === "transfer" ? "Transferencia" : "PayPal"}
+                      {PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}
                     </span>
                   </td>
                   <td className="px-5 py-4 font-bold text-gray-900">${order.total.toFixed(2)}</td>

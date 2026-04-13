@@ -7,6 +7,30 @@ datasource db {
   provider = "postgresql"
 }
 
+// Branches (sucursales)
+model Branch {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  address     String?
+  inventories Inventory[]
+  admins      Admin[]
+  cashSessions CashSession[]
+  createdAt   DateTime    @default(now())
+}
+
+// Inventory — stock por sucursal
+model Inventory {
+  id        Int      @id @default(autoincrement())
+  productId String
+  branchId  String
+  stock     Int      @default(0)
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, branchId])
+}
+
 // Products
 model Product {
   id          String      @id
@@ -17,7 +41,6 @@ model Product {
   category    String
   image       String?
   badge       String?
-  stock       Int         @default(0)
   features    String[]
   gallery     String[]
   swatches    Json        @default("[]")
@@ -33,6 +56,7 @@ model Product {
   scienceItems    Json        @default("[]")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  inventories Inventory[]
 }
 
 // Orders
@@ -49,8 +73,43 @@ model Order {
   paymentMethod  String?
   address        String?
   notes          String?
+  /** Sucursal desde donde se despachó/retiró el pedido (para restaurar stock en cancelaciones) */
+  branchId       String?
+  cashSessionId  String?
   date           DateTime    @default(now())
   items          OrderItem[]
+  cashSession    CashSession? @relation(fields: [cashSessionId], references: [id])
+}
+
+model CashSession {
+  id                    String         @id @default(cuid())
+  branchId              String
+  adminId               String
+  status                String         @default("OPEN") // OPEN, CLOSED
+  openingBalance        Float
+  expectedClosingBalance Float         @default(0)
+  actualClosingBalance  Float?
+  difference            Float?
+  notes                 String?
+  openedAt              DateTime       @default(now())
+  closedAt              DateTime?
+  
+  branch                Branch         @relation(fields: [branchId], references: [id])
+  admin                 Admin          @relation(fields: [adminId], references: [id])
+  movements             CashMovement[]
+  orders                Order[]
+}
+
+model CashMovement {
+  id          String      @id @default(cuid())
+  sessionId   String
+  type        String      // IN, OUT
+  amount      Float
+  reason      String
+  orderId     String?
+  createdAt   DateTime    @default(now())
+  
+  session     CashSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
 model OrderItem {
@@ -97,12 +156,21 @@ model NewsletterSubscriber {
   createdAt DateTime @default(now())
 }
 
+enum AdminRole {
+  ADMIN
+  VENDEDOR
+}
+
 // Admins
 model Admin {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String    @id @default(cuid())
+  email     String    @unique
   password  String
   name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role      AdminRole @default(ADMIN)
+  branchId  String?
+  branch    Branch?   @relation(fields: [branchId], references: [id])
+  cashSessions CashSession[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }

@@ -6,12 +6,14 @@ import { useCart } from "@/context/CartContext";
 import { useEffect, useState } from "react";
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity, cartTotal } = useCart();
+  const { cart, removeFromCart, updateQuantity, cartTotal, isLoaded, validateCart } = useCart();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    validateCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!mounted) return null;
@@ -82,8 +84,8 @@ export default function CartPage() {
                       </button>
                       <span className="w-8 text-center text-sm font-bold text-primary">{item.quantity}</span>
                       <button 
-                        className={`w-10 h-10 flex items-center justify-center transition-colors ${item.stock !== undefined && item.quantity >= Number(item.stock) ? "text-gray-300 cursor-not-allowed" : "text-primary hover:bg-surface-variant"}`}
-                        disabled={item.stock !== undefined && item.quantity >= Number(item.stock)}
+                        className={`w-10 h-10 flex items-center justify-center transition-colors ${item.totalStock !== undefined && item.quantity >= Number(item.totalStock) ? "text-gray-300 cursor-not-allowed" : "text-primary hover:bg-surface-variant"}`}
+                        disabled={item.totalStock !== undefined && item.quantity >= Number(item.totalStock)}
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
                       >
                         <span className="material-symbols-outlined text-sm">add</span>
