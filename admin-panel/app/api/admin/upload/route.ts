@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    jwt.verify(token, JWT_SECRET);
+    jwt.verify(token, JWT_SECRET as string);
   } catch {
     return NextResponse.json({ error: "Token inválido" }, { status: 401 });
   }

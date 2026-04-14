@@ -31,6 +31,7 @@ export default function CheckoutPage() {
     firstName: "",
     lastName: "",
     idNumber: "",
+    phone: "",
     address: "",
     apartment: "",
     city: "",
@@ -87,6 +88,8 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           customer: `${form.firstName} ${form.lastName}`,
           email: form.email,
+          cedula: form.idNumber,
+          phone: form.phone,
           total,
           subtotal: cartTotal,
           shipping: shippingCost,
@@ -230,9 +233,18 @@ export default function CheckoutPage() {
                     value={form.email as string}
                     onChange={handleChange}
                     className="w-full bg-white border border-outline-variant rounded px-4 py-3 text-sm outline-none focus:border-primary-container transition-all"
-                    placeholder="Correo electrónico o número de teléfono"
+                    placeholder="Correo electrónico"
                     required
                     type="email"
+                  />
+                  <input
+                    name="phone"
+                    value={form.phone as string}
+                    onChange={handleChange}
+                    className="w-full bg-white border border-outline-variant rounded px-4 py-3 text-sm outline-none focus:border-primary-container transition-all"
+                    placeholder="Número de teléfono"
+                    required
+                    type="tel"
                   />
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input

@@ -4,9 +4,9 @@ const BACKEND = process.env.BACKEND_URL ?? "http://localhost:4000";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const body = await request.json();
   const token = request.cookies.get("admin_token")?.value;
   
@@ -24,9 +24,9 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const token = request.cookies.get("admin_token")?.value;
   
   const res = await fetch(`${BACKEND}/api/branches/${id}`, {

@@ -2,41 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND = process.env.BACKEND_URL ?? "http://localhost:4000";
 
-/** DELETE /api/admin/staff/[id] — Elimina un usuario */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
+export async function GET(request: NextRequest) {
   const token = request.cookies.get("admin_token")?.value;
-  const res = await fetch(`${BACKEND}/api/admin/staff/${id}`, {
-    method: "DELETE",
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get("status") ?? "";
+
+  const res = await fetch(`${BACKEND}/api/admin/purchases?status=${status}`, {
     headers: {
       Authorization: token ? `Bearer ${token}` : "",
     },
+    cache: "no-store",
   });
-  
   const data = await res.json();
   return NextResponse.json(data, { status: res.status });
 }
 
-/** PUT /api/admin/staff/[id] — Actualiza un usuario */
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params;
-  const body = await request.json();
+export async function POST(request: NextRequest) {
   const token = request.cookies.get("admin_token")?.value;
-  const res = await fetch(`${BACKEND}/api/admin/staff/${id}`, {
-    method: "PUT",
+  const body = await request.json();
+
+  const res = await fetch(`${BACKEND}/api/admin/purchases`, {
+    method: "POST",
     headers: {
       Authorization: token ? `Bearer ${token}` : "",
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
   });
-  
   const data = await res.json();
   return NextResponse.json(data, { status: res.status });
 }

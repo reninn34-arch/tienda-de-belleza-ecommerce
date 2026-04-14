@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { getAdminProfile } from "@/components/ProfileModal";
 
-interface Product { id: string; name: string; price: number; category: string; }
+interface Product { id: string; name: string; price: number; category: string; minStock?: number; totalStock?: number; image?: string; }
 interface OrderProduct { id: string; name: string; price: number; quantity: number; }
 interface Order { id: string; customer: string; total: number; status: string; date: string; items: number; paymentMethod: string; products?: OrderProduct[]; }
 
@@ -146,6 +146,12 @@ export default function AdminDashboardPage() {
   const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${BASELINE} L ${pts[0].x} ${BASELINE} Z`;
   const hoveredPoint = hovered !== null ? pts[hovered] : null;
 
+  const lowStockProducts = products.filter(p => {
+    const threshold = p.minStock ?? 5;
+    const currentStock = p.totalStock ?? 0;
+    return currentStock <= threshold;
+  });
+
   const donutTotal = orders.length || 1;
   const donutSegs: { status: string; count: number; a1: number; a2: number }[] = [];
   let donutAngle = 0;
@@ -182,26 +188,44 @@ export default function AdminDashboardPage() {
   });
 
   return (
-    <div className="p-4 sm:p-8 max-w-6xl">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Panel de control · {loaded ? storeName : "Cargando..."}</p>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Dashboard</h1>
+          <p className="text-sm text-gray-500 font-medium">Resumen general de {storeName}</p>
         </div>
-        
-        <div className="bg-white border border-gray-100 rounded-xl px-3 py-1.5 shadow-sm flex items-center gap-2">
-            <span className="material-symbols-outlined text-gray-400 text-sm">calendar_today</span>
-            <select 
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value as PeriodKey)}
-              className="bg-transparent text-xs font-bold text-gray-600 outline-none cursor-pointer pr-1"
-            >
-                {Object.entries(PERIOD_MAP).map(([key, val]) => (
-                  <option key={key} value={key}>{val.label}</option>
-                ))}
-            </select>
+        <div className="flex items-center gap-3">
+           <select 
+             value={selectedPeriod}
+             onChange={(e) => setSelectedPeriod(e.target.value as PeriodKey)}
+             className="bg-white border border-gray-200 text-xs font-bold px-4 py-2 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+           >
+             {Object.entries(PERIOD_MAP).map(([k, v]) => (
+               <option key={k} value={k}>{v.label}</option>
+             ))}
+           </select>
         </div>
       </div>
+
+      {/* Alertas Críticas */}
+      {lowStockProducts.length > 0 && (
+        <div className="bg-rose-50 border border-rose-100 rounded-3xl p-6 flex flex-col sm:flex-row items-center gap-6 shadow-sm shadow-rose-100/50">
+          <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-rose-600 shadow-sm flex-shrink-0 animate-pulse">
+            <span className="material-symbols-outlined text-[28px]">warning</span>
+          </div>
+          <div className="flex-1 text-center sm:text-left">
+            <h3 className="font-bold text-rose-900">Alerta de Inventario</h3>
+            <p className="text-sm text-rose-700/80">Tienes {lowStockProducts.length} productos con stock crítico o agotados. Revisa tus suministros para evitar perder ventas.</p>
+          </div>
+          <Link 
+            href="/admin/inventory"
+            className="px-6 py-2.5 bg-rose-600 text-white text-sm font-bold rounded-xl hover:bg-rose-700 transition-all shadow-md shadow-rose-200"
+          >
+            Gestionar Stock
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {STATS.map((stat) => (

@@ -12,7 +12,8 @@ const bulkUpdateSchema = z.object({
     z.object({
       productId: z.string().min(1),
       branchId: z.string().min(1),
-      stock: z.coerce.number().int().nonnegative(),
+      stock: z.coerce.number().int().nonnegative().optional(),
+      minStock: z.coerce.number().int().nonnegative().optional(),
     })
   ).min(1, "Debe enviar al menos una actualización"),
 });
@@ -38,15 +39,23 @@ router.post("/bulk", async (req: Request, res: Response) => {
 
     // Ejecutar todas las actualizaciones en una transacción
     await db.$transaction(
-      updates.map(({ productId, branchId, stock }) =>
-        db.inventory.upsert({
-          where: {
-            productId_branchId: { productId, branchId },
-          },
-          update: { stock },
-          create: { productId, branchId, stock },
-        })
-      )
+      updates.flatMap(({ productId, branchId, stock, minStock }) => {
+        const ops = [];
+        if (stock !== undefined) {
+          ops.push(db.inventory.upsert({
+            where: { productId_branchId: { productId, branchId } },
+            update: { stock },
+            create: { productId, branchId, stock },
+          }));
+        }
+        if (minStock !== undefined) {
+          ops.push(db.product.update({
+            where: { id: productId },
+            data: { minStock }
+          }));
+        }
+        return ops;
+      })
     );
 
     // Logging the bulk action

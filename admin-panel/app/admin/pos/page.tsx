@@ -15,6 +15,8 @@ interface CashSession {
   admin: { name: string };
   movements?: { amount: number; reason: string; type: "IN" | "OUT" }[];
 }
+interface Customer { id?: string; name: string; email: string; phone?: string; cedula?: string; }
+const DEFAULT_CUSTOMER: Customer = { name: "Consumidor Final", email: "local@blush.com", cedula: "" };
 
 export default function POSPage() {
   const [loading, setLoading] = useState(true);
@@ -35,6 +37,9 @@ export default function POSPage() {
   const [cashTendered, setCashTendered] = useState<string>("");
   const [toast, setToast] = useState<{message: string, type: "success" | "error"} | null>(null);
 
+  // Responsive state for mobile
+  const [activeTab, setActiveTab] = useState<"CART" | "CATALOG">("CATALOG");
+
   // Modals
   const [showOpeningModal, setShowOpeningModal] = useState(false);
   const [showClosingModal, setShowClosingModal] = useState(false);
@@ -42,6 +47,14 @@ export default function POSPage() {
   const [openingBalanceInput, setOpeningBalanceInput] = useState("");
   const [closingBalanceInput, setClosingBalanceInput] = useState("");
   const [closedSessionResult, setClosedSessionResult] = useState<any>(null);
+
+  // CRM States
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer>(DEFAULT_CUSTOMER);
+  const [showCRMModal, setShowCRMModal] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerResults, setCustomerResults] = useState<Customer[]>([]);
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState<Customer>({ name: "", email: "", phone: "", cedula: "" });
 
   // States for Movements
   const [movementType, setMovementType] = useState<"IN" | "OUT">("OUT");
@@ -105,12 +118,14 @@ export default function POSPage() {
     
     Promise.all([
       fetch("/api/admin/branches").then(r => r.json()),
-      fetch("/api/admin/products").then(r => r.json())
-    ]).then(([b, p]) => {
+      fetch("/api/admin/products").then(r => r.json()),
+      fetch("/api/admin/customers").then(r => r.json())
+    ]).then(([b, p, c]) => {
       // Mostrar todas las sucursales, incluyendo "tienda-online"
       const allBranches = b as Branch[];
       setBranches(allBranches);
       setProducts(p.filter((prod: any) => !prod.deleted));
+      setCustomerResults(c);
       
       let bid = "";
       if (profile.role === "VENDEDOR" && profile.branchId) {
@@ -298,8 +313,9 @@ export default function POSPage() {
     setProcessing(true);
     
     const orderData = {
-      customer: "Cliente Mostrador",
-      email: "local@blush.com",
+      customer: selectedCustomer.name,
+      email: selectedCustomer.email,
+      cedula: selectedCustomer.cedula || null,
       status: "completed",
       shippingMethod: "pickup",
       branchId: selectedBranchId,
@@ -339,7 +355,7 @@ export default function POSPage() {
                   sessionId: activeSession.id,
                   type: "IN",
                   amount: total,
-                  reason: `Venta POS #${orderData.customer}`
+                  reason: `Venta POS #${selectedCustomer.name}`
               })
           });
           // Actualizar localmente el balance esperado
@@ -349,6 +365,7 @@ export default function POSPage() {
       setCart([]);
       setDiscount(0);
       setCashTendered("");
+      setSelectedCustomer(DEFAULT_CUSTOMER);
       setToast({ message: "Venta registrada exitosamente", type: "success" });
       
       setProducts(prev => prev.map(p => {
@@ -378,11 +395,40 @@ export default function POSPage() {
 
   return (
     <>
-    <div className="flex h-[calc(100vh-56px)] lg:h-screen bg-gray-100 overflow-hidden print:hidden">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-56px)] lg:h-screen bg-gray-100 overflow-hidden print:hidden">
       
       {/* LEFT: CAJA REGISTRADORA */}
-      <div className="w-full lg:w-[400px] flex-shrink-0 bg-white border-r border-gray-200 flex flex-col z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-        {/* Header POS */}
+      <div className={`w-full lg:w-[400px] flex-shrink-0 bg-white border-r border-gray-200 flex-col z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] ${activeTab === "CART" ? "flex" : "hidden lg:flex"}`}>
+        {/* Seleccion de Cliente */}
+        <div className="px-4 py-3 bg-white border-b border-gray-100">
+           <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cliente</span>
+              <button 
+                onClick={() => setShowCRMModal(true)}
+                className="text-[10px] font-bold text-[#33172c] hover:underline"
+              >
+                {selectedCustomer.email === DEFAULT_CUSTOMER.email ? "Seleccionar" : "Cambiar"}
+              </button>
+           </div>
+           <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-[#bc93ad]">
+                 <span className="material-symbols-outlined text-[18px]">person</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                 <p className="text-xs font-bold text-gray-800 truncate">{selectedCustomer.name}</p>
+                 <p className="text-[10px] text-gray-400 truncate">
+                    {selectedCustomer.cedula ? `ID: ${selectedCustomer.cedula}` : selectedCustomer.email}
+                 </p>
+              </div>
+              {selectedCustomer.email !== DEFAULT_CUSTOMER.email && (
+                <button onClick={() => setSelectedCustomer(DEFAULT_CUSTOMER)} className="text-gray-300 hover:text-rose-500 transition-colors">
+                   <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              )}
+           </div>
+        </div>
+
+        {/* Listado de carrito */}
         <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
           <div>
             <h1 className="text-sm font-bold text-gray-800">Caja Actual</h1>
@@ -561,9 +607,9 @@ export default function POSPage() {
       </div>
 
       {/* RIGHT: CATÁLOGO GRID */}
-      <div className="flex-1 flex flex-col bg-[#f8f9fc] overflow-hidden hidden lg:flex">
-        <div className="p-5 border-b border-gray-200 bg-white flex items-center justify-between">
-          <div className="relative w-72">
+      <div className={`flex-1 flex-col bg-[#f8f9fc] overflow-hidden ${activeTab === "CATALOG" ? "flex" : "hidden lg:flex"}`}>
+        <div className="p-3 sm:p-5 border-b border-gray-200 bg-white flex items-center justify-between gap-4">
+          <div className="relative flex-1 lg:max-w-72">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
             <input 
               value={search}
@@ -572,7 +618,7 @@ export default function POSPage() {
               className="w-full bg-gray-50 border border-gray-100 rounded-full pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-[#33172c]/10 focus:bg-white outline-none transition-all"
             />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 hidden sm:flex">
              {(!isOnlineStore && activeSession) && (
                  <div className="flex flex-col items-right text-right">
                     <p className="text-[10px] font-bold text-gray-400 uppercase">Efectivo en Caja</p>
@@ -585,8 +631,8 @@ export default function POSPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 pb-24 lg:pb-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
             {displayProducts.map(product => {
               const inv = product.inventories?.find(i => i.branchId === selectedBranchId);
               const stock = inv?.stock || 0;
@@ -858,6 +904,148 @@ export default function POSPage() {
               </div>
           </div>
       )}
+    </div>
+
+    {/* CRM MODAL */}
+    {showCRMModal && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in duration-200">
+           <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <h2 className="text-xl font-black text-gray-800">Gestionar Cliente</h2>
+              <button onClick={() => { setShowCRMModal(false); setIsCreatingCustomer(false); }} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+           </div>
+           
+           <div className="p-6 overflow-y-auto">
+              {!isCreatingCustomer ? (
+                <div className="space-y-6">
+                   <div className="relative">
+                      <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+                      <input 
+                        className="w-full bg-gray-100 border-none rounded-2xl pl-12 pr-4 py-4 text-sm focus:ring-2 focus:ring-[#33172c]/10 outline-none transition-all"
+                        placeholder="Buscar por nombre, email o cédula..."
+                        value={customerSearch}
+                        onChange={(e) => setCustomerSearch(e.target.value)}
+                      />
+                   </div>
+
+                   <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                      {customerResults
+                        .filter(c => 
+                          c.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
+                          c.email.toLowerCase().includes(customerSearch.toLowerCase()) ||
+                          c.cedula?.includes(customerSearch)
+                        )
+                        .slice(0, 10)
+                        .map(c => (
+                          <button 
+                            key={c.id} 
+                            onClick={() => { setSelectedCustomer(c); setShowCRMModal(false); }}
+                            className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all text-left"
+                          >
+                             <div className="w-10 h-10 rounded-full bg-[#33172c]/5 flex items-center justify-center text-[#33172c]">
+                                <span className="material-symbols-outlined">person</span>
+                             </div>
+                             <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-gray-800">{c.name}</p>
+                                <p className="text-xs text-gray-400 truncate">{c.email} • {c.cedula || "S/N"}</p>
+                             </div>
+                             <span className="material-symbols-outlined text-gray-300">chevron_right</span>
+                          </button>
+                        ))
+                      }
+                      {customerSearch && customerResults.filter(c => c.name.toLowerCase().includes(customerSearch.toLowerCase())).length === 0 && (
+                        <p className="text-center py-8 text-sm text-gray-400">No se encontraron clientes</p>
+                      )}
+                   </div>
+
+                   <div className="pt-4">
+                      <button 
+                        onClick={() => setIsCreatingCustomer(true)}
+                        className="w-full py-4 bg-white border-2 border-dashed border-gray-200 text-gray-400 rounded-2xl text-[11px] font-bold uppercase tracking-widest hover:border-[#33172c] hover:text-[#33172c] transition-all flex items-center justify-center gap-2"
+                      >
+                         <span className="material-symbols-outlined text-[18px]">person_add</span>
+                         Registrar Nuevo Cliente
+                      </button>
+                   </div>
+                </div>
+              ) : (
+                <form onSubmit={(e) => { e.preventDefault(); setSelectedCustomer(newCustomer); setIsCreatingCustomer(false); setShowCRMModal(false); }} className="space-y-4">
+                   <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2">
+                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1 block">Nombre Completo</label>
+                         <input 
+                            required
+                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none"
+                            value={newCustomer.name}
+                            onChange={e => setNewCustomer({...newCustomer, name: e.target.value})}
+                         />
+                      </div>
+                      <div>
+                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1 block">Cédula / ID</label>
+                         <input 
+                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none"
+                            value={newCustomer.cedula}
+                            onChange={e => setNewCustomer({...newCustomer, cedula: e.target.value})}
+                         />
+                      </div>
+                      <div>
+                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1 block">Teléfono</label>
+                         <input 
+                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none"
+                            value={newCustomer.phone}
+                            onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})}
+                         />
+                      </div>
+                      <div className="col-span-2">
+                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1 mb-1 block">Email</label>
+                         <input 
+                            required
+                            type="email"
+                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:bg-white outline-none"
+                            value={newCustomer.email}
+                            onChange={e => setNewCustomer({...newCustomer, email: e.target.value})}
+                         />
+                      </div>
+                   </div>
+                   <div className="flex gap-3 pt-4">
+                      <button type="button" onClick={() => setIsCreatingCustomer(false)} className="flex-1 py-4 bg-gray-100 text-gray-600 rounded-2xl text-[11px] font-bold uppercase tracking-widest">Atrás</button>
+                      <button type="submit" className="flex-[2] py-4 bg-[#33172c] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-[#33172c]/20">Confirmar Cliente</button>
+                   </div>
+                </form>
+              )}
+           </div>
+        </div>
+      </div>
+    )}
+
+    {/* MOBILE NAVIGATION BAR */}
+    <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex items-center justify-around p-2 z-[50] shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      <button 
+        onClick={() => setActiveTab("CATALOG")}
+        className={`flex flex-col items-center gap-1 flex-1 py-1 transition-all ${activeTab === "CATALOG" ? "text-[#33172c]" : "text-gray-400"}`}
+      >
+        <div className={`p-1.5 rounded-xl transition-all ${activeTab === "CATALOG" ? "bg-[#33172c]/5" : ""}`}>
+          <span className="material-symbols-outlined text-[24px]">search</span>
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-wider">Productos</span>
+      </button>
+      
+      <button 
+        onClick={() => setActiveTab("CART")}
+        className={`flex flex-col items-center gap-1 flex-1 py-1 transition-all relative ${activeTab === "CART" ? "text-[#33172c]" : "text-gray-400"}`}
+      >
+        <div className={`p-1.5 rounded-xl transition-all ${activeTab === "CART" ? "bg-[#33172c]/5" : ""}`}>
+          <span className="material-symbols-outlined text-[24px]">shopping_cart</span>
+          {cart.length > 0 && (
+            <span className="absolute top-1 right-[30%] bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
+              {cart.reduce((s, i) => s + i.quantity, 0)}
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-wider">Caja (${total.toFixed(0)})</span>
+      </button>
     </div>
 
 

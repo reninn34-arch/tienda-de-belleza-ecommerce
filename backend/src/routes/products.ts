@@ -61,6 +61,7 @@ const productBaseSchema = z.object({
   scienceTitle: z.string().nullable().optional(),
   scienceDesc: z.string().nullable().optional(),
   scienceItems: z.array(z.unknown()).optional().default([]),
+  minStock: z.coerce.number().int().nonnegative().optional().default(5),
   /** Array de inventarios por sucursal  */
   inventories: inventorySchema,
 });
@@ -75,6 +76,7 @@ const productUpdateSchema = z.object({
   category: z.string().min(1).optional(),
   image: z.string().nullable().optional(),
   badge: z.string().nullable().optional(),
+  minStock: z.coerce.number().int().nonnegative().optional().default(5),
   features: z.array(z.string()).optional(),
   gallery: z.array(z.string()).optional(),
   swatches: z.array(z.unknown()).optional(),
@@ -122,7 +124,7 @@ router.get("/", async (req: Request, res: Response) => {
         include,
       });
       res.json(
-        products.map((p) => ({ ...p, totalStock: calcTotalStock(p.inventories) }))
+        products.map((p: any) => ({ ...p, totalStock: calcTotalStock(p.inventories || []) }))
       );
       return;
     }
@@ -158,7 +160,7 @@ router.get("/", async (req: Request, res: Response) => {
     ]);
 
     res.json({
-      products: products.map((p) => ({ ...p, totalStock: calcTotalStock(p.inventories) })),
+      products: products.map((p: any) => ({ ...p, totalStock: calcTotalStock(p.inventories || []) })),
       totalItems,
       totalPages: Math.ceil(totalItems / limitNum),
       currentPage: pageNum,
@@ -195,6 +197,7 @@ router.post("/", async (req: Request, res: Response) => {
           category: body.category ?? "general",
           image: body.image ?? null,
           badge: body.badge ?? null,
+          minStock: body.minStock ?? 5,
           features: body.features ?? [],
           gallery: body.gallery ?? [],
           swatches: (body.swatches ?? []) as Prisma.JsonArray,

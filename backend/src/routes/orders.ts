@@ -28,6 +28,7 @@ interface OrderRow {
   address: string | null;
   notes: string | null;
   branchId: string | null;
+  customerId: string | null;
   date: Date;
   items: OrderItemRow[];
 }
@@ -76,6 +77,8 @@ const orderCreateSchema = z.object({
   branchId: z.string().nullable().optional().default(null),
   paymentMethod: z.string().nullable().optional().default(null),
   address: z.string().nullable().optional().default(null),
+  cedula: z.string().nullable().optional().default(null),
+  phone: z.string().nullable().optional().default(null),
   notes: z.string().nullable().optional().default(null),
   items: z.array(orderItemSchema).optional(),
   products: z.array(orderItemSchema).optional(),
@@ -220,8 +223,34 @@ router.post("/", async (req: Request, res: Response) => {
         });
       }
 
-      // 3. Crear la orden
-      return tx.order.create({
+      // 3. Vincular o Crear Cliente (CRM)
+      let customer = await tx.customer.findUnique({ where: { email: body.email } });
+      if (!customer) {
+        customer = await tx.customer.create({
+          data: {
+            name: body.customer,
+            email: body.email,
+            address: body.address,
+            cedula: body.cedula,
+            phone: body.phone,
+          }
+        });
+      } else {
+        // Actualizar datos si el cliente existe pero le faltan campos
+        const updateData: any = {};
+        if (body.cedula && !customer.cedula) updateData.cedula = body.cedula;
+        if (body.phone && !customer.phone) updateData.phone = body.phone;
+        
+        if (Object.keys(updateData).length > 0) {
+          await tx.customer.update({
+            where: { id: customer.id },
+            data: updateData
+          });
+        }
+      }
+
+      // 4. Crear la orden y actualizar stats del cliente
+      const newOrder = await tx.order.create({
         data: {
           id: `ORD-${Date.now()}`,
           customer: body.customer,
@@ -236,6 +265,8 @@ router.post("/", async (req: Request, res: Response) => {
           address: body.address ?? null,
           notes: body.notes ?? null,
           branchId: targetBranchId,
+          customerId: customer.id,
+          cedula: body.cedula,
           date: new Date(),
           items: {
             create: orderItems.map((item) => ({
@@ -248,6 +279,20 @@ router.post("/", async (req: Request, res: Response) => {
         },
         include: { items: true },
       });
+
+      // Actualizar stats del cliente SOLO si el pedido es "activo"
+      if (STOCK_CONSUMED.has(newOrder.status)) {
+        await tx.customer.update({
+          where: { id: customer.id },
+          data: {
+            totalSpent: { increment: body.total ?? 0 },
+            ordersCount: { increment: 1 },
+            lastOrderAt: new Date()
+          }
+        });
+      }
+
+      return newOrder;
     });
 
     posEventEmitter.emit("pos_update");
@@ -336,6 +381,36 @@ router.put("/:id", async (req: Request, res: Response) => {
         });
       }
     }
+  }
+
+  // ─── CRM LTV Adjustment ────────────────────────────────────────────────────
+  if (newStatus && newStatus !== prevStatus && existing.customerId) {
+      const wasActive = STOCK_CONSUMED.has(prevStatus);
+      const isNowActive = STOCK_CONSUMED.has(newStatus);
+      const wasRestored = STOCK_RESTORE.has(prevStatus);
+      const isNowRestored = STOCK_RESTORE.has(newStatus);
+
+      // De Activo a Cancelado -> Descontar
+      if (wasActive && isNowRestored) {
+          await db.customer.update({
+              where: { id: existing.customerId },
+              data: {
+                  totalSpent: { decrement: existing.total },
+                  ordersCount: { decrement: 1 }
+              }
+          });
+      }
+      // De Cancelado a Activo -> Sumar
+      else if (wasRestored && isNowActive) {
+          await db.customer.update({
+              where: { id: existing.customerId },
+              data: {
+                  totalSpent: { increment: existing.total },
+                  ordersCount: { increment: 1 },
+                  lastOrderAt: new Date()
+              }
+          });
+      }
   }
 
   const updated = await db.order.update({

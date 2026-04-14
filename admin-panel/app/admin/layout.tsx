@@ -13,8 +13,12 @@ const NAV_SECTIONS = [
       { label: "Analítica", href: "/admin/analytics", icon: "analytics" },
       { label: "Punto de Venta", href: "/admin/pos", icon: "point_of_sale" },
       { label: "Pedidos", href: "/admin/orders", icon: "receipt_long" },
+      { label: "Clientes", href: "/admin/customers", icon: "group" },
       { label: "Productos", href: "/admin/products", icon: "inventory_2" },
       { label: "Inventario", href: "/admin/inventory", icon: "store" },
+      { label: "Compras", href: "/admin/purchases", icon: "add_shopping_cart" },
+      { label: "Proveedores", href: "/admin/suppliers", icon: "handshake" },
+      { label: "Gastos", href: "/admin/expenses", icon: "payments" },
       { label: "Categorías", href: "/admin/categories", icon: "category" },
       { label: "Cajas", href: "/admin/cash", icon: "account_balance_wallet" },
     ],
@@ -106,16 +110,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       });
     }
 
-    // Low stock (1-5 units)
-    const low = products.filter((p) => Number(p.totalStock) > 0 && Number(p.totalStock) <= 5);
+    // Low stock (using dynamic minStock)
+    const low = products.filter((p: any) => {
+      const stock = Number(p.totalStock || 0);
+      const threshold = Number(p.minStock ?? 5);
+      return stock > 0 && stock <= threshold;
+    });
     if (low.length > 0) {
       const id = "lowstock";
       notifs.push({
         id,
         type: "stock",
         title: `${low.length} producto${low.length > 1 ? "s" : ""} con stock bajo`,
-        body: low.slice(0, 3).map((p) => `${p.name} (${p.totalStock})`).join(", ") + (low.length > 3 ? "..." : ""),
-        href: "/admin/products",
+        body: low.slice(0, 3).map((p: any) => `${p.name} (${p.totalStock})`).join(", ") + (low.length > 3 ? "..." : ""),
+        href: "/admin/inventory",
         time: "Inventario",
         read: read.has(id),
       });
@@ -351,8 +359,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             const filteredItems = items.filter(item => {
               if (adminRole === "VENDEDOR") {
-                // Vendedor no ve Analítica ni Categorías (o lo que decidas restringir)
-                if (item.href === "/admin/analytics" || item.href === "/admin/categories") return false;
+                // Vendedor no ve Analítica, Categorías, Gastos, Cajas, Proveedores ni Compras
+                const forbidden = [
+                  "/admin/analytics", 
+                  "/admin/categories", 
+                  "/admin/expenses", 
+                  "/admin/cash", 
+                  "/admin/suppliers", 
+                  "/admin/purchases"
+                ];
+                if (forbidden.includes(item.href)) return false;
               }
               return true;
             });
@@ -376,7 +392,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     }`}
                   >
                     <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {item.label === "Inventario" && notifications.some(n => n.type === "stock" || n.type === "outofstock") && (
+                      <span className="w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50 animate-pulse" />
+                    )}
                   </Link>
                 ))}
               </div>

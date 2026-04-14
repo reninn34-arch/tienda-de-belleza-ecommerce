@@ -20,6 +20,7 @@ interface Product {
   name: string;
   image: string;
   sku?: string;
+  minStock?: number;
   inventories?: InventoryItem[];
 }
 
@@ -30,9 +31,8 @@ export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
   
-  // State for tracking local changes before saving
-  // Record<productId, newStockValueAsNumber>
-  const [changes, setChanges] = useState<Record<string, number>>({});
+  // Record<productId, { stock?: number, minStock?: number }>
+  const [changes, setChanges] = useState<Record<string, { stock?: number; minStock?: number }>>({});
   const [toast, setToast] = useState("");
 
   useEffect(() => {
@@ -67,10 +67,18 @@ export default function InventoryPage() {
   const handleStockChange = (productId: string, val: string) => {
     const num = parseInt(val, 10);
     if (isNaN(num) || num < 0) return;
-    
     setChanges(prev => ({
       ...prev,
-      [productId]: num
+      [productId]: { ...prev[productId], stock: num }
+    }));
+  };
+
+  const handleMinStockChange = (productId: string, val: string) => {
+    const num = parseInt(val, 10);
+    if (isNaN(num) || num < 0) return;
+    setChanges(prev => ({
+      ...prev,
+      [productId]: { ...prev[productId], minStock: num }
     }));
   };
 
@@ -78,10 +86,11 @@ export default function InventoryPage() {
     if (Object.keys(changes).length === 0) return;
     setSaving(true);
     
-    const updates = Object.entries(changes).map(([productId, stock]) => ({
+    const updates = Object.entries(changes).map(([productId, ch]) => ({
       productId,
       branchId: selectedBranchId,
-      stock
+      stock: ch.stock,
+      minStock: ch.minStock
     }));
 
     try {
@@ -95,15 +104,19 @@ export default function InventoryPage() {
       
       // Actualizar el estado local para reflejar los cambios
       setProducts(prevProducts => prevProducts.map(p => {
-        if (changes[p.id] !== undefined) {
-          const newInventories = p.inventories ? [...p.inventories] : [];
-          const idx = newInventories.findIndex(inv => inv.branchId === selectedBranchId);
-          if (idx >= 0) {
-            newInventories[idx].stock = changes[p.id];
-          } else {
-            newInventories.push({ branchId: selectedBranchId, stock: changes[p.id] });
+        const update = changes[p.id];
+        if (update) {
+          let updatedP = { ...p };
+          if (update.minStock !== undefined) updatedP.minStock = update.minStock;
+          
+          if (update.stock !== undefined) {
+             const newInventories = p.inventories ? [...p.inventories] : [];
+             const idx = newInventories.findIndex(inv => inv.branchId === selectedBranchId);
+             if (idx >= 0) newInventories[idx].stock = update.stock;
+             else newInventories.push({ branchId: selectedBranchId, stock: update.stock });
+             updatedP.inventories = newInventories;
           }
-          return { ...p, inventories: newInventories };
+          return updatedP;
         }
         return p;
       }));
@@ -172,7 +185,8 @@ export default function InventoryPage() {
                 <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[60px]">Img</th>
                 <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Producto</th>
                 <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Stock Actual</th>
-                <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right w-[150px]">Nuevo Stock</th>
+                <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Stock Alerta</th>
+                <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-right">Nuevo Stock</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-50">
@@ -180,15 +194,18 @@ export default function InventoryPage() {
                 // Buscar stock existente en la DB
                 const inventory = product.inventories?.find(inv => inv.branchId === selectedBranchId);
                 const currentStock = inventory?.stock || 0;
+                const minThreshold = product.minStock ?? 5;
                 
                 // Buscar si hay cambios no guardados
-                const hasChanges = changes[product.id] !== undefined;
-                const displayStock = hasChanges ? changes[product.id] : currentStock;
+                const change = changes[product.id];
+                const displayStock = change?.stock !== undefined ? change.stock : currentStock;
+                const displayMinStock = change?.minStock !== undefined ? change.minStock : minThreshold;
                 
-                const stockColor = currentStock === 0 ? "text-red-500 font-bold" : currentStock <= 5 ? "text-amber-500 font-bold" : "text-gray-500";
+                const isCritical = currentStock <= minThreshold;
+                const stockColor = currentStock === 0 ? "text-red-500 font-bold" : isCritical ? "text-amber-500 font-bold" : "text-gray-500";
                 
                 return (
-                  <tr key={product.id} className="hover:bg-gray-50/30 transition-colors">
+                  <tr key={product.id} className={`hover:bg-gray-50/30 transition-colors ${isCritical ? 'bg-rose-50/20' : ''}`}>
                     <td className="py-2.5 px-4">
                       {product.image ? (
                         <div className="w-10 h-10 rounded-lg overflow-hidden relative bg-gray-100 border border-gray-100">
@@ -201,13 +218,32 @@ export default function InventoryPage() {
                       )}
                     </td>
                     <td className="py-2.5 px-4 font-medium text-gray-800">
-                      {product.name}
+                      <div className="flex items-center gap-2">
+                        {product.name}
+                        {isCritical && (
+                          <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title="Stock Bajo" />
+                        )}
+                      </div>
                       {product.sku && <div className="text-[10px] text-gray-400 font-mono mt-0.5">{product.sku}</div>}
                     </td>
                     <td className="py-2.5 px-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs bg-gray-50 border border-gray-100 ${stockColor}`}>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs border ${isCritical ? 'bg-rose-100 border-rose-200 text-rose-700' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
                         {currentStock}
                       </span>
+                    </td>
+                    <td className="py-2.5 px-4 text-right">
+                       <input 
+                        type="number" 
+                        min="0"
+                        value={displayMinStock}
+                        onChange={(e) => handleMinStockChange(product.id, e.target.value)}
+                        className={`w-16 border rounded-lg px-2 py-1.5 text-xs text-right font-mono transition-colors ${
+                          change?.minStock !== undefined 
+                            ? "border-indigo-300 bg-indigo-50 text-indigo-900" 
+                            : "border-gray-200 text-gray-400"
+                        }`}
+                        title="Umbral de alerta"
+                      />
                     </td>
                     <td className="py-2.5 px-4 text-right">
                       <input 
@@ -215,10 +251,10 @@ export default function InventoryPage() {
                         min="0"
                         value={displayStock}
                         onChange={(e) => handleStockChange(product.id, e.target.value)}
-                        className={`w-24 border rounded-lg px-3 py-1.5 text-sm text-right font-mono font-medium focus:ring-2 focus:ring-[#33172c]/20 outline-none transition-colors ${
-                          hasChanges 
-                            ? "border-amber-300 bg-amber-50 text-amber-900 focus:border-amber-400" 
-                            : "border-gray-200 focus:border-[#33172c]"
+                        className={`w-24 border rounded-lg px-3 py-1.5 text-sm text-right font-mono font-medium focus:ring-2 focus:ring-rose-500/20 outline-none transition-colors ${
+                          change?.stock !== undefined 
+                            ? "border-rose-300 bg-rose-50 text-rose-900 focus:border-rose-400" 
+                            : "border-gray-200 focus:border-gray-900"
                         }`}
                       />
                     </td>

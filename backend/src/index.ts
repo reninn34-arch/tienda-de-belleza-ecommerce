@@ -12,6 +12,10 @@ import branchesRouter from "./routes/branches";
 import inventoryRouter from "./routes/inventory";
 import cashRouter from "./routes/cash";
 import eventsRouter from "./routes/events";
+import customersRouter from "./routes/customers";
+import suppliersRouter from "./routes/suppliers";
+import purchasesRouter from "./routes/purchases";
+import expensesRouter from "./routes/expenses";
 import { requireAuth, requireRole } from "./middleware/auth";
 import { sendError } from "./lib/errors";
 import { validateEnv } from "./lib/env";
@@ -100,6 +104,10 @@ app.use("/api/branches", branchesRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/admin/cash", cashRouter);
 app.use("/api/admin/events", eventsRouter);
+app.use("/api/admin/customers", customersRouter);
+app.use("/api/admin/suppliers", suppliersRouter);
+app.use("/api/admin/purchases", purchasesRouter);
+app.use("/api/admin/expenses", expensesRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   const req = _req as RequestWithId;

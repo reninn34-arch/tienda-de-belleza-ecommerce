@@ -15,6 +15,9 @@ model Branch {
   inventories Inventory[]
   admins      Admin[]
   cashSessions CashSession[]
+  orders      Order[]
+  purchases   PurchaseOrder[]
+  expenses    Expense[]
   createdAt   DateTime    @default(now())
 }
 
@@ -56,7 +59,9 @@ model Product {
   scienceItems    Json        @default("[]")
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  minStock    Int         @default(5)
   inventories Inventory[]
+  purchaseItems PurchaseItem[]
 }
 
 // Orders
@@ -76,9 +81,30 @@ model Order {
   /** Sucursal desde donde se despachó/retiró el pedido (para restaurar stock en cancelaciones) */
   branchId       String?
   cashSessionId  String?
+  customerId     String?
+  cedula         String?
   date           DateTime    @default(now())
   items          OrderItem[]
   cashSession    CashSession? @relation(fields: [cashSessionId], references: [id])
+  customerRef    Customer?    @relation(fields: [customerId], references: [id])
+  branch         Branch?      @relation(fields: [branchId], references: [id])
+}
+
+// Customers (Base para CRM)
+model Customer {
+  id          String    @id @default(cuid())
+  name        String
+  email       String    @unique
+  phone       String?
+  cedula      String?   @unique
+  address     String?
+  city        String?
+  totalSpent  Float     @default(0)
+  ordersCount Int       @default(0)
+  lastOrderAt DateTime?
+  orders      Order[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model CashSession {
@@ -173,4 +199,61 @@ model Admin {
   cashSessions CashSession[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+// ─── ABASTECIMIENTO (PROVEEDORES Y COMPRAS) ──────────────────────────────────
+
+model Supplier {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  taxId       String?         @unique // RUC / NIT
+  email       String?
+  phone       String?
+  contactName String?
+  address     String?
+  notes       String?
+  purchases   PurchaseOrder[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model PurchaseOrder {
+  id          String         @id @default(cuid())
+  internalId  String         @unique // Ej: OC-1001
+  supplierId  String
+  branchId    String
+  totalAmount Float          @default(0)
+  status      String         @default("PENDING") // DRAFT, PENDING, RECEIVED, CANCELLED
+  receivedAt  DateTime?
+  notes       String?
+  
+  supplier    Supplier       @relation(fields: [supplierId], references: [id])
+  branch      Branch         @relation(fields: [branchId], references: [id])
+  items       PurchaseItem[]
+  
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model PurchaseItem {
+  id              Int           @id @default(autoincrement())
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+  unitCost        Float
+  
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product         Product       @relation(fields: [productId], references: [id])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  category    String   // Rent, Salaries, Ads, Utilities, Maintenance, Other
+  date        DateTime @default(now())
+  branchId    String?
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
-interface Product { id: string; name: string; price: number; category: string; cost?: number; totalStock?: number; image?: string; }
+interface Product { id: string; name: string; price: number; category: string; cost?: number; totalStock?: number; image?: string; minStock?: number; }
 interface OrderProduct { id: string; productId?: string; name: string; price: number; quantity: number; }
 interface Order { id: string; customer: string; total: number; status: string; date: string; items: number; paymentMethod: string; products?: OrderProduct[]; branchId?: string; }
 interface Branch { id: string; name: string; }
+interface Expense { id: string; amount: number; date: string; branchId?: string; category: string; }
 
 const STATUS_LABEL: Record<string, string> = {
   completed: "Completado", pending: "Pendiente", processing: "En proceso",
@@ -78,6 +79,7 @@ export default function AnalyticsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [range, setRange] = useState<PeriodKey>("30d");
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
@@ -91,15 +93,17 @@ export default function AnalyticsPage() {
     let alive = true;
 
     const fetchData = async () => {
-      const [p, o, b] = await Promise.all([
+      const [p, o, b, e] = await Promise.all([
         fetch("/api/admin/products").then((r) => r.json()),
         fetch("/api/admin/orders").then((r) => r.json()),
         fetch("/api/admin/branches").then((r) => r.json()),
+        fetch("/api/admin/expenses").then((r) => r.json()),
       ]);
       if (!alive) return;
       setProducts(p);
       setOrders(o);
       setBranches(b);
+      setExpenses(e);
       setLoaded(true);
     };
 
@@ -134,24 +138,22 @@ export default function AnalyticsPage() {
     prevStart.setHours(0, 0, 0, 0);
   }
 
-  const matchesBranch = (o: Order) => {
+  const matchesBranch = (o: { branchId?: string }) => {
     if (!selectedBranchId) return true;
-    
-    // Si la sucursal seleccionada es la Tienda Online, incluimos pedidos sin branchId
     const selectedBranch = branches.find(b => b.id === selectedBranchId);
     if (selectedBranch?.name === "tienda-online" && !o.branchId) return true;
-    
     return o.branchId === selectedBranchId;
   };
 
-  const inRange = (o: Order) => matchesBranch(o) && (!rangeStart || new Date(o.date) >= rangeStart);
-  const inPrev = (o: Order) =>
-    matchesBranch(o) &&
-    !!prevStart && !!rangeStart &&
-    new Date(o.date) >= prevStart && new Date(o.date) < rangeStart;
+  const inRange = (d: string, obj: { branchId?: string }) => matchesBranch(obj) && (!rangeStart || new Date(d) >= rangeStart);
+  
+  const rangeOrders = orders.filter(o => inRange(o.date, o));
+  const rangeExpenses = expenses.filter(e => inRange(e.date, e));
 
-  const rangeOrders = orders.filter(inRange);
-  const prevOrders = orders.filter(inPrev);
+  const prevOrders = orders.filter(o => {
+    return matchesBranch(o) && !!prevStart && !!rangeStart && new Date(o.date) >= prevStart && new Date(o.date) < rangeStart;
+  });
+
   const activeOrders = rangeOrders.filter((o) => o.status !== "cancelled" && o.status !== "refunded");
   const prevActiveOrders = prevOrders.filter((o) => o.status !== "cancelled" && o.status !== "refunded");
 
@@ -215,7 +217,12 @@ export default function AnalyticsPage() {
   const cogs = activeOrders.reduce((s, o) =>
     s + (o.products ?? []).reduce((a, p) => a + (costMap.get(p.id) ?? 0) * p.quantity, 0), 0);
   const grossProfit = revenue - cogs;
+  const periodExpenses = rangeExpenses.reduce((s, e) => s + e.amount, 0);
+  const netProfit = grossProfit - periodExpenses;
+
   const grossMarginPct = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
+  const netMarginPct = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+
   const productMarginsBase = products
     .filter((p) => (p.cost ?? 0) > 0)
     .map((p) => {
@@ -241,10 +248,10 @@ export default function AnalyticsPage() {
   // ── Inventario ────────────────────────────────────────────────
   const inventoryCost = products.reduce((s, p) => s + (p.totalStock ?? 0) * (p.cost ?? 0), 0);
   const inventorySell = products.reduce((s, p) => s + (p.totalStock ?? 0) * p.price, 0);
-  const stockItems = products.map((p) => ({ id: p.id, name: p.name, stock: p.totalStock ?? 0, cost: p.cost ?? 0, price: p.price, image: p.image })).sort((a, b) => a.stock - b.stock);
+  const stockItems = products.map((p) => ({ id: p.id, name: p.name, stock: p.totalStock ?? 0, cost: p.cost ?? 0, price: p.price, image: p.image, minStock: p.minStock ?? 5 })).sort((a, b) => a.stock - b.stock);
   const outOfStock = stockItems.filter((p) => p.stock === 0);
-  const lowStock = stockItems.filter((p) => p.stock > 0 && p.stock <= 5);
-  const healthyStock = stockItems.filter((p) => p.stock > 5);
+  const lowStock = stockItems.filter((p) => p.stock > 0 && p.stock <= p.minStock);
+  const healthyStock = stockItems.filter((p) => p.stock > p.minStock);
 
   // ── Revenue por categoria ─────────────────────────────────────
   const catRevMap = new Map<string, { rev: number; units: number; orders: number }>();
@@ -379,27 +386,31 @@ export default function AnalyticsPage() {
       </div>
 
       {/* KPI row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {[
           { label: "Ingresos", icon: "payments", color: "text-emerald-600 bg-emerald-50",
-            value: loaded ? `$${revenue.toFixed(2)}` : "—", cur: revenue, prev: prevRevenue },
+            value: loaded ? `$${revenue.toLocaleString()}` : "—", cur: revenue, prev: prevRevenue },
           { label: "Ticket Promedio", icon: "receipt", color: "text-teal-600 bg-teal-50",
-            value: loaded && activeOrders.length > 0 ? `$${avgTicket.toFixed(2)}` : "—", cur: avgTicket, prev: prevAvgTicket },
+            value: loaded && activeOrders.length > 0 ? `$${avgTicket.toLocaleString()}` : "—", cur: avgTicket, prev: prevAvgTicket },
           { label: "Articulos Vendidos", icon: "shopping_bag", color: "text-indigo-600 bg-indigo-50",
             value: loaded ? (totalUnitsSold || "—") : "—", cur: totalUnitsSold, prev: prevTotalUnitsSold },
           { label: "Tasa de Exito", icon: "verified", color: "text-violet-600 bg-violet-50",
             value: loaded && rangeOrders.length > 0 ? `${completedRate.toFixed(0)}%` : "—", cur: completedRate, prev: prevCompletedRate },
+          { label: "Gastos Ops.", icon: "payments", color: "text-orange-600 bg-orange-50",
+            value: loaded ? `-$${periodExpenses.toLocaleString()}` : "—", cur: periodExpenses, prev: 0 },
+          { label: "Ganancia Neta", icon: "account_balance_wallet", color: "text-rose-600 bg-rose-50",
+            value: loaded ? `$${netProfit.toLocaleString()}` : "—", cur: netProfit, prev: 0 },
         ].map((kpi) => (
           <div key={kpi.label} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
             <div className="flex items-start justify-between mb-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${kpi.color}`}>
                 <span className="material-symbols-outlined text-[20px]">{kpi.icon}</span>
               </div>
-              {loaded && <TrendBadge cur={kpi.cur} prev={kpi.prev} visible={showTrend} />}
+              {loaded && kpi.label !== "Gastos Ops." && kpi.label !== "Ganancia Neta" && <TrendBadge cur={kpi.cur} prev={kpi.prev} visible={showTrend} />}
             </div>
             <div className="text-2xl font-bold text-gray-900">{kpi.value}</div>
             <div className="text-[10px] font-bold text-gray-600 uppercase tracking-wider mt-1">{kpi.label}</div>
-            {showTrend && <div className="text-[9px] text-gray-500 mt-0.5">vs periodo anterior</div>}
+            {showTrend && kpi.label !== "Gastos Ops." && kpi.label !== "Ganancia Neta" && <div className="text-[9px] text-gray-500 mt-0.5">vs periodo anterior</div>}
           </div>
         ))}
       </div>
@@ -674,31 +685,34 @@ export default function AnalyticsPage() {
               </div>
             </div>
 
-            {/* Resumen financiero */}
-            <div className="relative mb-5">
-              <div className="grid grid-cols-3 gap-2 mb-3">
+            {/* Resumen financiero ampliado */}
+            <div className="relative mb-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
                 {[
-                  { label: "Ingresos", value: `$${revenue.toFixed(2)}`, color: "text-gray-800", bg: "bg-gray-50" },
-                  { label: "Costo Vendido", value: `-$${cogs.toFixed(2)}`, color: "text-red-500", bg: "bg-red-50" },
-                  { label: "Ganancia Bruta", value: `$${grossProfit.toFixed(2)}`, color: grossProfit >= 0 ? "text-emerald-600" : "text-red-600", bg: grossProfit >= 0 ? "bg-emerald-50" : "bg-red-50" },
+                  { label: "Ingresos", value: `$${revenue.toLocaleString()}`, color: "text-gray-700", bg: "bg-gray-50" },
+                  { label: "COGS", value: `-$${cogs.toLocaleString()}`, color: "text-indigo-600", bg: "bg-indigo-50" },
+                  { label: "Gastos", value: `-$${periodExpenses.toLocaleString()}`, color: "text-orange-600", bg: "bg-orange-50" },
+                  { label: "Neto Real", value: `$${netProfit.toLocaleString()}`, color: netProfit >= 0 ? "text-emerald-600" : "text-rose-600", bg: netProfit >= 0 ? "bg-emerald-50" : "bg-rose-50" },
                 ].map((k) => (
-                  <div key={k.label} className={`${k.bg} rounded-xl p-3 text-center`}>
+                  <div key={k.label} className={`${k.bg} rounded-xl p-3 text-center border border-black/5`}>
                     <p className={`text-base font-bold ${k.color}`}>{k.value}</p>
-                    <p className="text-[9px] text-gray-500 uppercase tracking-wider mt-0.5">{k.label}</p>
+                    <p className="text-[9px] text-gray-400 uppercase tracking-wider mt-0.5 font-bold">{k.label}</p>
                   </div>
                 ))}
               </div>
-              {/* Waterfall bar */}
+              {/* Waterfall bar real */}
               {revenue > 0 && (
-                <div className="h-2.5 rounded-full overflow-hidden flex bg-gray-100">
-                  <div className="h-full bg-emerald-400 transition-all duration-700" style={{ width: `${grossMarginPct}%` }} title={`Ganancia ${grossMarginPct.toFixed(1)}%`} />
-                  <div className="h-full bg-red-300 transition-all duration-700" style={{ width: `${cogs / revenue * 100}%` }} title={`Costo ${(cogs / revenue * 100).toFixed(1)}%`} />
+                <div className="h-3 rounded-full overflow-hidden flex bg-gray-100 shadow-inner">
+                  <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${(cogs/Math.max(revenue,1))*100}%` }} title="COGS" />
+                  <div className="h-full bg-orange-500 transition-all duration-1000" style={{ width: `${(periodExpenses/Math.max(revenue,1))*100}%` }} title="Gastos Operativos" />
+                  <div className="h-full bg-emerald-500 flex-1 transition-all duration-1000" title="Ganancia Neta" />
                 </div>
               )}
               {revenue > 0 && (
-                <div className="flex justify-between mt-1">
-                  <span className="text-[9px] text-emerald-500 font-semibold">Ganancia {grossMarginPct.toFixed(1)}%</span>
-                  <span className="text-[9px] text-red-400">Costo {revenue > 0 ? (cogs / revenue * 100).toFixed(1) : 0}%</span>
+                <div className="flex items-center justify-between mt-2 text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
+                   <span>Costo Prod: {((cogs/Math.max(revenue,1))*100).toFixed(0)}%</span>
+                   <span>Gastos Ops: {((periodExpenses/Math.max(revenue,1))*100).toFixed(0)}%</span>
+                   <span className="text-emerald-600">Margen Neto: {netMarginPct.toFixed(1)}%</span>
                 </div>
               )}
             </div>
