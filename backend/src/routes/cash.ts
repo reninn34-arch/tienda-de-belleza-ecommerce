@@ -157,7 +157,8 @@ router.get("/history", requireAuth, async (req, res) => {
     where: branchId ? { branchId: branchId as string } : {},
     include: {
       admin: { select: { name: true } },
-      branch: { select: { name: true } }
+      branch: { select: { name: true } },
+      movements: true
     },
     orderBy: { openedAt: "desc" },
     take: parseInt(limit as string)
