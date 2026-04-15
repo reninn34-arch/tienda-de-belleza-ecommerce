@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
 interface Product { id: string; name: string; price: number; category: string; minStock?: number; totalStock?: number; image?: string; }
@@ -80,9 +80,23 @@ export default function DashboardClient({
     console.log("[DashboardClient] settings", settings);
     console.log("[DashboardClient] branches", branches);
   }
-  // Estado para periodo y hover
+
+  // Estado para periodo, hover y ancho del gráfico
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>("14d");
   const [hovered, setHovered] = useState<number | null>(null);
+  const [chartWidth, setChartWidth] = useState(560); // valor inicial
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function updateWidth() {
+      if (chartRef.current) {
+        setChartWidth(chartRef.current.offsetWidth);
+      }
+    }
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
 
   // Lógica de filtrado por periodo dinámico
   const now = new Date();
@@ -124,7 +138,13 @@ export default function DashboardClient({
   });
   const chartMax = Math.max(...chartData.map((d) => d.revenue), 1);
   const chartHasData = chartData.some((d) => d.revenue > 0);
-  const SVG_W = 560, SVG_H = 190, PAD_L = 44, PAD_T = 16, CHART_W = 504, CHART_H = 128;
+  // Dimensiones responsivas
+  const SVG_W = chartWidth;
+  const SVG_H = 190;
+  const PAD_L = 44;
+  const PAD_T = 16;
+  const CHART_W = SVG_W - PAD_L - 12; // margen derecho
+  const CHART_H = 128;
   const BASELINE = PAD_T + CHART_H;
   const xStep = CHART_DAYS > 1 ? CHART_W / (CHART_DAYS - 1) : CHART_W;
   const pts = chartData.map((d, i) => ({
@@ -223,7 +243,7 @@ export default function DashboardClient({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div ref={chartRef} className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <div className="flex justify-between items-start mb-5">
             <div>
               <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Ingresos</h2>
@@ -240,8 +260,12 @@ export default function DashboardClient({
               <p className="text-sm text-gray-500">Sin ventas en el periodo: {PERIOD_MAP[selectedPeriod].label}</p>
             </div>
           ) : (
-            <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} className="w-full select-none"
-              style={{ height: SVG_H, cursor: "crosshair" }}
+            <svg
+              viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+              width="100%"
+              height={SVG_H}
+              className="w-full select-none"
+              style={{ cursor: "crosshair", display: "block" }}
               onMouseMove={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const svgX = ((e.clientX - rect.left) / rect.width) * SVG_W;
