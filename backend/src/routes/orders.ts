@@ -83,6 +83,7 @@ const orderCreateSchema = z.object({
    */
   branchId: z.string().nullable().optional().default(null),
   paymentMethod: z.string().nullable().optional().default(null),
+  cashSessionId: z.string().nullable().optional().default(null), // <-- AGREGADO
   address: z.string().nullable().optional().default(null),
   cedula: z.string().nullable().optional().default(null),
   phone: z.string().nullable().optional().default(null),
@@ -295,6 +296,27 @@ router.post("/", async (req: Request, res: Response) => {
             totalSpent: { increment: body.total ?? 0 },
             ordersCount: { increment: 1 },
             lastOrderAt: new Date()
+          }
+        });
+      }
+
+      // 5. Registrar ingreso en caja chica si el pago es en efectivo y hay sesión activa
+      if (body.paymentMethod === "cash" && body.cashSessionId) {
+        // Registrar el movimiento de entrada
+        await tx.cashMovement.create({
+          data: {
+            sessionId: body.cashSessionId,
+            type: "IN",
+            amount: body.total ?? 0,
+            reason: `Venta POS #${body.customer}`
+          }
+        });
+
+        // Actualizar el saldo esperado en la caja
+        await tx.cashSession.update({
+          where: { id: body.cashSessionId },
+          data: {
+            expectedClosingBalance: { increment: body.total ?? 0 }
           }
         });
       }
