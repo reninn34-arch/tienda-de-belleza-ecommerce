@@ -4,6 +4,7 @@ import { Prisma } from "../../../lib/generated/prisma/client";
 import { db } from "../../../lib/db";
 import { sendError } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 
@@ -30,7 +31,7 @@ router.get("/", async (_req: Request, res: Response) => {
   res.json(pages);
 });
 
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   const parsed = pageCreateSchema.safeParse(req.body);
   if (!parsed.success) {
     sendError(res, 400, {
@@ -68,7 +69,7 @@ router.get("/:id", async (req: Request, res: Response) => {
   res.json(page);
 });
 
-router.put("/:id", async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   const { id } = req.params;
   const parsed = pageUpdateSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -99,7 +100,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   res.json(page);
 });
 
-router.delete("/:id", async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   const { id } = req.params;
   await db.page.delete({ where: { id } });
   await logAdminAction(req, {

@@ -4,7 +4,7 @@ import { Prisma } from "../../../lib/generated/prisma/client";
 import { db } from "../../../lib/db";
 import { sendError } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
-import { requireRole } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 
@@ -66,7 +66,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 
 // ─── POST create branch ──────────────────────────────────────────────────────
 
-router.post("/", requireRole(["ADMIN"]), async (req: Request, res: Response) => {
+router.post("/", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   try {
     const parsed = branchSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -110,7 +110,7 @@ router.post("/", requireRole(["ADMIN"]), async (req: Request, res: Response) => 
 
 // ─── PUT update branch ───────────────────────────────────────────────────────
 
-router.put("/:id", requireRole(["ADMIN"]), async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const parsed = branchSchema.partial().safeParse(req.body);
@@ -166,7 +166,7 @@ router.put("/:id", requireRole(["ADMIN"]), async (req: Request, res: Response) =
 
 // ─── DELETE branch ───────────────────────────────────────────────────────────
 
-router.delete("/:id", requireRole(["ADMIN"]), async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 

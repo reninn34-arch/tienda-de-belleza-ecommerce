@@ -4,7 +4,7 @@ import { Prisma } from "../../../lib/generated/prisma/client";
 import { db } from "../../../lib/db";
 import { sendError } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
-import { requireRole } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 
@@ -33,7 +33,7 @@ router.get("/", async (_req: Request, res: Response) => {
   res.json((row?.data as Record<string, unknown>) ?? {});
 });
 
-router.put("/", requireRole(["ADMIN"]), async (req: Request, res: Response) => {
+router.put("/", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   const parsed = settingsSchema.safeParse(req.body);
   if (!parsed.success) {
     sendError(res, 400, {

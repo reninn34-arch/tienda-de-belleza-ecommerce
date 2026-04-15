@@ -5,7 +5,8 @@ import { Prisma } from "../../../lib/generated/prisma/client";
 import { db } from "../../../lib/db";
 import { sendError } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
-import { AuthenticatedRequest } from "../middleware/auth";
+import { AuthenticatedRequest, requireAuth, requireRole } from "../middleware/auth";
+import { posEventEmitter } from "../lib/events";
 
 const router = Router();
 
@@ -172,7 +173,7 @@ router.get("/", async (req: Request, res: Response) => {
 
 // ─── POST create product ─────────────────────────────────────────────────────
 
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   try {
     const parsed = productCreateSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -238,6 +239,7 @@ router.post("/", async (req: Request, res: Response) => {
       details: { name: product.name, price: product.price, category: product.category },
     });
 
+    posEventEmitter.emit("pos_update");
     res.status(201).json({ ...product, totalStock: calcTotalStock(product.inventories) });
   } catch (error) {
     sendError(res, 500, { code: "INTERNAL_ERROR", message: "Error interno", details: error instanceof Error ? error.message : error });
@@ -265,7 +267,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 
 // ─── PUT update product ──────────────────────────────────────────────────────
 
-router.put("/:id", async (req: Request, res: Response) => {
+router.put("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const parsed = productUpdateSchema.safeParse(req.body);
@@ -327,6 +329,7 @@ router.put("/:id", async (req: Request, res: Response) => {
       details: { fields: Object.keys(body) },
     });
 
+    posEventEmitter.emit("pos_update");
     res.json({ ...product, totalStock: calcTotalStock(product.inventories) });
   } catch (error) {
     sendError(res, 500, { code: "INTERNAL_ERROR", message: "Error interno", details: error instanceof Error ? error.message : error });
@@ -335,7 +338,7 @@ router.put("/:id", async (req: Request, res: Response) => {
 
 // ─── DELETE product ──────────────────────────────────────────────────────────
 
-router.delete("/:id", async (req: Request, res: Response) => {
+router.delete("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     // onDelete: Cascade en Inventory eliminará los registros relacionados automáticamente
@@ -345,6 +348,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
       entity: "product",
       entityId: id,
     });
+    posEventEmitter.emit("pos_update");
     res.json({ success: true });
   } catch (error) {
     sendError(res, 500, { code: "INTERNAL_ERROR", message: "Error interno", details: error instanceof Error ? error.message : error });
