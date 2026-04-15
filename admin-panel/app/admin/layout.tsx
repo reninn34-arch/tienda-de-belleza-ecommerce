@@ -133,27 +133,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    fetch("/api/admin/settings")
-      .then((r) => {
-        if (!r.ok) return { storeName: "Tienda" };
-        return r.json() as Promise<{ storeName?: string }>;
-      })
-      .then((s) => setStoreName(s?.storeName ?? "Tienda"))
-      .catch((e) => {
-        console.error("Failed to fetch settings:", e);
-        setStoreName("Tienda");
-      });
-
+    // Si estamos en el login, no hacemos la carga del perfil
     if (pathname === "/admin/login") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setReady(true);
       return;
     }
-    const auth = localStorage.getItem("adminAuth");
-    if (!auth) {
-      router.replace("/admin/login");
-    } else {
-      setReady(true);
+    // El middleware ya garantizó que el token existe, así que cargamos directo:
+    setReady(true);
+    try {
       const p = getAdminProfile();
       setAdminName(p.name);
       setAdminEmail(p.email);
@@ -173,35 +160,39 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
         setStoreName(name);
       }).catch(() => setStoreName("Tienda"));
+    } catch (e) {
+      // Si el token es inválido y falla getAdminProfile, lo devolvemos al login
+      router.replace("/admin/login");
+      return;
+    }
 
-      // Load read IDs
-      const stored = localStorage.getItem("adminReadNotifs");
-      const read = new Set<string>(stored ? JSON.parse(stored) : []);
+    // Load read IDs
+    const stored = localStorage.getItem("adminReadNotifs");
+    const read = new Set<string>(stored ? JSON.parse(stored) : []);
 
-      // Fetch data for notifications
-      Promise.all([
-        fetch("/api/admin/orders").then((r) => r.json()),
-        fetch("/api/admin/products").then((r) => r.json()),
-      ]).then(([orders, products]) => {
-        setNotifications(buildNotifs(orders, products, read));
-      }).catch(() => {});
+    // Fetch data for notifications
+    Promise.all([
+      fetch("/api/admin/orders").then((r) => r.json()),
+      fetch("/api/admin/products").then((r) => r.json()),
+    ]).then(([orders, products]) => {
+      setNotifications(buildNotifs(orders, products, read));
+    }).catch(() => {});
 
-      // Determine Store URL automatically
-      if (typeof window !== "undefined") {
-        const hostname = window.location.hostname;
-        const protocol = window.location.protocol;
-        const port = window.location.port;
+    // Determine Store URL automatically
+    if (typeof window !== "undefined") {
+      const hostname = window.location.hostname;
+      const protocol = window.location.protocol;
+      const port = window.location.port;
 
-        if (hostname.startsWith("admin.")) {
-          // production: admin.example.com -> example.com
-          const storeHost = hostname.replace("admin.", "");
-          setStoreUrl(`${protocol}//${storeHost}${port ? `:${port}` : ""}`);
-        } else if (hostname === "localhost") {
-          // dev fallback: usually store is on 3000 and admin on 3001
-          setStoreUrl(`${protocol}//localhost:3000`);
-        } else {
-          setStoreUrl("/");
-        }
+      if (hostname.startsWith("admin.")) {
+        // production: admin.example.com -> example.com
+        const storeHost = hostname.replace("admin.", "");
+        setStoreUrl(`${protocol}//${storeHost}${port ? `:${port}` : ""}`);
+      } else if (hostname === "localhost") {
+        // dev fallback: usually store is on 3000 and admin on 3001
+        setStoreUrl(`${protocol}//localhost:3000`);
+      } else {
+        setStoreUrl("/");
       }
     }
   }, [pathname, router, buildNotifs]);
