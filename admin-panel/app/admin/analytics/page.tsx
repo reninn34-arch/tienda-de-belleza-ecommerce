@@ -154,8 +154,11 @@ export default function AnalyticsPage() {
     return matchesBranch(o) && !!prevStart && !!rangeStart && new Date(o.date) >= prevStart && new Date(o.date) < rangeStart;
   });
 
-  const activeOrders = rangeOrders.filter((o) => o.status !== "cancelled" && o.status !== "refunded");
-  const prevActiveOrders = prevOrders.filter((o) => o.status !== "cancelled" && o.status !== "refunded");
+  // 1. Filtro bilingüe para pedidos activos
+  const isInactive = (status: string) => ["cancelled", "refunded", "cancelado", "reembolsado"].includes(status.toLowerCase());
+
+  const activeOrders = rangeOrders.filter((o) => !isInactive(o.status));
+  const prevActiveOrders = prevOrders.filter((o) => !isInactive(o.status));
 
   // ── KPIs ─────────────────────────────────────────────────────
   const revenue = activeOrders.reduce((s, o) => s + o.total, 0);
@@ -326,17 +329,21 @@ export default function AnalyticsPage() {
       share: activeOrders.length > 0 ? (g.count / activeOrders.length) * 100 : 0,
     }));
 
-  // ── Estado de pedidos (donut) ─────────────────────────────────
+  // ── Estado de pedidos (donut dinámico) ─────────────────────────────────
   const donutTotal = rangeOrders.length || 1;
   const donutSegs: { status: string; count: number; a1: number; a2: number }[] = [];
   let donutAngle = 0;
-  for (const s of ["completed", "pending", "processing", "cancelled", "refunded"]) {
-    const count = rangeOrders.filter((o) => o.status === s).length;
-    if (count > 0) {
-      const sweep = (count / donutTotal) * 360;
-      donutSegs.push({ status: s, count, a1: donutAngle, a2: donutAngle + sweep });
-      donutAngle += sweep;
-    }
+  // Agrupar dinámicamente los estados reales que vienen de la DB
+  const statusCounts = rangeOrders.reduce((acc, o) => {
+    const s = o.status.toLowerCase();
+    acc[s] = (acc[s] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  for (const [s, count] of Object.entries(statusCounts)) {
+    const sweep = (count / donutTotal) * 360;
+    donutSegs.push({ status: s, count, a1: donutAngle, a2: donutAngle + sweep });
+    donutAngle += sweep;
   }
 
   return (

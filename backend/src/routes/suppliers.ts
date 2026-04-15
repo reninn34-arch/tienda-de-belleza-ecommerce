@@ -1,7 +1,9 @@
+
 import { Router, Request, Response } from "express";
 import { db } from "../../../lib/db";
 import { z } from "zod";
 import { sendError } from "../lib/errors";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 
@@ -15,8 +17,8 @@ const SupplierSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-// GET /api/admin/suppliers — Lista de proveedores
-router.get("/", async (req: Request, res: Response) => {
+// GET /api/admin/suppliers — Lista de proveedores (ADMIN y VENDEDOR)
+router.get("/", requireAuth, requireRole(["ADMIN", "VENDEDOR"]), async (req: Request, res: Response) => {
   const { q } = req.query;
   const where = q ? {
     OR: [
@@ -32,8 +34,8 @@ router.get("/", async (req: Request, res: Response) => {
   res.json(suppliers);
 });
 
-// GET /api/admin/suppliers/:id — Detalle de proveedor
-router.get("/:id", async (req: Request, res: Response) => {
+// GET /api/admin/suppliers/:id — Detalle de proveedor (ADMIN y VENDEDOR)
+router.get("/:id", requireAuth, requireRole(["ADMIN", "VENDEDOR"]), async (req: Request, res: Response) => {
   const { id } = req.params;
   const supplier = await db.supplier.findUnique({
     where: { id },
@@ -49,8 +51,8 @@ router.get("/:id", async (req: Request, res: Response) => {
   res.json(supplier);
 });
 
-// POST /api/admin/suppliers — Crear proveedor
-router.post("/", async (req: Request, res: Response) => {
+// POST /api/admin/suppliers — Crear proveedor (Solo ADMIN)
+router.post("/", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   const parsed = SupplierSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, { code: "VALIDATION_ERROR", message: "Datos inválidos", details: parsed.error });
 
@@ -67,8 +69,8 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/admin/suppliers/:id — Actualizar proveedor
-router.put("/:id", async (req: Request, res: Response) => {
+// PUT /api/admin/suppliers/:id — Actualizar proveedor (Solo ADMIN)
+router.put("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   const { id } = req.params;
   const parsed = SupplierSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, { code: "VALIDATION_ERROR", message: "Datos inválidos", details: parsed.error });
@@ -80,8 +82,8 @@ router.put("/:id", async (req: Request, res: Response) => {
   res.json(updated);
 });
 
-// DELETE /api/admin/suppliers/:id — Eliminar proveedor
-router.delete("/:id", async (req: Request, res: Response) => {
+// DELETE /api/admin/suppliers/:id — Eliminar proveedor (Solo ADMIN)
+router.delete("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   const { id } = req.params;
   
   // Verificar si tiene compras antes de eliminar

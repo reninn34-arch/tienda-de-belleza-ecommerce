@@ -1,7 +1,9 @@
+
 import { Router, Request, Response } from "express";
 import { db } from "../../../lib/db";
 import { z } from "zod";
 import { sendError } from "../lib/errors";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 
@@ -13,8 +15,8 @@ const ExpenseSchema = z.object({
   branchId: z.string().optional().nullable(),
 });
 
-// GET /api/admin/expenses — Listar gastos
-router.get("/", async (req: Request, res: Response) => {
+// GET /api/admin/expenses — Listar gastos (ADMIN y VENDEDOR)
+router.get("/", requireAuth, requireRole(["ADMIN", "VENDEDOR"]), async (req: Request, res: Response) => {
   const { branchId, category } = req.query;
   const where: any = {};
   if (branchId) where.branchId = branchId;
@@ -30,8 +32,8 @@ router.get("/", async (req: Request, res: Response) => {
   res.json(expenses);
 });
 
-// POST /api/admin/expenses — Registrar gasto
-router.post("/", async (req: Request, res: Response) => {
+// POST /api/admin/expenses — Registrar gasto (Solo ADMIN)
+router.post("/", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   const parsed = ExpenseSchema.safeParse(req.body);
   if (!parsed.success) return sendError(res, 400, { code: "VALIDATION_ERROR", message: "Datos inválidos", details: parsed.error });
 
@@ -41,8 +43,8 @@ router.post("/", async (req: Request, res: Response) => {
   res.status(201).json(expense);
 });
 
-// DELETE /api/admin/expenses/:id — Eliminar gasto
-router.delete("/:id", async (req: Request, res: Response) => {
+// DELETE /api/admin/expenses/:id — Eliminar gasto (Solo ADMIN)
+router.delete("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   const { id } = req.params;
   await db.expense.delete({ where: { id } });
   res.json({ success: true });
