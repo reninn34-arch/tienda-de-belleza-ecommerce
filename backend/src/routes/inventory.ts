@@ -3,6 +3,8 @@ import { z } from "zod";
 import { db } from "../../../lib/db";
 import { sendError } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
+import { requireAuth, requireRole } from "../middleware/auth"; // <-- AGREGADO
+import { posEventEmitter } from "../lib/events"; // <-- AGREGADO
 
 const router = Router();
 
@@ -23,7 +25,8 @@ const bulkUpdateSchema = z.object({
 // Utiliza db.$transaction para asegurar atomicity.
 // Este endpoint es perfecto para el Módulo de Inventario.
 
-router.post("/bulk", async (req: Request, res: Response) => {
+// Solo ADMIN puede hacer bulk update de inventario
+router.post("/bulk", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: Response) => {
   try {
     const parsed = bulkUpdateSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -65,6 +68,8 @@ router.post("/bulk", async (req: Request, res: Response) => {
       details: { updatedCount: updates.length, updates },
     });
 
+    // Avisar a todas las pantallas de POS que hay nuevo stock
+    posEventEmitter.emit("pos_update");
     res.json({ success: true, updatedCount: updates.length });
   } catch (error) {
     sendError(res, 500, {
