@@ -32,6 +32,7 @@ export interface Product {
   price: number;
   category: string;
   image: string;
+  stock?: number;
   /** Stock total calculado (suma de todos los Inventory) */
   totalStock?: number;
   /** Inventario desglosado por sucursal */
