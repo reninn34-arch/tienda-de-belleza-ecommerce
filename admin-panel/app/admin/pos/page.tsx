@@ -346,21 +346,10 @@ export default function POSPage() {
         throw new Error(err.error?.message || "Error procesando orden");
       }
 
-      // Si fue pago en efectivo Y hay sesión activa, registrar movimiento en caja
-      if (paymentMethod === "cash" && activeSession) {
-          await fetch("/api/admin/cash/movement", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                  sessionId: activeSession.id,
-                  type: "IN",
-                  amount: total,
-                  reason: `Venta POS #${selectedCustomer.name}`
-              })
-          });
-          // Actualizar localmente el balance esperado
+        // Solo dejamos la actualización visual para que el cajero vea su saldo subir al instante
+        if (paymentMethod === "cash" && activeSession) {
           setActiveSession(prev => prev ? { ...prev, expectedClosingBalance: prev.expectedClosingBalance + total } : null);
-      }
+        }
 
       setCart([]);
       setDiscount(0);
