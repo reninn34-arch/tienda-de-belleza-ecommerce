@@ -135,7 +135,8 @@ router.put("/:id", async (req: Request, res: Response) => {
 // ─── POST sync past orders ───────────────────────────────────────────────────
 
 router.post("/sync-past-orders", async (req: Request, res: Response) => {
-  const ACTIVE_STATUSES = ["pending", "processing", "completed"];
+  // 1. Agregar español aquí también
+  const ACTIVE_STATUSES = ["pending", "processing", "completed", "pendiente", "procesando", "completado"];
   
   const ordersWithoutCustomer = await db.order.findMany({
     where: { customerId: null },
@@ -165,7 +166,8 @@ router.post("/sync-past-orders", async (req: Request, res: Response) => {
     });
 
     // Update customer stats ONLY if status is active
-    if (ACTIVE_STATUSES.includes(order.status)) {
+    // 2. Usar toLowerCase() en la validación
+    if (ACTIVE_STATUSES.includes(order.status.toLowerCase())) {
       await db.customer.update({
         where: { id: customer.id },
         data: {
@@ -185,13 +187,15 @@ router.post("/sync-past-orders", async (req: Request, res: Response) => {
 // ─── POST recalculate all stats ─────────────────────────────────────────────
 
 router.post("/recalculate-all-stats", async (req: Request, res: Response) => {
-  const ACTIVE_STATUSES = ["pending", "processing", "completed"];
+  // Aquí añadimos los equivalentes en minúscula para que el filtro funcione bien
+  const ACTIVE_STATUSES = ["pending", "processing", "completed", "pendiente", "completado", "procesando"];
   const customers = await db.customer.findMany({
     include: { orders: true }
   });
 
   for (const customer of customers) {
-    const activeOrders = customer.orders.filter(o => ACTIVE_STATUSES.includes(o.status));
+    // Convertimos a minúscula para garantizar que coincida
+    const activeOrders = customer.orders.filter(o => ACTIVE_STATUSES.includes(o.status.toLowerCase()));
     const totalSpent = activeOrders.reduce((sum, o) => sum + o.total, 0);
     const lastOrderAt = activeOrders.length > 0 
       ? activeOrders.sort((a, b) => b.date.getTime() - a.date.getTime())[0].date 

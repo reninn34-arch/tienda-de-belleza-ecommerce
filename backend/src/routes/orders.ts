@@ -42,8 +42,15 @@ type OrderWithItems = OrderRow;
 
 const router = Router();
 
-const STOCK_CONSUMED = new Set(["pending", "processing", "completed"]);
-const STOCK_RESTORE  = new Set(["cancelled", "refunded"]);
+// Soportar tanto minúsculas/mayúsculas como español e inglés
+const STOCK_CONSUMED = new Set([
+  "pending", "processing", "completed",
+  "pendiente", "procesando", "completado"
+]);
+const STOCK_RESTORE  = new Set([
+  "cancelled", "refunded",
+  "cancelado", "reembolsado"
+]);
 
 /** Nombre de la sucursal que atiende pedidos de delivery/online */
 const ONLINE_BRANCH_NAME = "tienda-online";
@@ -281,7 +288,7 @@ router.post("/", async (req: Request, res: Response) => {
       });
 
       // Actualizar stats del cliente SOLO si el pedido es "activo"
-      if (STOCK_CONSUMED.has(newOrder.status)) {
+      if (STOCK_CONSUMED.has(newOrder.status.toLowerCase())) {
         await tx.customer.update({
           where: { id: customer.id },
           data: {
@@ -358,15 +365,20 @@ router.put("/:id", async (req: Request, res: Response) => {
     return;
   }
 
+
   const prevStatus = existing.status;
   const newStatus  = body.status;
+
+  // Normalizamos a minúsculas AQUÍ ARRIBA para que sirva tanto para Stock como para CRM
+  const prev = prevStatus.toLowerCase();
+  const next = newStatus ? newStatus.toLowerCase() : "";
 
   // Restaurar stock si la orden pasa a cancelada/reembolsada desde un estado activo
   if (
     newStatus &&
     newStatus !== prevStatus &&
-    STOCK_RESTORE.has(newStatus) &&
-    STOCK_CONSUMED.has(prevStatus)
+    STOCK_RESTORE.has(next) &&   // <- ¡Usar next!
+    STOCK_CONSUMED.has(prev)     // <- ¡Usar prev!
   ) {
     // Usar la sucursal guardada en la orden (si aplica) o la online como fallback
     const branchId = existing.branchId;
@@ -383,35 +395,36 @@ router.put("/:id", async (req: Request, res: Response) => {
     }
   }
 
-  // ─── CRM LTV Adjustment ────────────────────────────────────────────────────
-  if (newStatus && newStatus !== prevStatus && existing.customerId) {
-      const wasActive = STOCK_CONSUMED.has(prevStatus);
-      const isNowActive = STOCK_CONSUMED.has(newStatus);
-      const wasRestored = STOCK_RESTORE.has(prevStatus);
-      const isNowRestored = STOCK_RESTORE.has(newStatus);
+    // ─── CRM LTV Adjustment ────────────────────────────────────────────────────
+    if (newStatus && newStatus !== prevStatus && existing.customerId) {
+      // Ya normalizado arriba
+      const wasActive = STOCK_CONSUMED.has(prev);
+      const isNowActive = STOCK_CONSUMED.has(next);
 
-      // De Activo a Cancelado -> Descontar
-      if (wasActive && isNowRestored) {
-          await db.customer.update({
-              where: { id: existing.customerId },
-              data: {
-                  totalSpent: { decrement: existing.total },
-                  ordersCount: { decrement: 1 }
-              }
-          });
+      // Si antes era Activo (ej. completado) y ahora ya NO lo es (ej. cancelado) -> DESCONTAR
+      if (wasActive && !isNowActive) {
+        await db.customer.update({
+          where: { id: existing.customerId },
+          data: {
+            totalSpent: { decrement: existing.total },
+            ordersCount: { decrement: 1 }
+          }
+        });
       }
-      // De Cancelado a Activo -> Sumar
-      else if (wasRestored && isNowActive) {
-          await db.customer.update({
-              where: { id: existing.customerId },
-              data: {
-                  totalSpent: { increment: existing.total },
-                  ordersCount: { increment: 1 },
-                  lastOrderAt: new Date()
-              }
-          });
+      // Si antes NO era activo (ej. pago pendiente/fallido/cancelado) y ahora SÍ es activo -> SUMAR
+      else if (!wasActive && isNowActive) {
+        await db.customer.update({
+          where: { id: existing.customerId },
+          data: {
+            totalSpent: { increment: existing.total },
+            ordersCount: { increment: 1 },
+            lastOrderAt: new Date()
+          }
+        });
       }
-  }
+      // Nota: Si pasa de "pendiente" a "completado" (ambos son Activos), no suma ni resta, 
+      // porque el valor ya se sumó en el momento en que el cliente creó el pedido.
+    }
 
   const updated = await db.order.update({
     where: { id },
