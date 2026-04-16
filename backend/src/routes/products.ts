@@ -7,6 +7,7 @@ import { sendError } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
 import { AuthenticatedRequest, requireAuth, requireRole } from "../middleware/auth";
 import { posEventEmitter } from "../lib/events";
+import * as fetch from "node-fetch";
 
 const router = Router();
 
@@ -240,6 +241,15 @@ router.post("/", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: 
     });
 
     posEventEmitter.emit("pos_update");
+    // Revalidate cache for catalog and product
+    try {
+      const secret = process.env.REVALIDATE_SECRET || "blush-revalidate-secret-2026";
+      const storeUrl = process.env.STORE_URL || "http://localhost:3000";
+      // Catalog
+      await fetch.default(`${storeUrl}/api/revalidate?secret=${secret}&tag=catalogo`, { method: "POST" });
+      // Product
+      await fetch.default(`${storeUrl}/api/revalidate?secret=${secret}&tag=producto-${product.id}`, { method: "POST" });
+    } catch (e) { /* ignore */ }
     res.status(201).json({ ...product, totalStock: calcTotalStock(product.inventories) });
   } catch (error) {
     sendError(res, 500, { code: "INTERNAL_ERROR", message: "Error interno", details: error instanceof Error ? error.message : error });
@@ -330,6 +340,15 @@ router.put("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, res
     });
 
     posEventEmitter.emit("pos_update");
+    // Revalidate cache for catalog and product
+    try {
+      const secret = process.env.REVALIDATE_SECRET || "blush-revalidate-secret-2026";
+      const storeUrl = process.env.STORE_URL || "http://localhost:3000";
+      // Catalog
+      await fetch.default(`${storeUrl}/api/revalidate?secret=${secret}&tag=catalogo`, { method: "POST" });
+      // Product
+      await fetch.default(`${storeUrl}/api/revalidate?secret=${secret}&tag=producto-${id}`, { method: "POST" });
+    } catch (e) { /* ignore */ }
     res.json({ ...product, totalStock: calcTotalStock(product.inventories) });
   } catch (error) {
     sendError(res, 500, { code: "INTERNAL_ERROR", message: "Error interno", details: error instanceof Error ? error.message : error });
@@ -349,6 +368,15 @@ router.delete("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, 
       entityId: id,
     });
     posEventEmitter.emit("pos_update");
+    // Revalidate cache for catalog and product
+    try {
+      const secret = process.env.REVALIDATE_SECRET || "blush-revalidate-secret-2026";
+      const storeUrl = process.env.STORE_URL || "http://localhost:3000";
+      // Catalog
+      await fetch.default(`${storeUrl}/api/revalidate?secret=${secret}&tag=catalogo`, { method: "POST" });
+      // Product
+      await fetch.default(`${storeUrl}/api/revalidate?secret=${secret}&tag=producto-${id}`, { method: "POST" });
+    } catch (e) { /* ignore */ }
     res.json({ success: true });
   } catch (error) {
     sendError(res, 500, { code: "INTERNAL_ERROR", message: "Error interno", details: error instanceof Error ? error.message : error });

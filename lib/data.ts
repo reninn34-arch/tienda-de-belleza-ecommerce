@@ -66,7 +66,7 @@ export async function getCollectionById(id: string): Promise<{ collection: Colle
 export async function getProductById(id: string): Promise<Product | undefined> {
   try {
     const res = await fetch(`${BACKEND}/api/products/${id}`, {
-      next: { tags: ["products"], revalidate: 86400 },
+      next: { tags: ["producto-" + id], revalidate: 86400 },
     });
     if (!res.ok) return undefined;
     return res.json() as Promise<Product>;
@@ -78,7 +78,7 @@ export async function getProductById(id: string): Promise<Product | undefined> {
 export async function getAllProducts(): Promise<Product[]> {
   try {
     const res = await fetch(`${BACKEND}/api/products`, {
-      next: { tags: ["products"], revalidate: 86400 },
+      next: { tags: ["catalogo"], revalidate: 86400 },
     });
     return res.json() as Promise<Product[]>;
   } catch {
@@ -115,7 +115,7 @@ export async function getFilteredProducts({
     params.set("limit", String(limit));
 
     const res = await fetch(`${BACKEND}/api/products?${params.toString()}`, {
-      next: { tags: ["products"], revalidate: 0 }, // No cache — URL = unique result
+      next: { tags: ["catalogo"], revalidate: 0 }, // Tag for filtered catalog
     });
     if (!res.ok) throw new Error("Backend error");
     return res.json() as Promise<FilteredProductsResult>;
