@@ -1,4 +1,11 @@
+
 "use client";
+// Extiende el tipo Window para permitir window.sse
+declare global {
+  interface Window {
+    sse?: EventSource;
+  }
+}
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -132,6 +139,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return notifs;
   }, []);
 
+  // Inicializar SSE global para notificaciones en tiempo real
+  useEffect(() => {
+    if (typeof window !== "undefined" && !window.sse) {
+      window.sse = new EventSource("/api/admin/events");
+      window.sse.onopen = () => {
+        console.log("[SSE] Conexión abierta /api/admin/events");
+      };
+      window.sse.onerror = (e) => {
+        console.error("[SSE] Error en la conexión SSE", e);
+      };
+    }
+    return () => {
+      if (typeof window !== "undefined" && window.sse) {
+        window.sse.close();
+        window.sse = undefined;
+        console.log("[SSE] Conexión cerrada");
+      }
+    };
+  }, []);
+
   useEffect(() => {
     // Si estamos en el login, no hacemos la carga del perfil
     if (pathname === "/admin/login") {
@@ -194,6 +221,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       } else {
         setStoreUrl("/");
       }
+    }
+
+    // 3. Escuchar el momento exacto en que ocurre algo en la tienda
+    if (typeof window !== "undefined" && window.sse) {
+      window.sse.onmessage = (_event: MessageEvent) => {
+        console.log("[SSE] Evento recibido: venta/cambio de stock");
+        // Recargar notificaciones
+        const stored = localStorage.getItem("adminReadNotifs");
+        const read = new Set<string>(stored ? JSON.parse(stored) : []);
+        Promise.all([
+          fetch("/api/admin/orders").then((r) => r.json()),
+          fetch("/api/admin/products").then((r) => r.json()),
+        ]).then(([orders, products]) => {
+          setNotifications(buildNotifs(orders, products, read));
+        }).catch(() => {});
+
+        // MAGIA: Respetar el interruptor del usuario
+        const alertsEnabled = localStorage.getItem("blush_alerts_enabled") !== "false";
+        console.log("[SSE] ¿Alertas activadas?", alertsEnabled);
+        if (
+          alertsEnabled &&
+          typeof window !== "undefined" &&
+          "Notification" in window &&
+          Notification.permission === "granted"
+        ) {
+          console.log("[SSE] Mostrando notificación de escritorio");
+          new Notification("¡Actualización en la Tienda!", {
+            body: "Se ha registrado un nuevo pedido o un cambio en el inventario.",
+            icon: "/icon-192.png",
+          });
+        } else {
+          console.log("[SSE] No se muestra notificación. Permiso:", Notification.permission);
+        }
+      };
     }
   }, [pathname, router, buildNotifs]);
 
