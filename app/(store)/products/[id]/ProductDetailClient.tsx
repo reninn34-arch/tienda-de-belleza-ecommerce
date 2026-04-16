@@ -57,6 +57,29 @@ export default function ProductDetailClient({ product, relatedProducts, breadcru
   const [isAdded, setIsAdded] = useState(false);
   const [ctaVisible, setCtaVisible] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
+  // NUEVO: Estado para el botón de compartir
+  const [copied, setCopied] = useState(false);
+
+  // NUEVO: Función inteligente para compartir
+  const handleShare = async () => {
+    const shareData = {
+      title: product.name,
+      text: `Mira este increíble producto: ${product.name}`,
+      url: window.location.href,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.log("Compartir cancelado o fallido");
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const allImages = product.gallery?.length ? product.gallery : [product.image];
   const [activeImage, setActiveImage] = useState(0);
@@ -182,6 +205,7 @@ export default function ProductDetailClient({ product, relatedProducts, breadcru
                   </span>
                 )}
               </button>
+
             </div>
           </div>
         </div>
@@ -357,6 +381,19 @@ export default function ProductDetailClient({ product, relatedProducts, breadcru
               <p className="text-[10px] uppercase tracking-widest text-center text-on-surface-variant">
                 Envío gratuito en pedidos mayores a $75
               </p>
+
+              {/* Botón de Compartir */}
+              <button
+                onClick={handleShare}
+                className="flex items-center justify-center gap-2 w-full max-w-xs mx-auto px-4 py-3 rounded-md border border-outline-variant bg-surface-container text-primary shadow hover:bg-primary/10 hover:text-primary transition-all uppercase tracking-widest font-label text-xs font-bold mt-2"
+                title="Compartir producto"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  {copied ? "check" : "share"}
+                </span>
+                {copied ? "¡Enlace copiado!" : "Compartir"}
+              </button>
+              {/* Fin botón de Compartir */}
             </div>
           </div>
 
