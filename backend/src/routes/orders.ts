@@ -194,39 +194,41 @@ router.post("/", async (req: Request, res: Response) => {
         targetBranchId = onlineBranch.id;
       }
 
-      // 2. Validar y descontar stock de cada ítem en la sucursal objetivo
+
+      // NUEVO: Obtener precios reales de la base de datos
+      const productIds = orderItems.map((i) => i.id);
+      const dbProducts = await tx.product.findMany({ where: { id: { in: productIds } } });
+      const dbProductMap = new Map(dbProducts.map((p) => [p.id, p]));
+
+      let realSubtotal = 0;
+      const finalItemsToCreate = [];
+
+      // 2. Validar stock y recalcular precios de forma segura
       for (const item of orderItems) {
+        const dbProd = dbProductMap.get(item.id);
+        if (!dbProd) throw new StockError(`Producto no encontrado: ${item.name}`);
+
+        // Calculamos el subtotal con el precio intocable de la base de datos
+        realSubtotal += dbProd.price * item.quantity;
+        finalItemsToCreate.push({
+          productId: dbProd.id,
+          name: dbProd.name,
+          price: dbProd.price, // <-- SEGURIDAD: Precio forzado de la DB
+          quantity: item.quantity,
+        });
+
+        // Tu lógica original de inventario que ya estaba perfecta:
         const inventory = await tx.inventory.findUnique({
-          where: {
-            productId_branchId: {
-              productId: item.id,
-              branchId: targetBranchId,
-            },
-          },
+          where: { productId_branchId: { productId: item.id, branchId: targetBranchId } },
           include: { branch: true },
         });
 
-        if (!inventory) {
-          throw new StockError(
-            `El producto "${item.name}" no tiene inventario en esta sucursal.`
-          );
+        if (!inventory || inventory.stock < item.quantity) {
+          throw new StockError(`El producto "${dbProd.name}" no cuenta con stock suficiente.`);
         }
 
-        if (inventory.stock < item.quantity) {
-          throw new StockError(
-            `El producto "${item.name}" no cuenta con stock suficiente en ${inventory.branch.name}. ` +
-            `Disponible: ${inventory.stock}, solicitado: ${item.quantity}.`
-          );
-        }
-
-        // Descontar stock
         await tx.inventory.update({
-          where: {
-            productId_branchId: {
-              productId: item.id,
-              branchId: targetBranchId,
-            },
-          },
+          where: { productId_branchId: { productId: item.id, branchId: targetBranchId } },
           data: { stock: { decrement: item.quantity } },
         });
       }
@@ -263,8 +265,8 @@ router.post("/", async (req: Request, res: Response) => {
           id: `ORD-${Date.now()}`,
           customer: body.customer,
           email: body.email,
-          total: body.total ?? 0,
-          subtotal: body.subtotal ?? 0,
+          total: realSubtotal + (body.shipping ?? 0) + (body.tax ?? 0), // <-- Calculado por el servidor
+          subtotal: realSubtotal, // <-- Calculado por el servidor
           shipping: body.shipping ?? 0,
           tax: body.tax ?? 0,
           status: body.status ?? "pending",
@@ -277,12 +279,7 @@ router.post("/", async (req: Request, res: Response) => {
           cedula: body.cedula,
           date: new Date(),
           items: {
-            create: orderItems.map((item) => ({
-              productId: item.id,
-              name: item.name,
-              price: item.price,
-              quantity: item.quantity,
-            })),
+            create: finalItemsToCreate, // <-- Items seguros con precios de la DB
           },
         },
         include: { items: true },
