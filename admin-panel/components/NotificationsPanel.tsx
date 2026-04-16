@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 export interface Notif {
@@ -35,8 +35,27 @@ const TYPE_COLOR: Record<Notif["type"], string> = {
 
 export default function NotificationsPanel({ open, notifications, onClose, onMarkRead, onMarkAllRead }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
+  
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
+  const [alertsEnabled, setAlertsEnabled] = useState(false);
 
-  // Close on outside click
+  // Revisar permisos y leer de localStorage si están encendidas
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setPermission(Notification.permission);
+      
+      const stored = localStorage.getItem("blush_alerts_enabled");
+      if (stored !== null) {
+        setAlertsEnabled(stored === "true");
+      } else if (Notification.permission === "granted") {
+        setAlertsEnabled(true);
+      }
+    } else {
+      setPermission("unsupported");
+    }
+  }, [open]);
+
+  // Cerrar al hacer clic fuera
   useEffect(() => {
     if (!open) return;
     function handler(e: MouseEvent) {
@@ -47,6 +66,32 @@ export default function NotificationsPanel({ open, notifications, onClose, onMar
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open, onClose]);
+
+  // Función para encender/apagar el switch
+  const toggleAlerts = async () => {
+    const newVal = !alertsEnabled;
+    
+    if (newVal && permission !== "granted") {
+      const p = await Notification.requestPermission();
+      setPermission(p);
+      if (p !== "granted") return; // Si deniega, no encendemos el switch
+    }
+
+    setAlertsEnabled(newVal);
+    localStorage.setItem("blush_alerts_enabled", String(newVal));
+  };
+
+  // Función para forzar una notificación de prueba
+  const testNotification = () => {
+    if (permission === "granted") {
+      new Notification("Prueba Exitosa 💸", {
+        body: "¡Acabas de recibir un pedido! Las notificaciones funcionan.",
+        icon: "/icon-192.png" 
+      });
+    } else {
+      alert("Primero debes otorgar permisos en tu navegador.");
+    }
+  };
 
   const unread = notifications.filter((n) => !n.read).length;
 
@@ -92,6 +137,41 @@ export default function NotificationsPanel({ open, notifications, onClose, onMar
             </button>
           </div>
         </div>
+
+        {/* CONTROLES DE NOTIFICACIONES */}
+        {permission !== "unsupported" && (
+          <div className="bg-gray-50 px-4 py-3 flex items-center justify-between border-b border-gray-100">
+            <div className="flex flex-col">
+              <span className="text-[12px] font-bold text-gray-800">Alertas de Escritorio</span>
+              <span className="text-[10px] text-gray-500">
+                {permission === "granted" ? "Permiso concedido" : "Requiere permiso"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {permission === "granted" && alertsEnabled && (
+                <button 
+                  onClick={testNotification}
+                  className="text-[10px] text-indigo-600 font-bold hover:underline"
+                >
+                  Probar
+                </button>
+              )}
+              {/* Toggle Switch Estilo iPhone */}
+              <button
+                onClick={toggleAlerts}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  alertsEnabled ? "bg-[#33172c]" : "bg-gray-300"
+                }`}
+              >
+                <span 
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                    alertsEnabled ? "translate-x-5" : "translate-x-1"
+                  }`} 
+                />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* List */}
         <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
