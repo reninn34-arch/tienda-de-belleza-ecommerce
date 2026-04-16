@@ -225,9 +225,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     // 3. Escuchar el momento exacto en que ocurre algo en la tienda
     if (typeof window !== "undefined" && window.sse) {
-      window.sse.onmessage = (_event: MessageEvent) => {
+      // CAMBIO: Usamos addEventListener para escuchar "pos_update"
+      window.sse.addEventListener("pos_update", (_event: MessageEvent) => {
         console.log("[SSE] Evento recibido: venta/cambio de stock");
-        // Recargar notificaciones
+        // Recargar notificaciones dentro de la campanita
         const stored = localStorage.getItem("adminReadNotifs");
         const read = new Set<string>(stored ? JSON.parse(stored) : []);
         Promise.all([
@@ -237,9 +238,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           setNotifications(buildNotifs(orders, products, read));
         }).catch(() => {});
 
-        // MAGIA: Respetar el interruptor del usuario
+        // MAGIA: Respetar el interruptor del usuario y lanzar notificación nativa
         const alertsEnabled = localStorage.getItem("blush_alerts_enabled") !== "false";
         console.log("[SSE] ¿Alertas activadas?", alertsEnabled);
+
         if (
           alertsEnabled &&
           typeof window !== "undefined" &&
@@ -247,14 +249,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           Notification.permission === "granted"
         ) {
           console.log("[SSE] Mostrando notificación de escritorio");
-          new Notification("¡Actualización en la Tienda!", {
-            body: "Se ha registrado un nuevo pedido o un cambio en el inventario.",
+          new Notification("¡Nueva Venta! 💸", {
+            body: "Acabas de recibir un nuevo pedido en la tienda.",
             icon: "/icon-192.png",
           });
         } else {
           console.log("[SSE] No se muestra notificación. Permiso:", Notification.permission);
         }
-      };
+      });
     }
   }, [pathname, router, buildNotifs]);
 
