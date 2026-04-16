@@ -1,29 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag, revalidatePath } from "next/cache";
 
-const VALID_TAGS = ["products", "settings", "pages", "tutorials"] as const;
-type ValidTag = typeof VALID_TAGS[number];
-
 export async function POST(request: NextRequest) {
   const secret = request.nextUrl.searchParams.get("secret");
+  // Validamos el secreto de seguridad
   if (secret !== process.env.REVALIDATE_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const tag = request.nextUrl.searchParams.get("tag") as ValidTag | null;
+  const tag = request.nextUrl.searchParams.get("tag");
 
-  if (tag && VALID_TAGS.includes(tag)) {
-    // @ts-expect-error: Next.js exige 2 argumentos en los tipos de esta versión, pero falla en ejecución si pasamos un objeto.
-    revalidateTag(tag);
-    revalidatePath("/", "layout");
+  if (tag) {
+    // Si nos pasan un tag (ej. "catalogo" o "producto-123"), borramos ese caché
+    await revalidateTag(tag, {});
     return NextResponse.json({ revalidated: true, tag });
   }
 
-  // No tag → revalidate everything
-  for (const t of VALID_TAGS) {
-    // @ts-expect-error: Tipos exigen 2 argumentos, pero esta versión rompe en runtime si pasamos el objeto.
-    revalidateTag(t);
-  }
-  revalidatePath("/", "layout");
-  return NextResponse.json({ revalidated: true, tags: VALID_TAGS });
+  // Si no nos pasan tag, revalidamos todo el layout por defecto
+  await revalidatePath("/", "layout");
+  return NextResponse.json({ revalidated: true, message: "Full layout revalidated" });
 }
