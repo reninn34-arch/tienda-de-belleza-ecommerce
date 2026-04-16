@@ -83,10 +83,12 @@ export default function NotificationsPanel({ open, notifications, onClose, onMar
 
   // Función para forzar una notificación de prueba
   const testNotification = () => {
-    if (permission === "granted") {
-      new Notification("Prueba Exitosa 💸", {
-        body: "¡Acabas de recibir un pedido! Las notificaciones funcionan.",
-        icon: "/icon-192.png" 
+    if (permission === "granted" && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(registration => {
+        registration.showNotification("Prueba Exitosa 🚀", {
+          body: "¡Acabas de recibir un pequeño recordatorio!",
+          icon: "/icon-192.png"
+        });
       });
     } else {
       alert("Primero debes otorgar permisos en tu navegador.");
