@@ -5,6 +5,7 @@ import { sendError, type ErrorCode } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
 import { AuthenticatedRequest } from "../middleware/auth";
 import { posEventEmitter } from "../lib/events";
+import * as fetch from "node-fetch";
 
 interface OrderItemRow {
   id: number;
@@ -322,6 +323,12 @@ router.post("/", async (req: Request, res: Response) => {
     });
 
     posEventEmitter.emit("pos_update");
+    // Avisar a la tienda que el stock bajó
+    try {
+      const secret = process.env.REVALIDATE_SECRET || "blush-revalidate-secret-2026";
+      const storeUrl = process.env.STORE_URL || "http://localhost:3000";
+      await fetch.default(`${storeUrl}/api/revalidate?secret=${secret}&tag=catalogo`, { method: "POST" });
+    } catch (e) { /* ignore */ }
     res.status(201).json(newOrder);
   } catch (error) {
     if (error instanceof StockError) {
@@ -465,6 +472,12 @@ router.put("/:id", async (req: Request, res: Response) => {
   });
 
   posEventEmitter.emit("pos_update");
+  // Avisar a la tienda que el stock cambió (cancelación, devolución, etc)
+  try {
+    const secret = process.env.REVALIDATE_SECRET || "blush-revalidate-secret-2026";
+    const storeUrl = process.env.STORE_URL || "http://localhost:3000";
+    await fetch.default(`${storeUrl}/api/revalidate?secret=${secret}&tag=catalogo`, { method: "POST" });
+  } catch (e) { /* ignore */ }
   res.json(updated);
 });
 
