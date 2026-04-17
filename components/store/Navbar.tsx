@@ -15,7 +15,7 @@ export default async function Navbar() {
   const socialLinks = await getSocialLinks();
 
   return (
-    <header className="fixed top-0 w-full z-50 bg-[#faf9f6]/90 backdrop-blur-md border-b border-outline-variant/10">
+    <header className="fixed top-0 w-full z-50 bg-[#f2eaf6]/50 backdrop-blur-md border-b border-outline-variant/10">
       <nav className="relative flex items-center w-full px-8 py-5 max-w-[1920px] mx-auto">
 
         {/* Left — sidebar trigger */}
