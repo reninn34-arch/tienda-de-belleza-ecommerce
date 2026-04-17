@@ -241,20 +241,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         // MAGIA: Respetar el interruptor del usuario y lanzar notificación nativa
         const alertsEnabled = localStorage.getItem("blush_alerts_enabled") !== "false";
         console.log("[SSE] ¿Alertas activadas?", alertsEnabled);
-
+        
         if (
           alertsEnabled &&
           typeof window !== "undefined" &&
           "Notification" in window &&
           Notification.permission === "granted"
         ) {
-          console.log("[SSE] Mostrando notificación de escritorio");
-          new Notification("¡Nueva Venta! 💸", {
-            body: "Acabas de recibir un nuevo pedido en la tienda.",
+          console.log("[SSE] Mostrando notificación...");
+          
+          const title = "¡Actualización en la Tienda! 💸";
+          const options = {
+            body: "Se ha registrado un movimiento de pedido o stock.",
             icon: "/icon-192.png",
-          });
+          };
+
+          // Verificamos si estamos en celular/PWA usando Service Worker
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.ready.then((registration) => {
+              registration.showNotification(title, options).catch((err) => {
+                console.log("Fallo al usar SW, intentando modo escritorio:", err);
+                try { new Notification(title, options); } catch(e) {}
+              });
+            });
+          } else {
+            // Modo escritorio tradicional
+            try { new Notification(title, options); } catch(e) {}
+          }
         } else {
-          console.log("[SSE] No se muestra notificación. Permiso:", Notification.permission);
+          console.log("[SSE] No se muestra notificación. Permiso:", Notification?.permission);
         }
       });
     }
