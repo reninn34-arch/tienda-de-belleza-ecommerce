@@ -173,7 +173,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setAdminEmail(p.email);
       setAdminRole(p.role);
 
-      // Fetch settings and branches for naming
       Promise.all([
         fetch("/api/admin/settings").then(r => r.ok ? r.json() : { storeName: "Tienda" }),
         fetch("/api/admin/branches").then(r => r.ok ? r.json() : []),
@@ -188,7 +187,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         setStoreName(name);
       }).catch(() => setStoreName("Tienda"));
     } catch (e) {
-      // Si el token es inválido y falla getAdminProfile, lo devolvemos al login
       router.replace("/admin/login");
       return;
     }
@@ -205,18 +203,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setNotifications(buildNotifs(orders, products, read));
     }).catch(() => {});
 
-    // Determine Store URL automatically
     if (typeof window !== "undefined") {
       const hostname = window.location.hostname;
       const protocol = window.location.protocol;
       const port = window.location.port;
 
       if (hostname.startsWith("admin.")) {
-        // production: admin.example.com -> example.com
         const storeHost = hostname.replace("admin.", "");
         setStoreUrl(`${protocol}//${storeHost}${port ? `:${port}` : ""}`);
       } else if (hostname === "localhost") {
-        // dev fallback: usually store is on 3000 and admin on 3001
         setStoreUrl(`${protocol}//localhost:3000`);
       } else {
         setStoreUrl("/");
@@ -224,55 +219,56 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     // 3. Escuchar el momento exacto en que ocurre algo en la tienda
-    if (typeof window !== "undefined" && window.sse) {
-      // CAMBIO: Usamos addEventListener para escuchar "pos_update"
-      window.sse.addEventListener("pos_update", (_event: MessageEvent) => {
-        console.log("[SSE] Evento recibido: venta/cambio de stock");
-        // Recargar notificaciones dentro de la campanita
-        const stored = localStorage.getItem("adminReadNotifs");
-        const read = new Set<string>(stored ? JSON.parse(stored) : []);
-        Promise.all([
-          fetch("/api/admin/orders").then((r) => r.json()),
-          fetch("/api/admin/products").then((r) => r.json()),
-        ]).then(([orders, products]) => {
-          setNotifications(buildNotifs(orders, products, read));
-        }).catch(() => {});
+    const handlePosUpdate = (_event: MessageEvent) => {
+      console.log("[SSE] Evento recibido: venta/cambio de stock");
+      // Recargar notificaciones
+      const stored = localStorage.getItem("adminReadNotifs");
+      const read = new Set<string>(stored ? JSON.parse(stored) : []);
+      Promise.all([
+        fetch("/api/admin/orders").then((r) => r.json()),
+        fetch("/api/admin/products").then((r) => r.json()),
+      ]).then(([orders, products]) => {
+        setNotifications(buildNotifs(orders, products, read));
+      }).catch(() => {});
 
-        // MAGIA: Respetar el interruptor del usuario y lanzar notificación nativa
-        const alertsEnabled = localStorage.getItem("blush_alerts_enabled") !== "false";
-        console.log("[SSE] ¿Alertas activadas?", alertsEnabled);
-        
-        if (
-          alertsEnabled &&
-          typeof window !== "undefined" &&
-          "Notification" in window &&
-          Notification.permission === "granted"
-        ) {
-          console.log("[SSE] Mostrando notificación...");
-          
-          const title = "¡Actualización en la Tienda! 💸";
-          const options = {
-            body: "Se ha registrado un movimiento de pedido o stock.",
-            icon: "/icon-192.png",
-          };
+      // MAGIA: Respetar el interruptor del usuario
+      const alertsEnabled = localStorage.getItem("blush_alerts_enabled") !== "false";
+      
+      if (
+        alertsEnabled &&
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
+        // Cambiamos el texto para que cubra ventas, cancelaciones y stock
+        const title = "Movimiento en la Tienda 🔄";
+        const options = {
+          body: "Se ha registrado un pedido o un cambio de inventario.",
+          icon: "/icon-192.png",
+        };
 
-          // Verificamos si estamos en celular/PWA usando Service Worker
-          if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.ready.then((registration) => {
-              registration.showNotification(title, options).catch((err) => {
-                console.log("Fallo al usar SW, intentando modo escritorio:", err);
-                try { new Notification(title, options); } catch(e) {}
-              });
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, options).catch(() => {
+              try { new Notification(title, options); } catch(e) {}
             });
-          } else {
-            // Modo escritorio tradicional
-            try { new Notification(title, options); } catch(e) {}
-          }
+          });
         } else {
-          console.log("[SSE] No se muestra notificación. Permiso:", Notification?.permission);
+          try { new Notification(title, options); } catch(e) {}
         }
-      });
+      }
+    };
+
+    if (typeof window !== "undefined" && window.sse) {
+      window.sse.addEventListener("pos_update", handlePosUpdate);
     }
+
+    // Limpiamos la "oreja" cuando el usuario cambia de página
+    return () => {
+      if (typeof window !== "undefined" && window.sse) {
+        window.sse.removeEventListener("pos_update", handlePosUpdate);
+      }
+    };
   }, [pathname, router, buildNotifs]);
 
   if (!ready) {
