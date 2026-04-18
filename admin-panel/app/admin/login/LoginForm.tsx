@@ -31,10 +31,15 @@ export default function LoginForm({ storeName }: { storeName: string }) {
 
       if (!res.ok) {
         const data = await res.json();
-        if (data.error?.toLowerCase().includes("email") || data.error?.toLowerCase().includes("correo")) {
+        // Si el backend responde con error de credenciales inválidas
+        if (data.error?.code === "INVALID_CREDENTIALS") {
+          setPasswordError("Usuario o contraseña incorrectos.");
+        } else if (data.error?.toLowerCase().includes("email") || data.error?.toLowerCase().includes("correo")) {
           setEmailError("Correo electrónico no reconocido.");
-        } else {
+        } else if (data.error?.toLowerCase().includes("contraseña") || data.error?.toLowerCase().includes("password")) {
           setPasswordError("Contraseña incorrecta.");
+        } else {
+          setPasswordError("Error de autenticación. Intenta de nuevo.");
         }
         setLoading(false);
         return;

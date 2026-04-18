@@ -147,6 +147,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         console.log("[SSE] Conexión abierta /api/admin/events");
       };
       window.sse.onerror = (e) => {
+        // Ignorar el error SSE si estamos en el login (probable 401), pero no detener el flujo
+        if (window.location.pathname === "/admin/login") {
+          return;
+        }
+        // Otros errores sí se muestran
         console.error("[SSE] Error en la conexión SSE", e);
       };
     }
