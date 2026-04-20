@@ -14,9 +14,6 @@ interface ShippingMethod {
 
 export default function AdminShippingPage() {
   const [methods, setMethods] = useState<ShippingMethod[]>([]);
-  const [taxRate, setTaxRate] = useState<number>(0);
-  const [taxInput, setTaxInput] = useState<string>("0");
-  const [savingTax, setSavingTax] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -28,23 +25,8 @@ export default function AdminShippingPage() {
   useEffect(() => {
     fetch("/api/admin/settings").then((r) => r.json()).then((s) => {
       setMethods(s.shipping.methods);
-      const rate = s.taxRate ?? 0;
-      setTaxRate(rate);
-      setTaxInput(String(rate));
     });
   }, []);
-
-  async function saveTaxRate() {
-    setSavingTax(true);
-    await fetch("/api/admin/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ taxRate: parseFloat(taxInput) || 0 }),
-    });
-    setTaxRate(parseFloat(taxInput) || 0);
-    setSavingTax(false);
-    showToast("IVA guardado.");
-  }
 
   function showToast(msg: string) {
     setToast(msg);
@@ -100,43 +82,6 @@ export default function AdminShippingPage() {
           {toast}
         </div>
       )}
-
-      {/* IVA / Tax Card */}
-      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
-            <span className="material-symbols-outlined text-[20px] text-purple-600">percent</span>
-          </div>
-          <div>
-            <h2 className="font-bold text-gray-900">Impuesto (IVA)</h2>
-            <p className="text-xs text-gray-400">Se aplica sobre el subtotal en el checkout.</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1 max-w-[180px]">
-            <input
-              type="number"
-              min="0"
-              max="100"
-              step="0.1"
-              value={taxInput}
-              onChange={(e) => setTaxInput(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-9 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">%</span>
-          </div>
-          <button
-            onClick={saveTaxRate}
-            disabled={savingTax}
-            className="px-5 py-2.5 bg-[#33172c] text-white rounded-xl text-sm font-bold hover:bg-[#4b2c42] transition-colors disabled:opacity-60"
-          >
-            {savingTax ? "Guardando..." : "Guardar"}
-          </button>
-          {taxRate === 0 && (
-            <span className="text-xs text-gray-400">Sin impuesto</span>
-          )}
-        </div>
-      </div>
 
       <div className="flex items-center justify-between mb-8">
         <div>
