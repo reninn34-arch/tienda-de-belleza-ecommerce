@@ -30,15 +30,14 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   try {
     const decoded = jwt.verify(token, JWT_SECRET_TYPED) as any;
 
-    // Verificar que el usuario aún existe en la base de datos
-    // Esto garantiza que las sesiones se revocan inmediatamente al eliminar un usuario
+    // Verificar que el usuario aún existe y está activo
     const adminInDb = await db.admin.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, role: true, branchId: true, email: true },
+      select: { id: true, role: true, branchId: true, email: true, active: true },
     });
 
-    if (!adminInDb) {
-      sendError(res, 401, { code: "UNAUTHORIZED", message: "Sesión revocada" });
+    if (!adminInDb || !adminInDb.active) {
+      sendError(res, 401, { code: "UNAUTHORIZED", message: "Sesión revocada o usuario inactivo" });
       return;
     }
 

@@ -11,6 +11,7 @@ interface Staff {
   email: string;
   role: "ADMIN" | "VENDEDOR";
   branchId: string | null;
+  active: boolean;
   branch?: { name: string };
   createdAt: string;
 }
@@ -112,6 +113,27 @@ export default function StaffPage() {
     setShowForm(true);
   };
 
+  const handleToggleStatus = async (s: Staff) => {
+    const action = s.active ? "suspender" : "reactivar";
+    if (!window.confirm(`¿Seguro que deseas ${action} el acceso de ${s.name}?`)) return;
+
+    try {
+      const res = await fetch(`/api/admin/staff/${s.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: !s.active })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error?.message || "Error al cambiar estado");
+      }
+      const data = await res.json();
+      setStaffList(prev => prev.map(staff => staff.id === s.id ? { ...staff, active: data.active } : staff));
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     const profile = getAdminProfile();
     // Prevent self-deletion check handled by backend but good to have UI hint
@@ -165,9 +187,14 @@ export default function StaffPage() {
                   <p className="text-xs text-gray-400">{s.email}</p>
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${s.role === "ADMIN" ? "bg-indigo-50 text-indigo-700" : "bg-emerald-50 text-emerald-700"}`}>
-                    {s.role}
-                  </span>
+                  <div className="flex gap-2 items-center mt-1">
+                    <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${s.role === "ADMIN" ? "bg-indigo-50 text-indigo-700" : "bg-emerald-50 text-emerald-700"}`}>
+                      {s.role}
+                    </span>
+                    <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${s.active ? "bg-blue-50 text-blue-700" : "bg-red-50 text-red-700"}`}>
+                      {s.active ? "Activo" : "Suspendido"}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   <p className="text-xs font-medium text-gray-600">
@@ -184,9 +211,16 @@ export default function StaffPage() {
                        <span className="material-symbols-outlined text-[20px]">edit</span>
                      </button>
                      <button 
+                      onClick={() => handleToggleStatus(s)}
+                      className={`p-2 rounded-lg transition-all ${s.active ? "text-gray-400 hover:text-orange-500 hover:bg-orange-50" : "text-orange-500 bg-orange-50 hover:bg-orange-100"}`}
+                      title={s.active ? "Suspender Acceso" : "Reactivar Acceso"}
+                     >
+                       <span className="material-symbols-outlined text-[20px]">{s.active ? "block" : "check_circle"}</span>
+                     </button>
+                     <button 
                       onClick={() => handleDelete(s.id)}
                       className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                      title="Eliminar"
+                      title="Eliminar Permanente"
                      >
                        <span className="material-symbols-outlined text-[20px]">delete</span>
                      </button>

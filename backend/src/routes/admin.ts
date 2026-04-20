@@ -25,10 +25,10 @@ router.post("/login", async (req, res) => {
     where: { email },
   });
 
-  if (!admin) {
+  if (!admin || !admin.active) {
     return sendError(res, 401, {
       code: "INVALID_CREDENTIALS",
-      message: "Credenciales inválidas",
+      message: "Credenciales inválidas o cuenta suspendida",
     });
   }
 
@@ -75,6 +75,7 @@ router.get("/staff", requireAuth, requireRole(["ADMIN"]), async (req, res) => {
       email: true,
       role: true,
       branchId: true,
+      active: true,
       branch: { select: { name: true } },
       createdAt: true
     },
@@ -161,6 +162,40 @@ router.delete("/staff/:id", requireAuth, requireRole(["ADMIN"]), async (req, res
       details: error.message || String(error)
     });
   }
+});
+
+/** Alternar estado activo/inactivo (Soft Delete) */
+router.patch("/staff/:id/status", requireAuth, requireRole(["ADMIN"]), async (req, res) => {
+  const { id } = req.params;
+  const { active } = req.body;
+  
+  if (typeof active !== "boolean") {
+    return sendError(res, 400, { code: "BAD_REQUEST", message: "Se requiere estado 'active' booleano" });
+  }
+
+  const authReq = req as any;
+  if (authReq.user?.userId === id && !active) {
+    return sendError(res, 400, { code: "BAD_REQUEST", message: "No puedes desactivar tu propio usuario" });
+  }
+
+  const user = await db.admin.findUnique({ where: { id } });
+  if (!user) {
+    return sendError(res, 404, { code: "NOT_FOUND", message: "Usuario no encontrado" });
+  }
+
+  const updated = await db.admin.update({
+    where: { id },
+    data: { active }
+  });
+
+  await logAdminAction(req, {
+    action: active ? "staff.activate" : "staff.deactivate",
+    entity: "admin",
+    entityId: id,
+    details: { name: user.name, email: user.email }
+  });
+
+  res.json({ id: updated.id, active: updated.active });
 });
 
 /** Actualizar staff */
