@@ -49,3 +49,6 @@ next-env.d.ts
 # Agent instruction files
 AGENTS.md
 CLAUDE.md
+
+# Scratch files
+/scratch/
