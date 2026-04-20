@@ -30,6 +30,7 @@ const BundleSchema = z.object({
   active: z.boolean().optional(),
   branchIds: z.array(z.string()).optional(),
   customStockLimit: z.number().int().nonnegative().optional().nullable(),
+  taxRate: z.number().nonnegative().optional(),
   items: z.array(BundleItemSchema).min(1),
 });
 
@@ -141,7 +142,7 @@ router.post("/", async (req: Request, res: Response) => {
   if (!parsed.success)
     return sendError(res, 400, { code: "VALIDATION_ERROR", message: "Datos inválidos", details: parsed.error });
 
-  const { name, description, price, image, active, items, branchIds, customStockLimit } = parsed.data;
+  const { name, description, price, image, active, items, branchIds, customStockLimit, taxRate } = parsed.data;
 
   const bundle = await db.bundle.create({
     data: {
@@ -150,6 +151,7 @@ router.post("/", async (req: Request, res: Response) => {
       price,
       image,
       active: active ?? true,
+      taxRate: taxRate ?? 0,
       branchIds: branchIds ?? [],
       customStockLimit,
       items: { create: items },
@@ -175,7 +177,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   if (!parsed.success)
     return sendError(res, 400, { code: "VALIDATION_ERROR", message: "Datos inválidos", details: parsed.error });
 
-  const { name, description, price, image, active, items, branchIds, customStockLimit } = parsed.data;
+  const { name, description, price, image, active, items, branchIds, customStockLimit, taxRate } = parsed.data;
 
   const existing = await db.bundle.findUnique({ where: { id } });
   if (!existing)
@@ -192,6 +194,7 @@ router.put("/:id", async (req: Request, res: Response) => {
         price,
         image,
         active: active ?? true,
+        taxRate: taxRate ?? 0,
         branchIds: branchIds ?? [],
         customStockLimit,
         items: { create: items },

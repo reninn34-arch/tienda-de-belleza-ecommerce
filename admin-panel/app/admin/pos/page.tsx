@@ -396,7 +396,7 @@ export default function POSPage() {
       discount,
       total,
       shipping: 0,
-      tax: 0,
+      tax: tax,
       notes: "Venta física de mostrador",
       items: cart.map(item => ({
         id: item.isBundle ? item.bundleId! : item.id,
@@ -606,6 +606,12 @@ export default function POSPage() {
               <span>Subtotal</span>
               <span>${subtotal.toFixed(2)}</span>
             </div>
+            {tax > 0 && (
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>IVA</span>
+                <span>${tax.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between items-center text-xs text-gray-500">
               <span className="cursor-pointer border-b border-dashed border-gray-300 hover:text-gray-800" onClick={() => { if(!canOperate) return; setDiscount(Number(window.prompt("Descuento en $:") || 0))}}>Aplicar Descuento</span>
               <span>-${discount.toFixed(2)}</span>

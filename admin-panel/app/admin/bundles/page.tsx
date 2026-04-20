@@ -25,6 +25,7 @@ interface Bundle {
   name: string;
   description?: string | null;
   price: number;
+  taxRate?: number;
   image?: string | null;
   active: boolean;
   branchIds: string[];
@@ -70,6 +71,7 @@ export default function BundlesPage() {
     price: "",
     image: "",
     active: true,
+    taxRate: 0,
     branchIds: [] as string[],
     customStockLimit: "" as string | number,
   });
@@ -114,7 +116,7 @@ export default function BundlesPage() {
   // ── Editor helpers ─────────────────────────────────────────────────────────
 
   function openNew() {
-    setForm({ name: "", description: "", price: "", image: "", active: true, branchIds: [], customStockLimit: "" });
+    setForm({ name: "", description: "", price: "", image: "", active: true, taxRate: 0, branchIds: [], customStockLimit: "" });
     setItems([]);
     setEditingId(null);
     setShowEditor(true);
@@ -127,6 +129,7 @@ export default function BundlesPage() {
       price: String(b.price),
       image: b.image ?? "",
       active: b.active,
+      taxRate: b.taxRate ?? 0,
       branchIds: b.branchIds || [],
       customStockLimit: b.customStockLimit !== null ? String(b.customStockLimit) : "",
     });
@@ -211,6 +214,7 @@ export default function BundlesPage() {
         price: parseFloat(form.price),
         image: form.image || null,
         active: form.active,
+        taxRate: parseFloat(String(form.taxRate)) || 0,
         branchIds: form.branchIds,
         customStockLimit: form.customStockLimit !== "" ? parseInt(String(form.customStockLimit)) : null,
         items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
@@ -368,7 +372,21 @@ export default function BundlesPage() {
                     />
                   </div>
                 </div>
-                <div className="flex flex-col justify-end">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">
+                    IVA (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0"
+                    value={form.taxRate}
+                    onChange={(e) => setForm((f) => ({ ...f, taxRate: parseFloat(e.target.value) || 0 }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-[#bc93ad] focus:ring-2 focus:ring-[#bc93ad]/20 outline-none text-sm transition-all"
+                  />
+                </div>
+                <div className="col-span-2 flex flex-col justify-end mt-2">
                   <label className="flex items-center gap-2.5 cursor-pointer">
                     <div
                       onClick={() => setForm((f) => ({ ...f, active: !f.active }))}
