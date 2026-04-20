@@ -336,13 +336,16 @@ router.post("/", async (req: Request, res: Response) => {
         }
       }
 
+      // Calcular el total definitivo de forma segura (única fuente de verdad)
+      const finalTotal = Math.max(0, realSubtotal + realTax - (body.discount ?? 0) + (body.shipping ?? 0));
+
       // 4. Crear la orden y actualizar stats del cliente
       const newOrder = await tx.order.create({
         data: {
           id: `ORD-${Date.now()}`,
           customer: body.customer,
           email: body.email,
-          total: Math.max(0, realSubtotal + realTax - (body.discount ?? 0) + (body.shipping ?? 0)),
+          total: finalTotal,
           subtotal: realSubtotal,
           shipping: body.shipping ?? 0,
           tax: realTax,
@@ -367,7 +370,7 @@ router.post("/", async (req: Request, res: Response) => {
         await tx.customer.update({
           where: { id: customer.id },
           data: {
-            totalSpent: { increment: body.total ?? 0 },
+            totalSpent: { increment: finalTotal },
             ordersCount: { increment: 1 },
             lastOrderAt: new Date()
           }
@@ -381,7 +384,7 @@ router.post("/", async (req: Request, res: Response) => {
           data: {
             sessionId: body.cashSessionId,
             type: "IN",
-            amount: body.total ?? 0,
+            amount: finalTotal,
             reason: `Venta POS #${body.customer}`
           }
         });
@@ -390,7 +393,7 @@ router.post("/", async (req: Request, res: Response) => {
         await tx.cashSession.update({
           where: { id: body.cashSessionId },
           data: {
-            expectedClosingBalance: { increment: body.total ?? 0 }
+            expectedClosingBalance: { increment: finalTotal }
           }
         });
       }

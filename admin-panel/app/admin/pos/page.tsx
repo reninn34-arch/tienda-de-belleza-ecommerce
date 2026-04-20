@@ -13,6 +13,7 @@ interface Bundle {
   name: string;
   description?: string | null;
   price: number;
+  taxRate?: number;
   image?: string | null;
   active: boolean;
   stockDisponible: number;
@@ -336,6 +337,7 @@ export default function POSPage() {
         bundleItems: bundle.items,
         name: `🎁 ${bundle.name}`,
         price: bundle.price,
+        taxRate: bundle.taxRate ?? 0,
         image: bundle.image || "",
         quantity: 1,
         inventories: [],
