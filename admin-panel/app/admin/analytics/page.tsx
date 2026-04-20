@@ -22,11 +22,11 @@ const PAYMENT_LABEL: Record<string, string> = { transfer: "Transferencia", cash:
 const PAYMENT_ICON: Record<string, string> = { transfer: "account_balance", cash: "payments", card: "credit_card" };
 const PAYMENT_STYLE: Record<string, { bg: string; pill: string; accent: string; border: string }> = {
   transfer: { bg: "bg-blue-50", pill: "bg-blue-100 text-blue-700", accent: "#3b82f6", border: "border-blue-100" },
-  cash:     { bg: "bg-emerald-50", pill: "bg-emerald-100 text-emerald-700", accent: "#10b981", border: "border-emerald-100" },
-  card:     { bg: "bg-violet-50", pill: "bg-violet-100 text-violet-700", accent: "#8b5cf6", border: "border-violet-100" },
+  cash: { bg: "bg-emerald-50", pill: "bg-emerald-100 text-emerald-700", accent: "#10b981", border: "border-emerald-100" },
+  card: { bg: "bg-violet-50", pill: "bg-violet-100 text-violet-700", accent: "#8b5cf6", border: "border-violet-100" },
 };
-const CAT_COLORS = ["#33172c","#6366f1","#f59e0b","#10b981","#ef4444","#a855f7","#ec4899","#06b6d4"];
-const CAT_BG = ["bg-[#33172c]","bg-indigo-500","bg-amber-400","bg-emerald-500","bg-red-500","bg-purple-500","bg-pink-500","bg-cyan-500"];
+const CAT_COLORS = ["#33172c", "#6366f1", "#f59e0b", "#10b981", "#ef4444", "#a855f7", "#ec4899", "#06b6d4"];
+const CAT_BG = ["bg-[#33172c]", "bg-indigo-500", "bg-amber-400", "bg-emerald-500", "bg-red-500", "bg-purple-500", "bg-pink-500", "bg-cyan-500"];
 const CATEGORY_ICON: Record<string, string> = {
   permanent: "palette", "semi-permanent": "water_drop", treatment: "spa",
   accessories: "diamond", tools: "hardware", color: "palette",
@@ -125,7 +125,7 @@ export default function AnalyticsPage() {
   // ── Date range filtering ──────────────────────────────────────
   const now = new Date();
   const currentPeriodDays = PERIOD_MAP[range].days;
-  
+
   const rangeStart = currentPeriodDays > 0 ? new Date() : null;
   if (rangeStart) {
     rangeStart.setDate(now.getDate() - currentPeriodDays);
@@ -146,7 +146,7 @@ export default function AnalyticsPage() {
   };
 
   const inRange = (d: string, obj: { branchId?: string }) => matchesBranch(obj) && (!rangeStart || new Date(d) >= rangeStart);
-  
+
   const rangeOrders = orders.filter(o => inRange(o.date, o));
   const rangeExpenses = expenses.filter(e => inRange(e.date, e));
 
@@ -171,11 +171,11 @@ export default function AnalyticsPage() {
   const completedRate = rangeOrders.length > 0 ? (completedCount / rangeOrders.length) * 100 : 0;
   const prevCompletedCount = prevOrders.filter((o) => o.status === "completed").length;
   const prevCompletedRate = prevOrders.length > 0 ? (prevCompletedCount / prevOrders.length) * 100 : 0;
-   const showTrend = range !== "always";
+  const showTrend = range !== "always";
 
   // ── Revenue trend chart ───────────────────────────────────────
   const CHART_DAYS = range === "always" ? 60 : currentPeriodDays;
-  const DAY_NAMES = ["Dom","Lun","Mar","Mie","Jue","Vie","Sab"];
+  const DAY_NAMES = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
   const todayStr = new Date().toISOString().split("T")[0];
   const chartData = Array.from({ length: CHART_DAYS }, (_, i) => {
     const d = new Date();
@@ -184,8 +184,10 @@ export default function AnalyticsPage() {
     const dayOrders = orders.filter(
       (o) => o.status !== "cancelled" && o.status !== "refunded" && o.date.split("T")[0] === dateStr
     );
-    return { date: dateStr, dayLabel: DAY_NAMES[d.getDay()], dayNum: d.getDate(),
-      revenue: dayOrders.reduce((s, o) => s + o.total, 0), count: dayOrders.length };
+    return {
+      date: dateStr, dayLabel: DAY_NAMES[d.getDay()], dayNum: d.getDate(),
+      revenue: dayOrders.reduce((s, o) => s + o.total, 0), count: dayOrders.length
+    };
   });
   const chartMax = Math.max(...chartData.map((d) => d.revenue), 1);
   const chartHasData = chartData.some((d) => d.revenue > 0);
@@ -202,7 +204,7 @@ export default function AnalyticsPage() {
   const dotR = CHART_DAYS > 45 ? 1.5 : 2.5;
 
   // ── Top Productos ─────────────────────────────────────────────
-  const RANK_COLORS = ["#33172c","#4a2241","#633057","#7c3e6d","#8b5874","#a07090","#b48fa0","#c9afc0"];
+  const RANK_COLORS = ["#33172c", "#4a2241", "#633057", "#7c3e6d", "#8b5874", "#a07090", "#b48fa0", "#c9afc0"];
   const topProducts = (() => {
     const map = new Map<string, { name: string; units: number; revenue: number }>();
     for (const o of activeOrders) for (const p of (o.products ?? [])) {
@@ -242,8 +244,8 @@ export default function AnalyticsPage() {
   const totalProductProfit = productMarginsBase.reduce((s, p) => s + Math.max(p.profit, 0), 0);
   const productMargins = [...productMarginsBase].sort((a, b) =>
     profitSort === "margin" ? b.margin - a.margin :
-    profitSort === "units" ? b.unitsSold - a.unitsSold :
-    b.profit - a.profit
+      profitSort === "units" ? b.unitsSold - a.unitsSold :
+        b.profit - a.profit
   );
   const lossProducts = productMarginsBase.filter((p) => p.margin < 0);
   const noSalesHighMargin = productMarginsBase.filter((p) => p.margin >= 50 && p.unitsSold === 0);
@@ -286,10 +288,10 @@ export default function AnalyticsPage() {
     branchRevenueMap.set(actualName, { total: prev.total + o.total, count: prev.count + 1 });
   }
   const branchData = [...branchRevenueMap.entries()]
-    .sort((a,b) => b[1].total - a[1].total)
-    .map(([name, d]) => ({ 
-      name, total: d.total, count: d.count, 
-      share: revenue > 0 ? (d.total / revenue) * 100 : 0 
+    .sort((a, b) => b[1].total - a[1].total)
+    .map(([name, d]) => ({
+      name, total: d.total, count: d.count,
+      share: revenue > 0 ? (d.total / revenue) * 100 : 0
     }));
 
   // ── Desglose de productos por categoria ──────────────────────
@@ -357,16 +359,16 @@ export default function AnalyticsPage() {
         <div className="flex items-center gap-3 flex-wrap">
           {/* Range selector (Dashboard-style) */}
           <div className="bg-white border border-gray-100 rounded-xl px-3 py-1.5 shadow-sm flex items-center gap-2">
-              <span className="material-symbols-outlined text-gray-400 text-sm">calendar_today</span>
-              <select 
-                value={range}
-                onChange={(e) => { setRange(e.target.value as PeriodKey); setHovered(null); }}
-                className="bg-transparent text-[11px] font-bold text-gray-600 outline-none cursor-pointer pr-1"
-              >
-                  {Object.entries(PERIOD_MAP).map(([key, val]) => (
-                    <option key={key} value={key}>{val.label}</option>
-                  ))}
-              </select>
+            <span className="material-symbols-outlined text-gray-400 text-sm">calendar_today</span>
+            <select
+              value={range}
+              onChange={(e) => { setRange(e.target.value as PeriodKey); setHovered(null); }}
+              className="bg-transparent text-[11px] font-bold text-gray-600 outline-none cursor-pointer pr-1"
+            >
+              {Object.entries(PERIOD_MAP).map(([key, val]) => (
+                <option key={key} value={key}>{val.label}</option>
+              ))}
+            </select>
           </div>
           {/* Branch selector */}
           <div className="flex items-center gap-2">
@@ -395,18 +397,30 @@ export default function AnalyticsPage() {
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {[
-          { label: "Ingresos", icon: "payments", color: "text-emerald-600 bg-emerald-50",
-            value: loaded ? `$${revenue.toLocaleString()}` : "—", cur: revenue, prev: prevRevenue },
-          { label: "Ticket Promedio", icon: "receipt", color: "text-teal-600 bg-teal-50",
-            value: loaded && activeOrders.length > 0 ? `$${avgTicket.toLocaleString()}` : "—", cur: avgTicket, prev: prevAvgTicket },
-          { label: "Articulos Vendidos", icon: "shopping_bag", color: "text-indigo-600 bg-indigo-50",
-            value: loaded ? (totalUnitsSold || "—") : "—", cur: totalUnitsSold, prev: prevTotalUnitsSold },
-          { label: "Tasa de Exito", icon: "verified", color: "text-violet-600 bg-violet-50",
-            value: loaded && rangeOrders.length > 0 ? `${completedRate.toFixed(0)}%` : "—", cur: completedRate, prev: prevCompletedRate },
-          { label: "Gastos Ops.", icon: "payments", color: "text-orange-600 bg-orange-50",
-            value: loaded ? `-$${periodExpenses.toLocaleString()}` : "—", cur: periodExpenses, prev: 0 },
-          { label: "Ganancia Neta", icon: "account_balance_wallet", color: "text-rose-600 bg-rose-50",
-            value: loaded ? `$${netProfit.toLocaleString()}` : "—", cur: netProfit, prev: 0 },
+          {
+            label: "Ingresos", icon: "payments", color: "text-emerald-600 bg-emerald-50",
+            value: loaded ? `$${revenue.toLocaleString()}` : "—", cur: revenue, prev: prevRevenue
+          },
+          {
+            label: "Ticket Promedio", icon: "receipt", color: "text-teal-600 bg-teal-50",
+            value: loaded && activeOrders.length > 0 ? `$${avgTicket.toLocaleString()}` : "—", cur: avgTicket, prev: prevAvgTicket
+          },
+          {
+            label: "Articulos Vendidos", icon: "shopping_bag", color: "text-indigo-600 bg-indigo-50",
+            value: loaded ? (totalUnitsSold || "—") : "—", cur: totalUnitsSold, prev: prevTotalUnitsSold
+          },
+          {
+            label: "Tasa de Exito", icon: "verified", color: "text-violet-600 bg-violet-50",
+            value: loaded && rangeOrders.length > 0 ? `${completedRate.toFixed(0)}%` : "—", cur: completedRate, prev: prevCompletedRate
+          },
+          {
+            label: "Gastos Ops.", icon: "payments", color: "text-orange-600 bg-orange-50",
+            value: loaded ? `-$${periodExpenses.toLocaleString()}` : "—", cur: periodExpenses, prev: 0
+          },
+          {
+            label: "Ganancia Neta", icon: "account_balance_wallet", color: "text-rose-600 bg-rose-50",
+            value: loaded ? `$${netProfit.toLocaleString()}` : "—", cur: netProfit, prev: 0
+          },
         ].map((kpi) => (
           <div key={kpi.label} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
             <div className="flex items-start justify-between mb-3">
@@ -641,10 +655,10 @@ export default function AnalyticsPage() {
             <h2 className="text-xs font-bold text-gray-600 uppercase tracking-widest mb-1">Métodos de Pago</h2>
             <p className="text-[11px] text-gray-500 mb-5">Ingresos por pasarela o efectivo</p>
             {paymentData.length === 0 ? (
-               <div className="flex flex-col items-center justify-center h-32 gap-2">
-                 <span className="material-symbols-outlined text-4xl text-gray-200">payments</span>
-                 <p className="text-sm text-gray-500">Sin pagos en el periodo</p>
-               </div>
+              <div className="flex flex-col items-center justify-center h-32 gap-2">
+                <span className="material-symbols-outlined text-4xl text-gray-200">payments</span>
+                <p className="text-sm text-gray-500">Sin pagos en el periodo</p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {paymentData.map((p) => {
@@ -710,16 +724,16 @@ export default function AnalyticsPage() {
               {/* Waterfall bar real */}
               {revenue > 0 && (
                 <div className="h-3 rounded-full overflow-hidden flex bg-gray-100 shadow-inner">
-                  <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${(cogs/Math.max(revenue,1))*100}%` }} title="COGS" />
-                  <div className="h-full bg-orange-500 transition-all duration-1000" style={{ width: `${(periodExpenses/Math.max(revenue,1))*100}%` }} title="Gastos Operativos" />
+                  <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${(cogs / Math.max(revenue, 1)) * 100}%` }} title="COGS" />
+                  <div className="h-full bg-orange-500 transition-all duration-1000" style={{ width: `${(periodExpenses / Math.max(revenue, 1)) * 100}%` }} title="Gastos Operativos" />
                   <div className="h-full bg-emerald-500 flex-1 transition-all duration-1000" title="Ganancia Neta" />
                 </div>
               )}
               {revenue > 0 && (
                 <div className="flex items-center justify-between mt-2 text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
-                   <span>Costo Prod: {((cogs/Math.max(revenue,1))*100).toFixed(0)}%</span>
-                   <span>Gastos Ops: {((periodExpenses/Math.max(revenue,1))*100).toFixed(0)}%</span>
-                   <span className="text-emerald-600">Margen Neto: {netMarginPct.toFixed(1)}%</span>
+                  <span>Costo Prod: {((cogs / Math.max(revenue, 1)) * 100).toFixed(0)}%</span>
+                  <span>Gastos Ops: {((periodExpenses / Math.max(revenue, 1)) * 100).toFixed(0)}%</span>
+                  <span className="text-emerald-600">Margen Neto: {netMarginPct.toFixed(1)}%</span>
                 </div>
               )}
             </div>
@@ -792,9 +806,8 @@ export default function AnalyticsPage() {
                   <div className="flex bg-gray-100 rounded-lg p-0.5 gap-0.5">
                     {(["profit", "margin", "units"] as const).map((s) => (
                       <button key={s} onClick={() => setProfitSort(s)}
-                        className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
-                          profitSort === s ? "bg-white text-[#33172c] shadow-sm" : "text-gray-500 hover:text-gray-600"
-                        }`}>
+                        className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${profitSort === s ? "bg-white text-[#33172c] shadow-sm" : "text-gray-500 hover:text-gray-600"
+                          }`}>
                         {s === "profit" ? "Ganancia $" : s === "margin" ? "Margen %" : "Unidades"}
                       </button>
                     ))}
@@ -816,8 +829,8 @@ export default function AnalyticsPage() {
                     const tierColor = isLoss
                       ? "bg-red-100 text-red-600 border-red-200"
                       : p.margin >= 50 ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                      : p.margin >= 30 ? "bg-amber-100 text-amber-700 border-amber-200"
-                      : "bg-orange-100 text-orange-700 border-orange-200";
+                        : p.margin >= 30 ? "bg-amber-100 text-amber-700 border-amber-200"
+                          : "bg-orange-100 text-orange-700 border-orange-200";
                     const barColor = isLoss ? "#ef4444" : p.margin >= 50 ? "#10b981" : p.margin >= 30 ? "#f59e0b" : "#fb923c";
                     return (
                       <Link key={p.id} href={`/admin/products/${p.id}`}
@@ -975,9 +988,8 @@ export default function AnalyticsPage() {
                             ${p.price} · costo ${p.cost > 0 ? `$${p.cost}` : "—"}
                           </p>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${
-                          isOut ? "bg-red-100 text-red-600" : p.stock <= 2 ? "bg-red-50 text-red-400" : "bg-amber-100 text-amber-600"
-                        }`}>
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${isOut ? "bg-red-100 text-red-600" : p.stock <= 2 ? "bg-red-50 text-red-400" : "bg-amber-100 text-amber-600"
+                          }`}>
                           {isOut ? "Agotado" : `${p.stock} uds.`}
                         </span>
                       </Link>
@@ -1020,9 +1032,8 @@ export default function AnalyticsPage() {
               const isExpanded = expandedCat === cat;
               const catProducts = catProductsMap.get(cat) ?? [];
               return (
-                <div key={cat} className={`relative rounded-2xl border overflow-hidden transition-all ${
-                  isTop ? "border-[#33172c]/20 bg-[#33172c]/5" : "border-gray-100 bg-gray-50/50"
-                }`}>
+                <div key={cat} className={`relative rounded-2xl border overflow-hidden transition-all ${isTop ? "border-[#33172c]/20 bg-[#33172c]/5" : "border-gray-100 bg-gray-50/50"
+                  }`}>
                   <button
                     onClick={() => setExpandedCat(isExpanded ? null : cat)}
                     className="w-full text-left p-5 cursor-pointer"
@@ -1166,12 +1177,11 @@ export default function AnalyticsPage() {
                           </div>
                           <div className="flex flex-col items-end gap-1 flex-shrink-0">
                             <span className="text-[11px] font-bold text-gray-700">${o.total.toFixed(0)}</span>
-                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold uppercase ${
-                              o.status === "completed" ? "bg-emerald-100 text-emerald-700" :
-                              o.status === "pending" ? "bg-amber-100 text-amber-700" :
-                              o.status === "cancelled" ? "bg-red-100 text-red-600" :
-                              "bg-gray-100 text-gray-600"
-                            }`}>{o.status}</span>
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold uppercase ${o.status === "completed" ? "bg-emerald-100 text-emerald-700" :
+                                o.status === "pending" ? "bg-amber-100 text-amber-700" :
+                                  o.status === "cancelled" ? "bg-red-100 text-red-600" :
+                                    "bg-gray-100 text-gray-600"
+                              }`}>{o.status}</span>
                           </div>
                         </div>
                       ))}

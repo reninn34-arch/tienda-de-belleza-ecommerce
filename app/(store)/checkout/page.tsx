@@ -99,7 +99,7 @@ export default function CheckoutPage() {
           paymentMethod,
           address: `${form.address}${form.apartment ? ", " + form.apartment : ""}, ${form.city}, ${form.province}, ${form.country}`,
           notes: "",
-          products: cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
+          products: cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image, isBundle: i.isBundle })),
         }),
       });
 

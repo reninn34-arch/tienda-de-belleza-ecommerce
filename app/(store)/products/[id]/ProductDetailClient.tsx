@@ -111,9 +111,8 @@ export default function ProductDetailClient({ product, relatedProducts, breadcru
     <>
       {/* ── Floating CTA ── */}
       <div
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-outline-variant p-4 md:px-8 lg:px-12 flex items-center justify-between shadow-2xl transition-transform duration-300 ${
-          ctaVisible ? "translate-y-0" : "translate-y-full"
-        }`}
+        className={`fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-outline-variant p-4 md:px-8 lg:px-12 flex items-center justify-between shadow-2xl transition-transform duration-300 ${ctaVisible ? "translate-y-0" : "translate-y-full"
+          }`}
       >
         <div className="hidden md:flex items-center gap-4">
           <Image
@@ -132,11 +131,10 @@ export default function ProductDetailClient({ product, relatedProducts, breadcru
         <button
           onClick={() => handleAdd()}
           disabled={isOutOfStock}
-          className={`flex-1 md:flex-none h-12 px-12 font-label font-bold uppercase tracking-widest rounded-md transition-all ${
-            isOutOfStock
+          className={`flex-1 md:flex-none h-12 px-12 font-label font-bold uppercase tracking-widest rounded-md transition-all ${isOutOfStock
               ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
               : 'bg-primary text-white hover:opacity-90'
-          }`}
+            }`}
         >
           {isOutOfStock ? 'Agotado' : isAdded ? '¡Agregado!' : 'Agregar al Tocador'}
         </button>
@@ -192,11 +190,10 @@ export default function ProductDetailClient({ product, relatedProducts, breadcru
               <button
                 onClick={() => handleAdd()}
                 disabled={isOutOfStock}
-                className={`group relative px-12 h-16 font-label font-bold uppercase tracking-widest rounded-md overflow-hidden transition-all active:scale-95 ${
-                  isOutOfStock
+                className={`group relative px-12 h-16 font-label font-bold uppercase tracking-widest rounded-md overflow-hidden transition-all active:scale-95 ${isOutOfStock
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-white text-primary hover:pr-16'
-                }`}
+                  }`}
               >
                 <span className="relative z-10">{isOutOfStock ? 'Agotado' : isAdded ? '¡Agregado!' : 'Agregar al Tocador'}</span>
                 {!isOutOfStock && (
@@ -284,9 +281,8 @@ export default function ProductDetailClient({ product, relatedProducts, breadcru
                   key={i}
                   type="button"
                   onClick={() => setActiveImage(i)}
-                  className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                    i === activeImage ? "border-primary" : "border-transparent opacity-60 hover:opacity-90"
-                  }`}
+                  className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${i === activeImage ? "border-primary" : "border-transparent opacity-60 hover:opacity-90"
+                    }`}
                 >
                   <Image src={src} alt="" fill className="object-cover" sizes="64px" />
                 </button>
@@ -309,11 +305,10 @@ export default function ProductDetailClient({ product, relatedProducts, breadcru
                   key={s.color}
                   title={s.label}
                   onClick={() => setSelectedSwatch(i)}
-                  className={`relative w-12 h-12 rounded-full transition-all transform hover:scale-110 ${
-                    selectedSwatch === i
+                  className={`relative w-12 h-12 rounded-full transition-all transform hover:scale-110 ${selectedSwatch === i
                       ? "ring-2 ring-secondary ring-offset-4 ring-offset-background"
                       : "border border-outline-variant"
-                  }`}
+                    }`}
                   style={{ backgroundColor: s.color }}
                 >
                   <div className="absolute inset-0 rounded-full shadow-[inset_0_2px_10px_rgba(255,255,255,0.15)]" />
@@ -593,8 +588,8 @@ export default function ProductDetailClient({ product, relatedProducts, breadcru
                       si < Math.floor(r.stars)
                         ? 1
                         : r.stars % 1 > 0 && si === Math.floor(r.stars)
-                        ? 0.5
-                        : 0;
+                          ? 0.5
+                          : 0;
                     return (
                       <span
                         key={si}

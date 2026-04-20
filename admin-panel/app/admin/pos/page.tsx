@@ -5,8 +5,23 @@ import Image from "next/image";
 import { getAdminProfile } from "@/components/ProfileModal";
 
 interface Branch { id: string; name: string; }
-interface Product { id: string; name: string; price: number; image: string; inventories?: { branchId: string; stock: number }[]; }
-interface CartItem extends Product { quantity: number; }
+interface Product { id: string; name: string; price: number; image: string; inventories?: { branchId: string; stock: number }[]; isBundle?: boolean; }
+
+interface BundleItem { productId: string; quantity: number; product: { id: string; name: string; price: number; image?: string | null }; }
+interface Bundle {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  image?: string | null;
+  active: boolean;
+  stockDisponible: number;
+  ahorroPercent: number;
+  items: BundleItem[];
+}
+
+// CartItem puede ser un producto normal o un Bundle (identificado por isBundle: true)
+interface CartItem extends Product { quantity: number; isBundle?: boolean; bundleId?: string; bundleItems?: BundleItem[]; }
 interface CashSession {
   id: string;
   status: "OPEN" | "CLOSED";
@@ -31,6 +46,8 @@ export default function POSPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [discount, setDiscount] = useState<number>(0);
   const [search, setSearch] = useState("");
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [catalogTab, setCatalogTab] = useState<"products" | "bundles">("products");
   
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "transfer">("cash");
@@ -119,13 +136,15 @@ export default function POSPage() {
     Promise.all([
       fetch("/api/admin/branches").then(r => r.json()),
       fetch("/api/admin/products").then(r => r.json()),
-      fetch("/api/admin/customers").then(r => r.json())
-    ]).then(([b, p, c]) => {
+      fetch("/api/admin/customers").then(r => r.json()),
+      fetch("/api/admin/bundles").then(r => r.json()).catch(() => []),
+    ]).then(([b, p, c, bun]) => {
       // Mostrar todas las sucursales, incluyendo "tienda-online"
       const allBranches = b as Branch[];
       setBranches(allBranches);
       setProducts(p.filter((prod: any) => !prod.deleted));
       setCustomerResults(c);
+      setBundles((Array.isArray(bun) ? bun : []).filter((b: Bundle) => b.active));
       
       let bid = "";
       if (profile.role === "VENDEDOR" && profile.branchId) {
@@ -147,9 +166,10 @@ export default function POSPage() {
 
     const syncData = async () => {
       try {
-        const [sessionRes, productsRes] = await Promise.all([
+        const [sessionRes, productsRes, bundlesRes] = await Promise.all([
           fetch(`/api/admin/cash/active?branchId=${selectedBranchId}`),
-          fetch("/api/admin/products")
+          fetch("/api/admin/products"),
+          fetch("/api/admin/bundles").catch(() => null),
         ]);
         if (sessionRes.ok) {
           const sessionData = await sessionRes.json();
@@ -158,6 +178,10 @@ export default function POSPage() {
         if (productsRes.ok) {
           const productsData = await productsRes.json();
           setProducts(productsData.filter((prod: any) => !prod.deleted));
+        }
+        if (bundlesRes && bundlesRes.ok) {
+          const bundlesData = await bundlesRes.json();
+          setBundles((Array.isArray(bundlesData) ? bundlesData : []).filter((b: Bundle) => b.active));
         }
       } catch (e) {
         // Fallar silenciosamente si hay problemas de red
@@ -261,6 +285,7 @@ export default function POSPage() {
 
   const displayProducts = useMemo(() => {
     return products.filter(p => {
+      if (p.isBundle) return false;
       if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
       const inv = p.inventories?.find(i => i.branchId === selectedBranchId);
       return inv && inv.stock > 0;
@@ -276,12 +301,45 @@ export default function POSPage() {
     const maxStock = inv?.stock || 0;
 
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id);
+      const existing = prev.find(item => item.id === product.id && !item.isBundle);
       if (existing) {
         if (existing.quantity >= maxStock) return prev;
-        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+        return prev.map(item => item.id === product.id && !item.isBundle ? { ...item, quantity: item.quantity + 1 } : item);
       }
       return [...prev, { ...product, quantity: 1 }];
+    });
+  };
+
+  const addBundleToCart = (bundle: Bundle) => {
+    if (!canOperate) {
+      setShowOpeningModal(true);
+      return;
+    }
+    if (bundle.stockDisponible <= 0) return;
+
+    setCart(prev => {
+      const existing = prev.find(item => item.isBundle && item.bundleId === bundle.id);
+      if (existing) {
+        if (existing.quantity >= bundle.stockDisponible) return prev;
+        return prev.map(item =>
+          item.isBundle && item.bundleId === bundle.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      // Representar el bundle como un CartItem sintético
+      const syntheticItem: CartItem = {
+        id: `bundle-${bundle.id}`,
+        bundleId: bundle.id,
+        isBundle: true,
+        bundleItems: bundle.items,
+        name: `🎁 ${bundle.name}`,
+        price: bundle.price,
+        image: bundle.image || "",
+        quantity: 1,
+        inventories: [],
+      };
+      return [...prev, syntheticItem];
     });
   };
 
@@ -327,10 +385,12 @@ export default function POSPage() {
       tax: 0,
       notes: "Venta física de mostrador",
       items: cart.map(item => ({
-        id: item.id,
+        id: item.isBundle ? item.bundleId! : item.id,
         name: item.name,
         price: item.price,
-        quantity: item.quantity
+        quantity: item.quantity,
+        isBundle: item.isBundle || false,
+        bundleItems: item.isBundle ? item.bundleItems : undefined,
       }))
     };
 
@@ -357,15 +417,33 @@ export default function POSPage() {
       setSelectedCustomer(DEFAULT_CUSTOMER);
       setToast({ message: "Venta registrada exitosamente", type: "success" });
       
+      // Actualización optimista de inventario (sólo productos normales)
       setProducts(prev => prev.map(p => {
-        const cartItem = cart.find(c => c.id === p.id);
+        const cartItem = cart.find(c => !c.isBundle && c.id === p.id);
         if (cartItem) {
-          const newInv = p.inventories?.map(inv => 
+          const newInv = p.inventories?.map(inv =>
             inv.branchId === selectedBranchId ? { ...inv, stock: inv.stock - cartItem.quantity } : inv
           );
           return { ...p, inventories: newInv };
         }
+        // Para bundles, actualizar stock de cada componente optimistamente
+        const bundleItem = cart.find(c => c.isBundle && c.bundleItems?.some(bi => bi.productId === p.id));
+        if (bundleItem) {
+          const bi = bundleItem.bundleItems!.find(b => b.productId === p.id)!;
+          const newInv = p.inventories?.map(inv =>
+            inv.branchId === selectedBranchId
+              ? { ...inv, stock: inv.stock - bi.quantity * bundleItem.quantity }
+              : inv
+          );
+          return { ...p, inventories: newInv };
+        }
         return p;
+      }));
+      // Actualizar stock disponible de bundles optimistamente
+      setBundles(prev => prev.map(b => {
+        const bCart = cart.find(c => c.isBundle && c.bundleId === b.id);
+        if (bCart) return { ...b, stockDisponible: Math.max(0, b.stockDisponible - bCart.quantity) };
+        return b;
       }));
 
     } catch (e: any) {
@@ -597,58 +675,159 @@ export default function POSPage() {
 
       {/* RIGHT: CATÁLOGO GRID */}
       <div className={`flex-1 flex-col bg-[#f8f9fc] overflow-hidden ${activeTab === "CATALOG" ? "flex" : "hidden lg:flex"}`}>
-        <div className="p-3 sm:p-5 border-b border-gray-200 bg-white flex items-center justify-between gap-4">
-          <div className="relative flex-1 lg:max-w-72">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-            <input 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar producto..." 
-              className="w-full bg-gray-50 border border-gray-100 rounded-full pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-[#33172c]/10 focus:bg-white outline-none transition-all"
-            />
+        <div className="p-3 sm:p-5 border-b border-gray-200 bg-white flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-1 lg:max-w-72">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={catalogTab === "bundles" ? "Buscar bundle..." : "Buscar producto..."}
+                className="w-full bg-gray-50 border border-gray-100 rounded-full pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-[#33172c]/10 focus:bg-white outline-none transition-all"
+              />
+            </div>
+            <div className="flex items-center gap-4 hidden sm:flex">
+               {(!isOnlineStore && activeSession) && (
+                   <div className="flex flex-col items-right text-right">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase">Efectivo en Caja</p>
+                      <p className="text-sm font-black text-emerald-600">${activeSession.expectedClosingBalance.toFixed(2)}</p>
+                   </div>
+               )}
+               <div className="text-xs text-gray-400 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
+                  <span className="font-bold text-gray-600">{catalogTab === "bundles" ? bundles.length : displayProducts.length}</span> disponibles
+               </div>
+            </div>
           </div>
-          <div className="flex items-center gap-4 hidden sm:flex">
-             {(!isOnlineStore && activeSession) && (
-                 <div className="flex flex-col items-right text-right">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase">Efectivo en Caja</p>
-                    <p className="text-sm font-black text-emerald-600">${activeSession.expectedClosingBalance.toFixed(2)}</p>
-                 </div>
-             )}
-             <div className="text-xs text-gray-400 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
-                <span className="font-bold text-gray-600">{displayProducts.length}</span> disponibles
-             </div>
+          {/* Category tabs */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setCatalogTab("products")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                catalogTab === "products"
+                  ? "bg-[#33172c] text-white shadow-sm"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[14px]">inventory_2</span>
+              Productos
+            </button>
+            {bundles.length > 0 && (
+              <button
+                onClick={() => setCatalogTab("bundles")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  catalogTab === "bundles"
+                    ? "bg-[#33172c] text-white shadow-sm"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[14px]">deployed_code</span>
+                Bundles ({bundles.length})
+              </button>
+            )}
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 pb-24 lg:pb-5">
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
-            {displayProducts.map(product => {
-              const inv = product.inventories?.find(i => i.branchId === selectedBranchId);
-              const stock = inv?.stock || 0;
-              return (
-                <div 
-                  key={product.id} 
-                  onClick={() => addToCart(product)}
-                  className={`bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#33172c]/20 cursor-pointer transition-all flex flex-col ${!canOperate ? "opacity-60 grayscale-[0.5]" : ""}`}
-                >
-                  <div className="w-full pt-[100%] relative bg-gray-50 rounded-xl overflow-hidden mb-3">
-                    {product.image ? (
-                      <Image src={product.image} alt={product.name} fill className="object-cover" />
-                    ) : (
-                      <span className="material-symbols-outlined absolute inset-0 flex items-center justify-center text-gray-300">image</span>
-                    )}
-                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-sm border border-black/5">
-                      {stock} unidades
+          {catalogTab === "products" ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
+              {displayProducts
+                .filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()))
+                .map(product => {
+                  const inv = product.inventories?.find(i => i.branchId === selectedBranchId);
+                  const stock = inv?.stock || 0;
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => addToCart(product)}
+                      className={`bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#33172c]/20 cursor-pointer transition-all flex flex-col ${!canOperate ? "opacity-60 grayscale-[0.5]" : ""}`}
+                    >
+                      <div className="w-full pt-[100%] relative bg-gray-50 rounded-xl overflow-hidden mb-3">
+                        {product.image ? (
+                          <Image src={product.image} alt={product.name} fill className="object-cover" />
+                        ) : (
+                          <span className="material-symbols-outlined absolute inset-0 flex items-center justify-center text-gray-300">image</span>
+                        )}
+                        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-sm border border-black/5">
+                          {stock} unidades
+                        </div>
+                      </div>
+                      <div className="flex-1 flex flex-col justify-between">
+                        <p className="text-xs font-bold text-gray-800 leading-snug mb-1 line-clamp-2">{product.name}</p>
+                        <p className="text-sm font-black text-[#33172c]">${product.price.toFixed(2)}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex-1 flex flex-col justify-between">
-                     <p className="text-xs font-bold text-gray-800 leading-snug mb-1 line-clamp-2">{product.name}</p>
-                     <p className="text-sm font-black text-[#33172c]">${product.price.toFixed(2)}</p>
-                  </div>
+                  );
+                })}
+            </div>
+          ) : (
+            /* ── BUNDLES GRID ─────────────────────────────────────────── */
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+              {bundles
+                .filter(b => !search || b.name.toLowerCase().includes(search.toLowerCase()))
+                .map(bundle => {
+                  const inCart = cart.find(c => c.isBundle && c.bundleId === bundle.id);
+                  const availableStock = bundle.stockDisponible - (inCart?.quantity ?? 0);
+                  return (
+                    <div
+                      key={bundle.id}
+                      onClick={() => addBundleToCart(bundle)}
+                      className={`bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#33172c]/20 cursor-pointer transition-all flex flex-col relative ${
+                        availableStock <= 0 || !canOperate ? "opacity-60 grayscale-[0.5]" : ""
+                      }`}
+                    >
+                      {/* Kit badge */}
+                      <div className="absolute top-2 left-2 z-10 px-1.5 py-0.5 bg-violet-600 text-white text-[9px] font-bold rounded-md shadow">
+                        KIT
+                      </div>
+                      <div className="w-full pt-[100%] relative bg-gradient-to-br from-violet-50 to-purple-100 rounded-xl overflow-hidden mb-3">
+                        {bundle.image ? (
+                          <Image src={bundle.image} alt={bundle.name} fill className="object-cover" />
+                        ) : (
+                          <div className="absolute inset-0 flex flex-wrap items-center justify-center gap-1 p-2">
+                            {bundle.items.slice(0, 4).map(bi =>
+                              bi.product?.image ? (
+                                <div key={bi.productId} className="relative w-10 h-10 rounded-lg overflow-hidden shadow-sm">
+                                  <Image src={bi.product.image} alt={bi.product.name} fill className="object-cover" />
+                                </div>
+                              ) : (
+                                <div key={bi.productId} className="w-10 h-10 rounded-lg bg-white/60 flex items-center justify-center">
+                                  <span className="material-symbols-outlined text-[16px] text-violet-400">inventory_2</span>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        )}
+                        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-sm border border-black/5">
+                          {availableStock} kits
+                        </div>
+                        {bundle.ahorroPercent > 0 && (
+                          <div className="absolute bottom-2 right-2 bg-emerald-500 text-white px-1.5 py-0.5 rounded-md text-[9px] font-bold shadow-sm">
+                            -{bundle.ahorroPercent}%
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 flex flex-col justify-between">
+                        <p className="text-xs font-bold text-gray-800 leading-snug mb-1 line-clamp-2">{bundle.name}</p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-black text-[#33172c]">${bundle.price.toFixed(2)}</p>
+                          {inCart && (
+                            <span className="text-[10px] font-bold text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded-full">
+                              ×{inCart.quantity} en caja
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              {bundles.filter(b => !search || b.name.toLowerCase().includes(search.toLowerCase())).length === 0 && (
+                <div className="col-span-full flex flex-col items-center justify-center py-16 text-center text-gray-400">
+                  <span className="material-symbols-outlined text-4xl mb-2 text-gray-200">deployed_code</span>
+                  <p className="text-sm">No hay bundles activos disponibles</p>
                 </div>
-              )
-            })}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

@@ -11,6 +11,10 @@ import * as fetch from "node-fetch";
 
 const router = Router();
 
+// Extra helper for bundle stock calculation
+import { computeBundleStock } from "../lib/stock";
+const ONLINE_BRANCH_NAME = "tienda-online";
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Calcula el stock total sumando todos los registros de Inventory del producto */
@@ -104,39 +108,10 @@ router.get("/", async (req: Request, res: Response) => {
   try {
     const { category, maxPrice, sort, page, limit } = req.query;
     const isFiltered = category || maxPrice || sort || page || limit;
-
     const authReq = req as AuthenticatedRequest;
-    
-    // Si no hay filtros (vista lista/admin)
-    if (!isFiltered) {
-      const include: any = {
-        inventories: {
-          include: { branch: true },
-          orderBy: { branch: { name: "asc" as const } },
-        },
-      };
 
-      // Si es VENDEDOR, solo incluimos el inventario de su sucursal
-      if (authReq.user?.role === "VENDEDOR" && authReq.user.branchId) {
-        include.inventories.where = { branchId: authReq.user.branchId };
-      }
-
-      const products = await db.product.findMany({
-        orderBy: { createdAt: "asc" },
-        include,
-      });
-      res.json(
-        products.map((p: any) => ({ ...p, totalStock: calcTotalStock(p.inventories || []) }))
-      );
-      return;
-    }
-
-    // ── Filtrado con paginación (tienda o admin filtrado) ──────────────────────
-    const pageNum = Math.max(1, Number(page) || 1);
-    const limitNum = Math.min(100, Math.max(1, Number(limit) || 12));
-    const skip = (pageNum - 1) * limitNum;
-
-    const queryInclude: any = {
+    // ── GET all products (Mergueando Bundles en memoria) ─────────────────────
+    const include: any = {
       inventories: {
         include: { branch: true },
         orderBy: { branch: { name: "asc" as const } },
@@ -144,25 +119,114 @@ router.get("/", async (req: Request, res: Response) => {
     };
 
     if (authReq.user?.role === "VENDEDOR" && authReq.user.branchId) {
-      queryInclude.inventories.where = { branchId: authReq.user.branchId };
+      include.inventories.where = { branchId: authReq.user.branchId };
     }
 
-    const where: Record<string, unknown> = {};
-    if (typeof category === "string" && category) where.category = category;
-    if (typeof maxPrice === "string" && maxPrice) where.price = { lte: Number(maxPrice) };
+    // 1. Fetch DB Products
+    const dbProductsRaw = await db.product.findMany({ include });
 
-    let orderBy: Record<string, string> = { createdAt: "desc" };
-    if (sort === "price-asc") orderBy = { price: "asc" };
-    else if (sort === "price-desc") orderBy = { price: "desc" };
-    else if (sort === "name") orderBy = { name: "asc" };
+    // Determine the branch context for stock (Re-using logic for consistency)
+    const onlineBranch = await db.branch.findUnique({ where: { name: ONLINE_BRANCH_NAME } });
+    let contextBranchId: string | undefined = undefined;
+    if (authReq.user?.role === "VENDEDOR" && authReq.user.branchId) {
+      contextBranchId = authReq.user.branchId;
+    } else {
+      contextBranchId = onlineBranch?.id;
+    }
 
-    const [products, totalItems] = await Promise.all([
-      db.product.findMany({ where, orderBy, skip, take: limitNum, include: queryInclude }),
-      db.product.count({ where }),
-    ]);
+    const dbProducts = dbProductsRaw.map((p: any) => {
+      // Filter inventories by context if applicable
+      const inventoriesForContext = contextBranchId
+        ? p.inventories.filter((inv: any) => inv.branchId === contextBranchId)
+        : p.inventories;
+
+      const totalStock = calcTotalStock(inventoriesForContext || []);
+      return {
+        ...p,
+        totalStock,
+        stock: totalStock, // Ensure both fields are set
+      };
+    });
+
+    // 2. Fetch DB Bundles and map as Products
+    const dbBundlesRaw = await db.bundle.findMany({ include: { items: true } });
+
+    const dbBundles = await Promise.all(
+      dbBundlesRaw.filter(b => b.active).map(async (b) => {
+        const stock = await computeBundleStock(b.id, contextBranchId);
+        return {
+          id: b.id,
+          name: b.name,
+          description: b.description,
+          price: b.price,
+          cost: 0,
+          category: "Kits", // Mágico: Se asigna a Kits
+          image: b.image,
+          badge: "Kit",
+          features: [],
+          gallery: [],
+          swatches: [],
+          reviews: [],
+          highlights: [],
+          details: null,
+          howToUse: null,
+          shippingInfo: null,
+          highlightsLabel: null,
+          highlightsTitle: null,
+          scienceTitle: null,
+          scienceDesc: null,
+          scienceItems: [],
+          minStock: 0,
+          inventories: [],
+          createdAt: b.createdAt,
+          updatedAt: b.updatedAt,
+          totalStock: stock,
+          stock: stock, // Ensure both fields are set
+          isBundle: true, // Tag hidden
+        };
+      })
+    );
+
+    // 3. Combine
+    let allItems = [...dbProducts, ...dbBundles];
+
+    // Si no hay filtros, retorna todo (usado por data.ts getAllProducts)
+    if (!isFiltered) {
+      // Orden genérico por creación
+      allItems.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      res.json(allItems);
+      return;
+    }
+
+    // 4. Apply Filters in Memory
+    if (typeof category === "string" && category) {
+      allItems = allItems.filter((item) => item.category === category);
+    }
+    if (typeof maxPrice === "string" && maxPrice) {
+      allItems = allItems.filter((item) => item.price <= Number(maxPrice));
+    }
+
+    // 5. Sort In Memory
+    if (sort === "price-asc") {
+      allItems.sort((a, b) => a.price - b.price);
+    } else if (sort === "price-desc") {
+      allItems.sort((a, b) => b.price - a.price);
+    } else if (sort === "name") {
+      allItems.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      allItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
+    // 6. Paginate In Memory
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, Number(limit) || 12));
+    const skip = (pageNum - 1) * limitNum;
+
+    const paginatedItems = allItems.slice(skip, skip + limitNum);
+    const totalItems = allItems.length;
 
     res.json({
-      products: products.map((p: any) => ({ ...p, totalStock: calcTotalStock(p.inventories || []) })),
+      products: paginatedItems,
       totalItems,
       totalPages: Math.ceil(totalItems / limitNum),
       currentPage: pageNum,
@@ -266,10 +330,81 @@ router.get("/:id", async (req: Request, res: Response) => {
       include: inventoryInclude,
     });
     if (!product) {
+      // ── Check if it's a Bundle
+      const bundle = await db.bundle.findUnique({
+        where: { id },
+        include: { items: { include: { product: { include: { inventories: true } } } } }
+      });
+      if (bundle) {
+        let contextBranchId: string | undefined = undefined;
+        // Check if we have an authenticated user with a specific branch
+        const authReq = req as AuthenticatedRequest;
+        if (authReq.user?.role === "VENDEDOR" && authReq.user.branchId) {
+          contextBranchId = authReq.user.branchId;
+        } else {
+          // Default to online branch for storefront
+          const onlineBranch = await db.branch.findUnique({ where: { name: ONLINE_BRANCH_NAME } });
+          contextBranchId = onlineBranch?.id;
+        }
+
+        const stock = await computeBundleStock(bundle.id, contextBranchId);
+        res.json({
+          id: bundle.id,
+          name: bundle.name,
+          description: bundle.description,
+          price: bundle.price,
+          cost: 0,
+          category: "Kits",
+          image: bundle.image,
+          badge: "Kit",
+          features: [],
+          gallery: [],
+          swatches: [],
+          reviews: [],
+          highlights: [],
+          details: null,
+          howToUse: null,
+          shippingInfo: null,
+          highlightsLabel: null,
+          highlightsTitle: null,
+          scienceTitle: null,
+          scienceDesc: null,
+          scienceItems: [],
+          minStock: 0,
+          inventories: [],
+          createdAt: bundle.createdAt,
+          updatedAt: bundle.updatedAt,
+          totalStock: stock,
+          stock: stock, // Populating stock for frontend
+          isBundle: true,
+        });
+        return;
+      }
       sendError(res, 404, { code: "NOT_FOUND", message: "Not found" });
       return;
     }
-    res.json({ ...product, totalStock: calcTotalStock(product.inventories) });
+
+    // Determine context branch
+    let contextBranchId: string | undefined = undefined;
+    const authReq = req as AuthenticatedRequest;
+    if (authReq.user?.role === "VENDEDOR" && authReq.user.branchId) {
+      contextBranchId = authReq.user.branchId;
+    } else {
+      const onlineBranch = await db.branch.findUnique({ where: { name: ONLINE_BRANCH_NAME } });
+      contextBranchId = onlineBranch?.id;
+    }
+
+    const inventoriesForContext = contextBranchId
+      ? product.inventories.filter((inv: any) => inv.branchId === contextBranchId)
+      : product.inventories;
+
+    const totalStock = calcTotalStock(inventoriesForContext);
+
+    res.json({
+      ...product,
+      totalStock,
+      stock: totalStock
+    });
   } catch (error) {
     sendError(res, 500, { code: "INTERNAL_ERROR", message: "Error interno", details: error instanceof Error ? error.message : error });
   }

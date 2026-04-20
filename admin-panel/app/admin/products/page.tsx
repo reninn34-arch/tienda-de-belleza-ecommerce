@@ -11,6 +11,7 @@ interface Product {
   category: string;
   image: string;
   badge?: string;
+  isBundle?: boolean;
 }
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -49,6 +50,7 @@ export default function AdminProductsPage() {
   }
 
   const filtered = products.filter((p) => {
+    if (p.isBundle) return false;
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
     const matchCat = category === "all" || p.category === category;
     return matchSearch && matchCat;

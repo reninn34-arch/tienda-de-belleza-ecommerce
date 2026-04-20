@@ -53,10 +53,35 @@ export interface Product {
   scienceTitle?: string;
   scienceDesc?: string;
   scienceItems?: { icon: string; title: string; desc: string }[];
+  isBundle?: boolean;
+  items?: BundleItem[];
+  active?: boolean;
+}
+
+export interface BundleItem {
+  id: number;
+  productId: string;
+  quantity: number;
+  product: Product;
+}
+
+export interface Bundle {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  image?: string | null;
+  active: boolean;
+  stockDisponible: number;
+  precioIndividual: number;
+  ahorro: number;
+  ahorroPercent: number;
+  items: BundleItem[];
 }
 
 export interface CartItem extends Product {
   quantity: number;
+  isBundle?: boolean;
 }
 
 export interface Slide {

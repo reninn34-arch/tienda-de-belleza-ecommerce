@@ -20,7 +20,7 @@ router.get("/", requireAuth, (req, res) => {
   // Keep alive connection with empty comments occasionally (every 30 seconds)
   const keepAlive = setInterval(() => {
     res.write(": keep-alive\n\n");
-  }, 30000);
+  }, 20000);
 
   const eventListener = () => {
     // Write the event data to the client

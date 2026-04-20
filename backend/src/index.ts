@@ -16,6 +16,7 @@ import customersRouter from "./routes/customers";
 import suppliersRouter from "./routes/suppliers";
 import purchasesRouter from "./routes/purchases";
 import expensesRouter from "./routes/expenses";
+import bundlesRouter from "./routes/bundles";
 import { requireAuth, requireRole } from "./middleware/auth";
 import { sendError } from "./lib/errors";
 import { validateEnv } from "./lib/env";
@@ -88,6 +89,7 @@ app.use((req, res, next) => {
   // Rutas públicas que no requieren autenticación si no hay token
   if (req.method === "GET") return next();
   if (req.path.startsWith("/api/admin/login")) return next();
+  if (req.path.startsWith("/api/admin/purchases/cron/restock")) return next();
   if (req.method === "POST" && req.path === "/api/orders") return next();
 
   // Para el resto de rutas protegidas sin token
@@ -108,6 +110,7 @@ app.use("/api/admin/customers", customersRouter);
 app.use("/api/admin/suppliers", suppliersRouter);
 app.use("/api/admin/purchases", purchasesRouter);
 app.use("/api/admin/expenses", expensesRouter);
+app.use("/api/admin/bundles", bundlesRouter);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
   const req = _req as RequestWithId;

@@ -48,7 +48,7 @@ const STOCK_CONSUMED = new Set([
   "pending", "processing", "completed",
   "pendiente", "procesando", "completado"
 ]);
-const STOCK_RESTORE  = new Set([
+const STOCK_RESTORE = new Set([
   "cancelled", "refunded",
   "cancelado", "reembolsado"
 ]);
@@ -63,6 +63,11 @@ const orderItemSchema = z.object({
   name: z.string().min(1),
   price: z.coerce.number().nonnegative(),
   quantity: z.coerce.number().int().positive(),
+  isBundle: z.boolean().optional().default(false),
+  bundleItems: z.array(z.object({
+    productId: z.string(),
+    quantity: z.number().int().positive(),
+  })).optional(),
 });
 
 const orderCreateSchema = z.object({
@@ -125,7 +130,7 @@ class StockError extends Error {
 router.get("/", async (req: Request, res: Response) => {
   const authReq = req as AuthenticatedRequest;
   const where: any = {};
-  
+
   // Si es VENDEDOR, solo ve pedidos de su sucursal
   if (authReq.user && authReq.user.role === "VENDEDOR" && authReq.user.branchId) {
     where.branchId = authReq.user.branchId;
@@ -162,7 +167,7 @@ router.post("/", async (req: Request, res: Response) => {
   try {
     const newOrder = await db.$transaction(async (tx) => {
       const authReq = req as AuthenticatedRequest;
-      
+
       // 0. Si es VENDEDOR, forzar su sucursal y validar
       if (authReq.user && authReq.user.role === "VENDEDOR") {
         if (!authReq.user.branchId) {
@@ -170,7 +175,7 @@ router.post("/", async (req: Request, res: Response) => {
         }
         // Forzar retiro en sucursal si es POS (y pickup)
         if (body.shippingMethod === "pickup") {
-           body.branchId = authReq.user.branchId;
+          body.branchId = authReq.user.branchId;
         }
       }
 
@@ -197,28 +202,29 @@ router.post("/", async (req: Request, res: Response) => {
 
 
       // NUEVO: Obtener precios reales de la base de datos
-      const productIds = orderItems.map((i) => i.id);
+      const normalItems = orderItems.filter(i => !i.isBundle);
+      const bundleItems = orderItems.filter(i => i.isBundle);
+
+      const productIds = normalItems.map((i) => i.id);
       const dbProducts = await tx.product.findMany({ where: { id: { in: productIds } } });
       const dbProductMap = new Map(dbProducts.map((p) => [p.id, p]));
 
       let realSubtotal = 0;
-      const finalItemsToCreate = [];
+      const finalItemsToCreate: { productId: string; name: string; price: number; quantity: number }[] = [];
 
-      // 2. Validar stock y recalcular precios de forma segura
-      for (const item of orderItems) {
+      // 2a. Procesar ítems normales (productos individuales)
+      for (const item of normalItems) {
         const dbProd = dbProductMap.get(item.id);
         if (!dbProd) throw new StockError(`Producto no encontrado: ${item.name}`);
 
-        // Calculamos el subtotal con el precio intocable de la base de datos
         realSubtotal += dbProd.price * item.quantity;
         finalItemsToCreate.push({
           productId: dbProd.id,
           name: dbProd.name,
-          price: dbProd.price, // <-- SEGURIDAD: Precio forzado de la DB
+          price: dbProd.price,
           quantity: item.quantity,
         });
 
-        // Tu lógica original de inventario que ya estaba perfecta:
         const inventory = await tx.inventory.findUnique({
           where: { productId_branchId: { productId: item.id, branchId: targetBranchId } },
           include: { branch: true },
@@ -232,6 +238,62 @@ router.post("/", async (req: Request, res: Response) => {
           where: { productId_branchId: { productId: item.id, branchId: targetBranchId } },
           data: { stock: { decrement: item.quantity } },
         });
+      }
+
+      // 2b. Procesar bundles (descomponer en componentes)
+      for (const bundleItem of bundleItems) {
+        // bundleItem.id es el bundleId
+        const bundle = await tx.bundle.findUnique({
+          where: { id: bundleItem.id },
+          include: {
+            items: {
+              include: { product: true },
+            },
+          },
+        });
+        if (!bundle) throw new StockError(`Bundle no encontrado: ${bundleItem.name}`);
+        if (!bundle.items || bundle.items.length === 0) throw new StockError(`El kit "${bundleItem.name}" no tiene componentes configurados.`);
+
+        // El precio del bundle es el definido por el admin (bundleItem.price viene del POS)
+        realSubtotal += bundle.price * bundleItem.quantity;
+
+        // Crear un OrderItem resumen del bundle (referencia al primer componente)
+        finalItemsToCreate.push({
+          productId: bundle.items[0].productId,
+          name: `[Kit] ${bundle.name}`,
+          price: bundle.price,
+          quantity: bundleItem.quantity,
+        });
+
+        // Descontar stock de cada componente
+        for (const component of bundle.items) {
+          const totalNeeded = component.quantity * bundleItem.quantity;
+          const inventory = await tx.inventory.findUnique({
+            where: {
+              productId_branchId: {
+                productId: component.productId,
+                branchId: targetBranchId,
+              },
+            },
+          });
+
+          if (!inventory || inventory.stock < totalNeeded) {
+            throw new StockError(
+              `Stock insuficiente para el componente "${component.product.name}" del kit "${bundle.name}". ` +
+              `Se necesitan ${totalNeeded}, disponibles: ${inventory?.stock ?? 0}.`
+            );
+          }
+
+          await tx.inventory.update({
+            where: {
+              productId_branchId: {
+                productId: component.productId,
+                branchId: targetBranchId,
+              },
+            },
+            data: { stock: { decrement: totalNeeded } },
+          });
+        }
       }
 
       // 3. Vincular o Crear Cliente (CRM)
@@ -251,7 +313,7 @@ router.post("/", async (req: Request, res: Response) => {
         const updateData: any = {};
         if (body.cedula && !customer.cedula) updateData.cedula = body.cedula;
         if (body.phone && !customer.phone) updateData.phone = body.phone;
-        
+
         if (Object.keys(updateData).length > 0) {
           await tx.customer.update({
             where: { id: customer.id },
@@ -393,7 +455,7 @@ router.put("/:id", async (req: Request, res: Response) => {
 
 
   const prevStatus = existing.status;
-  const newStatus  = body.status;
+  const newStatus = body.status;
 
   // Normalizamos a minúsculas AQUÍ ARRIBA para que sirva tanto para Stock como para CRM
   const prev = prevStatus.toLowerCase();
@@ -421,45 +483,45 @@ router.put("/:id", async (req: Request, res: Response) => {
     }
   }
 
-    // ─── CRM LTV Adjustment ────────────────────────────────────────────────────
-    if (newStatus && newStatus !== prevStatus && existing.customerId) {
-      // Ya normalizado arriba
-      const wasActive = STOCK_CONSUMED.has(prev);
-      const isNowActive = STOCK_CONSUMED.has(next);
+  // ─── CRM LTV Adjustment ────────────────────────────────────────────────────
+  if (newStatus && newStatus !== prevStatus && existing.customerId) {
+    // Ya normalizado arriba
+    const wasActive = STOCK_CONSUMED.has(prev);
+    const isNowActive = STOCK_CONSUMED.has(next);
 
-      // Si antes era Activo (ej. completado) y ahora ya NO lo es (ej. cancelado) -> DESCONTAR
-      if (wasActive && !isNowActive) {
-        await db.customer.update({
-          where: { id: existing.customerId },
-          data: {
-            totalSpent: { decrement: existing.total },
-            ordersCount: { decrement: 1 }
-          }
-        });
-      }
-      // Si antes NO era activo (ej. pago pendiente/fallido/cancelado) y ahora SÍ es activo -> SUMAR
-      else if (!wasActive && isNowActive) {
-        await db.customer.update({
-          where: { id: existing.customerId },
-          data: {
-            totalSpent: { increment: existing.total },
-            ordersCount: { increment: 1 },
-            lastOrderAt: new Date()
-          }
-        });
-      }
-      // Nota: Si pasa de "pendiente" a "completado" (ambos son Activos), no suma ni resta, 
-      // porque el valor ya se sumó en el momento en que el cliente creó el pedido.
+    // Si antes era Activo (ej. completado) y ahora ya NO lo es (ej. cancelado) -> DESCONTAR
+    if (wasActive && !isNowActive) {
+      await db.customer.update({
+        where: { id: existing.customerId },
+        data: {
+          totalSpent: { decrement: existing.total },
+          ordersCount: { decrement: 1 }
+        }
+      });
     }
+    // Si antes NO era activo (ej. pago pendiente/fallido/cancelado) y ahora SÍ es activo -> SUMAR
+    else if (!wasActive && isNowActive) {
+      await db.customer.update({
+        where: { id: existing.customerId },
+        data: {
+          totalSpent: { increment: existing.total },
+          ordersCount: { increment: 1 },
+          lastOrderAt: new Date()
+        }
+      });
+    }
+    // Nota: Si pasa de "pendiente" a "completado" (ambos son Activos), no suma ni resta, 
+    // porque el valor ya se sumó en el momento en que el cliente creó el pedido.
+  }
 
   const updated = await db.order.update({
     where: { id },
     data: {
-      status:         body.status         ?? existing.status,
-      notes:          body.notes          ?? existing.notes,
+      status: body.status ?? existing.status,
+      notes: body.notes ?? existing.notes,
       shippingMethod: body.shippingMethod ?? existing.shippingMethod,
-      paymentMethod:  body.paymentMethod  ?? existing.paymentMethod,
-      address:        body.address        ?? existing.address,
+      paymentMethod: body.paymentMethod ?? existing.paymentMethod,
+      address: body.address ?? existing.address,
     },
     include: { items: true },
   });

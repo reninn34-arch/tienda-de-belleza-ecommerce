@@ -5,7 +5,7 @@ const BACKEND = process.env.BACKEND_URL ?? "http://localhost:4000";
 async function getSettings(): Promise<Record<string, unknown>> {
   try {
     const res = await fetch(`${BACKEND}/api/settings`, {
-      next: { tags: ["settings"], revalidate: 86400 },
+      next: { tags: ["settings"], revalidate: 3600 }, // 1 hour for general settings
     });
     return res.json() as Promise<Record<string, unknown>>;
   } catch {
@@ -66,7 +66,7 @@ export async function getCollectionById(id: string): Promise<{ collection: Colle
 export async function getProductById(id: string): Promise<Product | undefined> {
   try {
     const res = await fetch(`${BACKEND}/api/products/${id}`, {
-      next: { tags: ["producto-" + id], revalidate: 86400 },
+      next: { tags: ["producto-" + id], revalidate: 60 }, // 1 minute for individual products
     });
     if (!res.ok) return undefined;
     return res.json() as Promise<Product>;
@@ -78,7 +78,7 @@ export async function getProductById(id: string): Promise<Product | undefined> {
 export async function getAllProducts(): Promise<Product[]> {
   try {
     const res = await fetch(`${BACKEND}/api/products`, {
-      next: { tags: ["catalogo"], revalidate: 86400 },
+      next: { tags: ["catalogo"], revalidate: 300 }, // 5 minutes for the general catalog
     });
     return res.json() as Promise<Product[]>;
   } catch {
