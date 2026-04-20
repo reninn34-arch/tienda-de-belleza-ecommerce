@@ -108,9 +108,10 @@ export default function POSPage() {
   }, [activeSession]);
 
   // Un ADMIN puede operar el POS sin necesidad de abrir caja.
-  // Solo los VENDEDOR están obligados a tener una sesión activa.
-  const requiresCashSession = !isAdmin;
-  const canOperate = isAdmin || !!activeSession;
+  // La sucursal "tienda-online" tampoco requiere caja (no maneja efectivo físico).
+  // Solo los VENDEDOR en sucursales físicas están obligados a tener una sesión activa.
+  const isOnlineBranch = branches.find(b => b.id === selectedBranchId)?.name === "tienda-online";
+  const canOperate = isAdmin || isOnlineBranch || !!activeSession;
 
   const checkSession = async (branchId: string, adminRole: boolean) => {
     if (!branchId) return;
@@ -141,13 +142,12 @@ export default function POSPage() {
       fetch("/api/admin/customers").then(r => r.json()),
       fetch("/api/admin/bundles").then(r => r.json()).catch(() => []),
     ]).then(([b, p, c, bun]) => {
-      // Mostrar todas las sucursales, incluyendo "tienda-online"
       const allBranches = b as Branch[];
       setBranches(allBranches);
       setProducts(p.filter((prod: any) => !prod.deleted));
       setCustomerResults(c);
       setBundles((Array.isArray(bun) ? bun : []).filter((b: Bundle) => b.active));
-      
+
       let bid = "";
       if (profile.role === "VENDEDOR" && profile.branchId) {
         bid = profile.branchId;
@@ -695,6 +695,12 @@ export default function POSPage() {
           {toast && (
             <div className={`mt-3 p-2.5 rounded-lg text-xs font-semibold text-center border ${toast.type === "success" ? "bg-emerald-50 border-emerald-100 text-emerald-600" : "bg-red-50 border-red-100 text-red-600"}`}>
               {toast.message}
+            </div>
+          )}
+          {isAdmin && !activeSession && !isOnlineBranch && paymentMethod === "cash" && cart.length > 0 && (
+            <div className="mt-2 p-2.5 rounded-lg text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[14px]">warning</span>
+              Sin caja abierta — este cobro en efectivo no quedará registrado.
             </div>
           )}
         </div>

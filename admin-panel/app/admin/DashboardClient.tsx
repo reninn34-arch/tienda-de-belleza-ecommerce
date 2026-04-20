@@ -73,13 +73,7 @@ export default function DashboardClient({
   settings: any,
   branches: Branch[]
 }) {
-  // DEBUG: Mostrar datos recibidos en consola
-  if (typeof window !== "undefined") {
-    console.log("[DashboardClient] products", products);
-    console.log("[DashboardClient] orders", orders);
-    console.log("[DashboardClient] settings", settings);
-    console.log("[DashboardClient] branches", branches);
-  }
+
 
   // Estado para periodo, hover y ancho del gráfico
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>("14d");
@@ -198,15 +192,15 @@ export default function DashboardClient({
           <p className="text-sm text-gray-500 font-medium">Resumen general de {settings?.storeName ?? "Mi Tienda"}</p>
         </div>
         <div className="flex items-center gap-3">
-           <select 
-             value={selectedPeriod}
-             onChange={(e) => setSelectedPeriod(e.target.value as PeriodKey)}
-             className="bg-white border border-gray-200 text-xs font-bold px-4 py-2 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
-           >
-             {Object.entries(PERIOD_MAP).map(([k, v]) => (
-               <option key={k} value={k}>{v.label}</option>
-             ))}
-           </select>
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value as PeriodKey)}
+            className="bg-white border border-gray-200 text-xs font-bold px-4 py-2 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20"
+          >
+            {Object.entries(PERIOD_MAP).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -220,7 +214,7 @@ export default function DashboardClient({
             <h3 className="font-bold text-rose-900">Alerta de Inventario</h3>
             <p className="text-sm text-rose-700/80">Tienes {lowStockProducts.length} productos con stock crítico o agotados. Revisa tus suministros para evitar perder ventas.</p>
           </div>
-          <Link 
+          <Link
             href="/admin/inventory"
             className="px-6 py-2.5 bg-rose-600 text-white text-sm font-bold rounded-xl hover:bg-rose-700 transition-all shadow-md shadow-rose-200"
           >

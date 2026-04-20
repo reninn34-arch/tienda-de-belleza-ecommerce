@@ -30,11 +30,11 @@ export default async function AdminDashboardPage() {
 
     // 4. Inyectar los datos limpios a la Vista (Cliente)
     return (
-      <DashboardClient 
-        products={Array.isArray(products) ? products : []} 
-        orders={Array.isArray(orders) ? orders : []} 
-        settings={settings} 
-        branches={Array.isArray(branches) ? branches : []} 
+      <DashboardClient
+        products={Array.isArray(products) ? products : []}
+        orders={Array.isArray(orders) ? orders : []}
+        settings={settings}
+        branches={Array.isArray(branches) ? branches : []}
       />
     );
   } catch (error) {

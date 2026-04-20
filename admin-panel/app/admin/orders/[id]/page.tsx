@@ -47,7 +47,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState("");
-  const [toast, setToast] = useState("");
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   useEffect(() => {
     fetch(`/api/admin/orders/${id}`)
@@ -89,13 +89,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     try {
       await updateOrder({ status: newStatus, notes });
       await refetchOrder();
-      setToast("Estado actualizado.");
+      setToast({ msg: "Estado actualizado.", ok: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : "No se pudo actualizar el estado";
-      setToast(message);
+      setToast({ msg: message, ok: false });
     } finally {
       setSaving(false);
-      setTimeout(() => setToast(""), 3000);
+      setTimeout(() => setToast(null), 3500);
     }
   }
 
@@ -104,13 +104,13 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     try {
       await updateOrder({ status, notes });
       await refetchOrder();
-      setToast("Notas guardadas.");
+      setToast({ msg: "Notas guardadas.", ok: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : "No se pudieron guardar las notas";
-      setToast(message);
+      setToast({ msg: message, ok: false });
     } finally {
       setSaving(false);
-      setTimeout(() => setToast(""), 3000);
+      setTimeout(() => setToast(null), 3500);
     }
   }
 
@@ -122,9 +122,11 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="p-4 sm:p-8 max-w-4xl">
       {toast && (
-        <div className="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2">
-          <span className="material-symbols-outlined text-[16px]">check_circle</span>
-          {toast}
+        <div className={`fixed top-5 right-5 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium flex items-center gap-2 text-white ${
+          toast.ok ? "bg-emerald-600" : "bg-red-600"
+        }`}>
+          <span className="material-symbols-outlined text-[16px]">{toast.ok ? "check_circle" : "error"}</span>
+          {toast.msg}
         </div>
       )}
 
@@ -176,7 +178,9 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             <div className="pt-4 mt-2 space-y-1.5 border-t border-gray-100">
               <div className="flex justify-between text-sm text-gray-500"><span>Subtotal</span><span>${order.subtotal?.toFixed(2)}</span></div>
               <div className="flex justify-between text-sm text-gray-500"><span>Envío</span><span>${order.shipping?.toFixed(2)}</span></div>
-              <div className="flex justify-between text-sm text-gray-500"><span>IVA</span><span>${order.tax?.toFixed(2)}</span></div>
+              {(order.tax ?? 0) > 0 && (
+                <div className="flex justify-between text-sm text-gray-500"><span>IVA</span><span>${order.tax?.toFixed(2)}</span></div>
+              )}
               <div className="flex justify-between text-base font-bold text-gray-900 pt-1 border-t border-gray-100"><span>Total</span><span>${order.total.toFixed(2)}</span></div>
             </div>
           </div>
@@ -237,7 +241,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               </div>
               <div>
                 <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Dirección</p>
-                <p className="text-sm text-gray-600">{order.address}</p>
+                <p className="text-sm text-gray-600">{order.address || <span className="italic text-gray-300">No especificada</span>}</p>
               </div>
             </div>
           </div>

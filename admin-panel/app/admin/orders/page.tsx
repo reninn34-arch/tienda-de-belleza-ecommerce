@@ -101,7 +101,7 @@ export default function AdminOrdersPage() {
         </div>
         <div className="overflow-x-auto flex-shrink-0">
           <div className="flex gap-1 bg-white border border-gray-200 rounded-xl p-1 min-w-max">
-            {["all", "pending", "processing", "completed", "cancelled"].map((s) => (
+            {["all", "pending", "processing", "completed", "cancelled", "refunded"].map((s) => (
               <button
                 key={s}
                 onClick={() => setFilter(s)}
