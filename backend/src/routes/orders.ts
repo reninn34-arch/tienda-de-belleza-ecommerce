@@ -242,56 +242,63 @@ router.post("/", async (req: Request, res: Response) => {
 
       // 2b. Procesar bundles (descomponer en componentes)
       for (const bundleItem of bundleItems) {
-        // bundleItem.id es el bundleId
         const bundle = await tx.bundle.findUnique({
           where: { id: bundleItem.id },
-          include: {
-            items: {
-              include: { product: true },
-            },
+          include: { 
+            items: { 
+              include: { product: true } 
+            } 
           },
         });
-        if (!bundle) throw new StockError(`Bundle no encontrado: ${bundleItem.name}`);
-        if (!bundle.items || bundle.items.length === 0) throw new StockError(`El kit "${bundleItem.name}" no tiene componentes configurados.`);
 
-        // El precio del bundle es el definido por el admin (bundleItem.price viene del POS)
+        if (!bundle || !bundle.items || bundle.items.length === 0) {
+          throw new StockError(`El kit "${bundleItem.name}" no existe o no tiene componentes.`);
+        }
+
         realSubtotal += bundle.price * bundleItem.quantity;
 
-        // Crear un OrderItem resumen del bundle (referencia al primer componente)
+        // 1. Guardar el Kit como concepto de cobro (Usamos un prefijo para evitar que afecte el inventario real en cancelaciones)
         finalItemsToCreate.push({
-          productId: bundle.items[0].productId,
-          name: `[Kit] ${bundle.name}`,
+          productId: `BNDL-RESUMEN-${bundle.id}`,
+          name: `🎁 [Kit] ${bundle.name}`,
           price: bundle.price,
           quantity: bundleItem.quantity,
         });
 
-        // Descontar stock de cada componente
+        // 2. Bucle de descuento de stock Y registro de componentes físicos
         for (const component of bundle.items) {
           const totalNeeded = component.quantity * bundleItem.quantity;
+          
           const inventory = await tx.inventory.findUnique({
-            where: {
-              productId_branchId: {
-                productId: component.productId,
-                branchId: targetBranchId,
-              },
+            where: { 
+              productId_branchId: { 
+                productId: component.productId, 
+                branchId: targetBranchId 
+              } 
             },
           });
 
           if (!inventory || inventory.stock < totalNeeded) {
-            throw new StockError(
-              `Stock insuficiente para el componente "${component.product.name}" del kit "${bundle.name}". ` +
-              `Se necesitan ${totalNeeded}, disponibles: ${inventory?.stock ?? 0}.`
-            );
+            throw new StockError(`Stock insuficiente para el componente "${component.product.name}" del kit "${bundle.name}".`);
           }
 
           await tx.inventory.update({
-            where: {
-              productId_branchId: {
-                productId: component.productId,
-                branchId: targetBranchId,
-              },
+            where: { 
+              productId_branchId: { 
+                productId: component.productId, 
+                branchId: targetBranchId 
+              } 
             },
             data: { stock: { decrement: totalNeeded } },
+          });
+
+          // ✨ NUEVO: Guardar el componente físico en la orden con precio 0 
+          // Esto permite que el bucle de cancelación (Ruta PUT) restaure el stock de todos los componentes.
+          finalItemsToCreate.push({
+            productId: component.productId,
+            name: `   ↳ Contiene: ${component.product.name}`,
+            price: 0, 
+            quantity: totalNeeded,
           });
         }
       }
