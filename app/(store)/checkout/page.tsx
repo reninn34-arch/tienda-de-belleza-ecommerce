@@ -67,7 +67,10 @@ export default function CheckoutPage() {
 
   const selectedShipping = shippingMethods.find((m) => m.id === shippingMethod) ?? shippingMethods[0];
   const shippingCost = selectedShipping?.price ?? 5;
-  const tax = cartTotal * taxRate;
+  const tax = cart.reduce((sum, item) => {
+    const itemTaxRate = item.taxRate ?? 0; // Usar el del producto o 0% por defecto
+    return sum + (item.price * item.quantity * (itemTaxRate / 100));
+  }, 0);
   const total = cartTotal + shippingCost + tax;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -556,16 +559,20 @@ export default function CheckoutPage() {
                   <span className="text-outline">Envío</span>
                   <span className="font-medium">${shippingCost.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-outline">Impuestos (IVA)</span>
-                  <span className="font-medium">${tax.toFixed(2)}</span>
-                </div>
+                {tax > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-outline">Impuestos (IVA)</span>
+                    <span className="font-medium">${tax.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center pt-4 mt-2 border-t border-outline-variant/20">
                   <div>
                     <span className="text-lg font-bold block">Total</span>
-                    <span className="text-[10px] text-outline uppercase tracking-widest">
-                      IVA incluido: ${tax.toFixed(2)}
-                    </span>
+                    {tax > 0 && (
+                      <span className="text-[10px] text-outline uppercase tracking-widest">
+                        IVA incluido: ${tax.toFixed(2)}
+                      </span>
+                    )}
                   </div>
                   <div className="text-right">
                     <span className="text-xs text-outline font-medium mr-1">USD</span>

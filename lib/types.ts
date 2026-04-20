@@ -32,6 +32,7 @@ export interface Product {
   price: number;
   category: string;
   image: string;
+  taxRate?: number;
   stock?: number;
   /** Stock total calculado (suma de todos los Inventory) */
   totalStock?: number;

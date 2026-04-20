@@ -5,7 +5,7 @@ import Image from "next/image";
 import { getAdminProfile } from "@/components/ProfileModal";
 
 interface Branch { id: string; name: string; }
-interface Product { id: string; name: string; price: number; image: string; inventories?: { branchId: string; stock: number }[]; isBundle?: boolean; }
+interface Product { id: string; name: string; price: number; image: string; inventories?: { branchId: string; stock: number }[]; isBundle?: boolean; taxRate?: number; }
 
 interface BundleItem { productId: string; quantity: number; product: { id: string; name: string; price: number; image?: string | null }; }
 interface Bundle {
@@ -373,7 +373,11 @@ export default function POSPage() {
   };
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const total = Math.max(0, subtotal - discount);
+  const tax = cart.reduce((sum, item) => {
+    const itemTaxRate = item.taxRate ?? 0;
+    return sum + ((item.price * item.quantity) * (itemTaxRate / 100));
+  }, 0);
+  const total = Math.max(0, subtotal + tax - discount);
 
   const handleCheckout = async () => {
     if (cart.length === 0 || !canOperate) return;

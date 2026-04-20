@@ -211,6 +211,7 @@ router.post("/", async (req: Request, res: Response) => {
       const dbProductMap = new Map(dbProducts.map((p) => [p.id, p]));
 
       let realSubtotal = 0;
+      let realTax = 0;
       const finalItemsToCreate: { productId: string; name: string; price: number; quantity: number }[] = [];
 
       // 2a. Procesar ítems normales (productos individuales)
@@ -219,6 +220,9 @@ router.post("/", async (req: Request, res: Response) => {
         if (!dbProd) throw new StockError(`Producto no encontrado: ${item.name}`);
 
         realSubtotal += dbProd.price * item.quantity;
+        const prodTaxRate = dbProd.taxRate ?? 0;
+        realTax += (dbProd.price * item.quantity) * (prodTaxRate / 100);
+
         finalItemsToCreate.push({
           productId: dbProd.id,
           name: dbProd.name,
@@ -257,6 +261,8 @@ router.post("/", async (req: Request, res: Response) => {
         }
 
         realSubtotal += bundle.price * bundleItem.quantity;
+        const bundleTaxRate = bundle.taxRate ?? 0;
+        realTax += (bundle.price * bundleItem.quantity) * (bundleTaxRate / 100);
 
         // 1. Guardar el Kit como concepto de cobro (Usamos un prefijo para evitar que afecte el inventario real en cancelaciones)
         finalItemsToCreate.push({
@@ -336,10 +342,10 @@ router.post("/", async (req: Request, res: Response) => {
           id: `ORD-${Date.now()}`,
           customer: body.customer,
           email: body.email,
-          total: Math.max(0, realSubtotal - (body.discount ?? 0) + (body.shipping ?? 0) + (body.tax ?? 0)),
+          total: Math.max(0, realSubtotal + realTax - (body.discount ?? 0) + (body.shipping ?? 0)),
           subtotal: realSubtotal,
           shipping: body.shipping ?? 0,
-          tax: body.tax ?? 0,
+          tax: realTax,
           status: body.status ?? "pending",
           shippingMethod: body.shippingMethod ?? null,
           paymentMethod: body.paymentMethod ?? null,
@@ -465,73 +471,95 @@ router.put("/:id", async (req: Request, res: Response) => {
   const prevStatus = existing.status;
   const newStatus = body.status;
 
-  // Normalizamos a minúsculas AQUÍ ARRIBA para que sirva tanto para Stock como para CRM
   const prev = prevStatus.toLowerCase();
   const next = newStatus ? newStatus.toLowerCase() : "";
 
-  // Restaurar stock si la orden pasa a cancelada/reembolsada desde un estado activo
-  if (
-    newStatus &&
-    newStatus !== prevStatus &&
-    STOCK_RESTORE.has(next) &&   // <- ¡Usar next!
-    STOCK_CONSUMED.has(prev)     // <- ¡Usar prev!
-  ) {
-    // Usar la sucursal guardada en la orden (si aplica) o la online como fallback
-    const branchId = existing.branchId;
-    if (branchId) {
-      for (const item of existing.items) {
-        await db.inventory.updateMany({
-          where: {
-            productId: item.productId,
-            branchId,
-          },
-          data: { stock: { increment: item.quantity } },
+  const updated = await db.$transaction(async (tx) => {
+    // 1. Restaurar stock si la orden pasa a cancelada/reembolsada desde un estado activo
+    if (
+      newStatus &&
+      newStatus !== prevStatus &&
+      STOCK_RESTORE.has(next) &&
+      STOCK_CONSUMED.has(prev)
+    ) {
+      // Usar la sucursal guardada en la orden (si aplica)
+      const branchId = existing.branchId;
+      if (branchId) {
+        for (const item of existing.items) {
+          // Si el item es un resumen de bundle (ej: BNDL-RESUMEN-123), no restauramos nada
+          // ya que el stock real se restaura de sus componentes que están en la orden con precio 0.
+          if (item.productId.startsWith('BNDL-RESUMEN-')) continue;
+
+          await tx.inventory.updateMany({
+            where: {
+              productId: item.productId,
+              branchId,
+            },
+            data: { stock: { increment: item.quantity } },
+          });
+        }
+      }
+
+      // 2. Ajuste Financiero: Generar movimiento de salida (OUT) en la caja si el pedido fue en punto físico
+      // Buscamos si hay una sesión abierta en la sucursal de la orden para registrar que el dinero salió físicamente.
+      if (existing.branchId) {
+        const activeSession = await tx.cashSession.findFirst({
+          where: { branchId: existing.branchId, status: "OPEN" }
+        });
+        if (activeSession) {
+          await tx.cashMovement.create({
+            data: {
+              sessionId: activeSession.id,
+              amount: existing.total,
+              type: "OUT",
+              reason: `REEMBOLSO/CANCELACION: Orden #${existing.id}`,
+              orderId: existing.id
+            }
+          });
+        }
+      }
+    }
+
+    // 3. Ajuste CRM: Revertir métricas de cliente (LTV)
+    if (newStatus && newStatus !== prevStatus && existing.customerId) {
+      const wasActive = STOCK_CONSUMED.has(prev);
+      const isNowActive = STOCK_CONSUMED.has(next);
+
+      // Si antes era Activo (ej. completado) y ahora ya NO lo es (ej. cancelado) -> DESCONTAR
+      if (wasActive && !isNowActive) {
+        await tx.customer.update({
+          where: { id: existing.customerId },
+          data: {
+            totalSpent: { decrement: existing.total },
+            ordersCount: { decrement: 1 }
+          }
+        });
+      }
+      // Si antes NO era activo (ej. pago pendiente/fallido/cancelado) y ahora SÍ es activo -> SUMAR
+      else if (!wasActive && isNowActive) {
+        await tx.customer.update({
+          where: { id: existing.customerId },
+          data: {
+            totalSpent: { increment: existing.total },
+            ordersCount: { increment: 1 },
+            lastOrderAt: new Date()
+          }
         });
       }
     }
-  }
 
-  // ─── CRM LTV Adjustment ────────────────────────────────────────────────────
-  if (newStatus && newStatus !== prevStatus && existing.customerId) {
-    // Ya normalizado arriba
-    const wasActive = STOCK_CONSUMED.has(prev);
-    const isNowActive = STOCK_CONSUMED.has(next);
-
-    // Si antes era Activo (ej. completado) y ahora ya NO lo es (ej. cancelado) -> DESCONTAR
-    if (wasActive && !isNowActive) {
-      await db.customer.update({
-        where: { id: existing.customerId },
-        data: {
-          totalSpent: { decrement: existing.total },
-          ordersCount: { decrement: 1 }
-        }
-      });
-    }
-    // Si antes NO era activo (ej. pago pendiente/fallido/cancelado) y ahora SÍ es activo -> SUMAR
-    else if (!wasActive && isNowActive) {
-      await db.customer.update({
-        where: { id: existing.customerId },
-        data: {
-          totalSpent: { increment: existing.total },
-          ordersCount: { increment: 1 },
-          lastOrderAt: new Date()
-        }
-      });
-    }
-    // Nota: Si pasa de "pendiente" a "completado" (ambos son Activos), no suma ni resta, 
-    // porque el valor ya se sumó en el momento en que el cliente creó el pedido.
-  }
-
-  const updated = await db.order.update({
-    where: { id },
-    data: {
-      status: body.status ?? existing.status,
-      notes: body.notes ?? existing.notes,
-      shippingMethod: body.shippingMethod ?? existing.shippingMethod,
-      paymentMethod: body.paymentMethod ?? existing.paymentMethod,
-      address: body.address ?? existing.address,
-    },
-    include: { items: true },
+    // 4. Actualizar metadata de la orden
+    return tx.order.update({
+      where: { id },
+      data: {
+        status: body.status ?? existing.status,
+        notes: body.notes ?? existing.notes,
+        shippingMethod: body.shippingMethod ?? existing.shippingMethod,
+        paymentMethod: body.paymentMethod ?? existing.paymentMethod,
+        address: body.address ?? existing.address,
+      },
+      include: { items: true },
+    });
   });
 
   await logAdminAction(req, {

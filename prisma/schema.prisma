@@ -38,6 +38,7 @@ model Product {
   price           Float
   cost            Float?
   category        String
+  taxRate         Float          @default(0)
   image           String?
   badge           String?
   features        String[]
@@ -249,6 +250,7 @@ model Bundle {
   name             String
   description      String?
   price            Float
+  taxRate          Float        @default(0)
   image            String?
   active           Boolean      @default(true)
   createdAt        DateTime     @default(now())

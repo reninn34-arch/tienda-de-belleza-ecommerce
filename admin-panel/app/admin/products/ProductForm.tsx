@@ -43,11 +43,13 @@ interface ProductFormData {
   scienceTitle: string;
   scienceDesc: string;
   scienceItems: { icon: string; title: string; desc: string }[];
+  taxRate: string;
 }
 
 interface ProductFormProps {
-  initial?: Partial<ProductFormData> & {
+  initial?: Partial<Omit<ProductFormData, 'taxRate'>> & {
     inventories?: { branchId: string; stock: number }[];
+    taxRate?: number;
   };
   mode: "new" | "edit";
   productId?: string;
@@ -145,6 +147,7 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
     scienceTitle: initial?.scienceTitle ?? "",
     scienceDesc: initial?.scienceDesc ?? "",
     scienceItems: initial?.scienceItems ?? [],
+    taxRate: initial?.taxRate?.toString() ?? "0",
   });
 
   function set(key: keyof ProductFormData, value: string) {
@@ -269,6 +272,7 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
       scienceTitle: form.scienceTitle || undefined,
       scienceDesc: form.scienceDesc || undefined,
       scienceItems: form.scienceItems.filter((s) => s.title).length ? form.scienceItems.filter((s) => s.title) : undefined,
+      taxRate: parseFloat(form.taxRate) || 0,
       // Inventario por sucursal
       inventories: inventories
         .filter((inv) => inv.stock !== "" && !isNaN(parseInt(inv.stock, 10)))
@@ -386,6 +390,18 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                 <input value={form.price} onChange={(e) => set("price", e.target.value)} required type="number" step="0.01" min="0" placeholder="42.00" className="w-full border border-gray-200 rounded-xl pl-8 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none" />
               </div>
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Tarifa de IVA (%) *</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.taxRate}
+                onChange={(e) => set("taxRate", e.target.value)}
+                placeholder="0.00"
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none"
+              />
             </div>
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Categoría *</label>

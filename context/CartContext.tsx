@@ -98,14 +98,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           }
           const stock = freshProduct.totalStock;
           const cappedQty = stock !== undefined ? Math.min(item.quantity, Number(stock)) : item.quantity;
-          if (cappedQty !== item.quantity || freshProduct.price !== item.price || freshProduct.name !== item.name) {
+          const freshTaxRate = freshProduct.taxRate ?? 0;
+          if (cappedQty !== item.quantity || freshProduct.price !== item.price || freshProduct.name !== item.name || (item.taxRate ?? 0) !== freshTaxRate) {
             changed = true;
           }
           if (cappedQty <= 0) {
              changed = true;
              return null;
           }
-          return { ...item, quantity: cappedQty, totalStock: stock, price: freshProduct.price, name: freshProduct.name };
+          return { ...item, quantity: cappedQty, totalStock: stock, price: freshProduct.price, name: freshProduct.name, taxRate: freshTaxRate };
         }).filter(Boolean) as CartItem[];
         return changed ? newCart : prev;
       });

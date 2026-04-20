@@ -62,6 +62,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         scienceTitle: (product.scienceTitle as string) ?? "",
         scienceDesc: (product.scienceDesc as string) ?? "",
         scienceItems: (product.scienceItems as { icon: string; title: string; desc: string }[]) ?? [],
+        taxRate: (product.taxRate as number) ?? 0,
       }}
     />
   );

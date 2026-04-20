@@ -68,6 +68,7 @@ const productBaseSchema = z.object({
   scienceDesc: z.string().nullable().optional(),
   scienceItems: z.array(z.unknown()).optional().default([]),
   minStock: z.coerce.number().int().nonnegative().optional().default(5),
+  taxRate: z.coerce.number().nonnegative().optional().default(0),
   /** Array de inventarios por sucursal  */
   inventories: inventorySchema,
 });
@@ -83,6 +84,7 @@ const productUpdateSchema = z.object({
   image: z.string().nullable().optional(),
   badge: z.string().nullable().optional(),
   minStock: z.coerce.number().int().nonnegative().optional().default(5),
+  taxRate: z.coerce.number().nonnegative().optional().default(0),
   features: z.array(z.string()).optional(),
   gallery: z.array(z.string()).optional(),
   swatches: z.array(z.unknown()).optional(),
@@ -177,12 +179,13 @@ router.get("/", async (req: Request, res: Response) => {
           scienceDesc: null,
           scienceItems: [],
           minStock: 0,
+          taxRate: b.taxRate ?? 0,   // ← IVA propio del kit
           inventories: [],
           createdAt: b.createdAt,
           updatedAt: b.updatedAt,
           totalStock: stock,
-          stock: stock, // Ensure both fields are set
-          isBundle: true, // Tag hidden
+          stock: stock,
+          isBundle: true,
         };
       })
     );
@@ -277,6 +280,7 @@ router.post("/", requireAuth, requireRole(["ADMIN"]), async (req: Request, res: 
           scienceTitle: body.scienceTitle ?? null,
           scienceDesc: body.scienceDesc ?? null,
           scienceItems: (body.scienceItems ?? []) as Prisma.JsonArray,
+          taxRate: body.taxRate ?? 0,
         },
       });
 
@@ -445,6 +449,7 @@ router.put("/:id", requireAuth, requireRole(["ADMIN"]), async (req: Request, res
       if (body.scienceTitle !== undefined) data.scienceTitle = body.scienceTitle;
       if (body.scienceDesc !== undefined) data.scienceDesc = body.scienceDesc;
       if (body.scienceItems !== undefined) data.scienceItems = body.scienceItems as Prisma.JsonArray;
+      if (body.taxRate !== undefined) data.taxRate = body.taxRate;
 
       if (Object.keys(data).length > 0) {
         await tx.product.update({ where: { id }, data });
