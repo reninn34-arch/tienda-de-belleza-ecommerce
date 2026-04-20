@@ -12,6 +12,7 @@ export type ErrorCode =
   | "ALREADY_EXISTS"
   | "ALREADY_OPEN"
   | "INVALID_SESSION"
+  | "CANNOT_DELETE"
   | "INTERNAL_ERROR";
 
 export interface ErrorPayload {

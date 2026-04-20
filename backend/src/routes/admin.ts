@@ -133,16 +133,34 @@ router.delete("/staff/:id", requireAuth, requireRole(["ADMIN"]), async (req, res
     return sendError(res, 404, { code: "NOT_FOUND", message: "Usuario no encontrado" });
   }
 
-  await db.admin.delete({ where: { id } });
+  try {
+    await db.admin.delete({ where: { id } });
 
-  await logAdminAction(req, {
-    action: "staff.delete",
-    entity: "admin",
-    entityId: id,
-    details: { name: user.name, email: user.email }
-  });
+    await logAdminAction(req, {
+      action: "staff.delete",
+      entity: "admin",
+      entityId: id,
+      details: { name: user.name, email: user.email }
+    });
 
-  res.json({ success: true });
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("DEBUG DELETE ADMIN ERROR:", error);
+    const errStr = String(error);
+    if (error?.code === "P2003" || errStr.includes("Foreign key constraint failed") || errStr.includes("violates RESTRICT setting of foreign key constraint")) {
+      // P2003 = Foreign key constraint failed
+      return sendError(res, 400, { 
+        code: "CANNOT_DELETE", 
+        message: "No se puede eliminar este usuario porque tiene historial de caja (sesiones de caja) registradas a su nombre." 
+      });
+    }
+    // Para otros errores
+    return sendError(res, 500, { 
+      code: "INTERNAL_ERROR", 
+      message: "Ocurrió un error al intentar eliminar el usuario",
+      details: error.message || String(error)
+    });
+  }
 });
 
 /** Actualizar staff */
