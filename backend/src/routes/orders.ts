@@ -77,6 +77,7 @@ const orderCreateSchema = z.object({
   subtotal: z.coerce.number().nonnegative().optional().default(0),
   shipping: z.coerce.number().nonnegative().optional().default(0),
   tax: z.coerce.number().nonnegative().optional().default(0),
+  discount: z.coerce.number().nonnegative().optional().default(0),
   status: z.string().optional().default("pending"),
   /**
    * 'delivery' → descuenta de 'tienda-online'
@@ -335,8 +336,8 @@ router.post("/", async (req: Request, res: Response) => {
           id: `ORD-${Date.now()}`,
           customer: body.customer,
           email: body.email,
-          total: realSubtotal + (body.shipping ?? 0) + (body.tax ?? 0), // <-- Calculado por el servidor
-          subtotal: realSubtotal, // <-- Calculado por el servidor
+          total: Math.max(0, realSubtotal - (body.discount ?? 0) + (body.shipping ?? 0) + (body.tax ?? 0)),
+          subtotal: realSubtotal,
           shipping: body.shipping ?? 0,
           tax: body.tax ?? 0,
           status: body.status ?? "pending",

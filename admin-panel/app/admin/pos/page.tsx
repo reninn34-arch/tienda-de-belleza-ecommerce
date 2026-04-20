@@ -18,6 +18,7 @@ interface Bundle {
   stockDisponible: number;
   ahorroPercent: number;
   items: BundleItem[];
+  branchIds: string[];
 }
 
 // CartItem puede ser un producto normal o un Bundle (identificado por isBundle: true)
@@ -348,15 +349,23 @@ export default function POSPage() {
   };
 
   const modifyQuantity = (productId: string, change: number) => {
-    const product = products.find(p => p.id === productId);
-    const inv = product?.inventories?.find(i => i.branchId === selectedBranchId);
-    const maxStock = inv?.stock || 0;
-
     setCart(prev => prev.map(item => {
       if (item.id === productId) {
         const newQty = item.quantity + change;
         if (newQty <= 0) return item;
-        if (newQty > maxStock) return item;
+
+        // Lógica separada para Bundles vs Productos normales
+        if (item.isBundle) {
+          const bundle = bundles.find(b => b.id === item.bundleId);
+          const maxBundleStock = bundle ? bundle.stockDisponible : 0;
+          if (newQty > maxBundleStock) return item;
+        } else {
+          const product = products.find(p => p.id === productId);
+          const inv = product?.inventories?.find(i => i.branchId === selectedBranchId);
+          const maxStock = inv?.stock || 0;
+          if (newQty > maxStock) return item;
+        }
+
         return { ...item, quantity: newQty };
       }
       return item;
@@ -380,6 +389,7 @@ export default function POSPage() {
       cashSessionId: activeSession?.id ?? null,
       paymentMethod,
       subtotal,
+      discount,
       total,
       shipping: 0,
       tax: 0,
@@ -418,21 +428,26 @@ export default function POSPage() {
       setToast({ message: "Venta registrada exitosamente", type: "success" });
       
       // Actualización optimista de inventario (sólo productos normales)
+      // Actualización optimista de inventario (Agrupa sueltos y bundles)
       setProducts(prev => prev.map(p => {
-        const cartItem = cart.find(c => !c.isBundle && c.id === p.id);
-        if (cartItem) {
+        let totalToSubtract = 0;
+        
+        // Sumar ocurrencias individuales
+        const singleCartItem = cart.find(c => !c.isBundle && c.id === p.id);
+        if (singleCartItem) totalToSubtract += singleCartItem.quantity;
+        
+        // Sumar ocurrencias dentro de cualquier bundle
+        cart.filter(c => c.isBundle).forEach(bundleCartItem => {
+          const component = bundleCartItem.bundleItems?.find(bi => bi.productId === p.id);
+          if (component) {
+            totalToSubtract += (component.quantity * bundleCartItem.quantity);
+          }
+        });
+
+        if (totalToSubtract > 0) {
           const newInv = p.inventories?.map(inv =>
-            inv.branchId === selectedBranchId ? { ...inv, stock: inv.stock - cartItem.quantity } : inv
-          );
-          return { ...p, inventories: newInv };
-        }
-        // Para bundles, actualizar stock de cada componente optimistamente
-        const bundleItem = cart.find(c => c.isBundle && c.bundleItems?.some(bi => bi.productId === p.id));
-        if (bundleItem) {
-          const bi = bundleItem.bundleItems!.find(b => b.productId === p.id)!;
-          const newInv = p.inventories?.map(inv =>
-            inv.branchId === selectedBranchId
-              ? { ...inv, stock: inv.stock - bi.quantity * bundleItem.quantity }
+            inv.branchId === selectedBranchId 
+              ? { ...inv, stock: inv.stock - totalToSubtract } 
               : inv
           );
           return { ...p, inventories: newInv };
@@ -764,6 +779,7 @@ export default function POSPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
               {bundles
                 .filter(b => !search || b.name.toLowerCase().includes(search.toLowerCase()))
+                .filter(b => !b.branchIds || b.branchIds.length === 0 || b.branchIds.includes(selectedBranchId))
                 .map(bundle => {
                   const inCart = cart.find(c => c.isBundle && c.bundleId === bundle.id);
                   const availableStock = bundle.stockDisponible - (inCart?.quantity ?? 0);
@@ -820,7 +836,10 @@ export default function POSPage() {
                     </div>
                   );
                 })}
-              {bundles.filter(b => !search || b.name.toLowerCase().includes(search.toLowerCase())).length === 0 && (
+              {bundles
+                .filter(b => !search || b.name.toLowerCase().includes(search.toLowerCase()))
+                .filter(b => !b.branchIds || b.branchIds.length === 0 || b.branchIds.includes(selectedBranchId))
+                .length === 0 && (
                 <div className="col-span-full flex flex-col items-center justify-center py-16 text-center text-gray-400">
                   <span className="material-symbols-outlined text-4xl mb-2 text-gray-200">deployed_code</span>
                   <p className="text-sm">No hay bundles activos disponibles</p>
