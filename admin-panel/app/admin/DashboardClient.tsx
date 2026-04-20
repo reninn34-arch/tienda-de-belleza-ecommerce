@@ -96,8 +96,13 @@ export default function DashboardClient({
   const now = new Date();
   const currentPeriodDays = PERIOD_MAP[selectedPeriod].days;
   const periodDate = new Date();
-  periodDate.setDate(now.getDate() - currentPeriodDays);
-  periodDate.setHours(0, 0, 0, 0);
+  if (selectedPeriod === "today") {
+    // "Hoy" = desde las 00:00:00 del día actual
+    periodDate.setHours(0, 0, 0, 0);
+  } else {
+    periodDate.setDate(now.getDate() - currentPeriodDays);
+    periodDate.setHours(0, 0, 0, 0);
+  }
 
   const recentOrders = orders.filter(o => new Date(o.date) >= periodDate);
   const activeRecentOrders = recentOrders.filter((o) => o.status !== "cancelled" && o.status !== "refunded");

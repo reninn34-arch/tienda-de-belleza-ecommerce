@@ -39,6 +39,19 @@ const PAYMENT_LABEL: Record<string, string> = {
   cash: "Efectivo",
 };
 
+const SHIPPING_LABEL: Record<string, string> = {
+  pickup: "Retiro en tienda",
+  delivery: "Envío a domicilio",
+  "tienda-online": "Tienda Online",
+};
+
+function formatDate(iso: string) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("es-EC", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}
+
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -141,7 +154,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               {currentStatus?.label}
             </span>
           </div>
-          <p className="text-sm text-gray-400 mt-0.5">{order.date}</p>
+          <p className="text-sm text-gray-400 mt-0.5">{formatDate(order.date)}</p>
         </div>
       </div>
 
@@ -280,7 +293,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               </div>
               <div>
                 <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">Método de envío</p>
-                <p className="text-sm font-semibold text-gray-800">{order.shippingMethod}</p>
+                <p className="text-sm font-semibold text-gray-800">{SHIPPING_LABEL[order.shippingMethod] ?? order.shippingMethod}</p>
               </div>
             </div>
           </div>

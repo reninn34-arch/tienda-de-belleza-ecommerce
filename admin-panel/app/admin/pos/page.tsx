@@ -46,7 +46,6 @@ export default function POSPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [discount, setDiscount] = useState<number>(0);
   const [search, setSearch] = useState("");
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [catalogTab, setCatalogTab] = useState<"products" | "bundles">("products");
@@ -379,7 +378,7 @@ export default function POSPage() {
     const itemTaxRate = item.taxRate ?? 0;
     return sum + ((item.price * item.quantity) * (itemTaxRate / 100));
   }, 0);
-  const total = Math.max(0, subtotal + tax - discount);
+  const total = Math.max(0, subtotal + tax);
 
   const handleCheckout = async () => {
     if (cart.length === 0 || !canOperate) return;
@@ -395,7 +394,7 @@ export default function POSPage() {
       cashSessionId: activeSession?.id ?? null,
       paymentMethod,
       subtotal,
-      discount,
+      discount: 0,
       total,
       shipping: 0,
       tax: tax,
@@ -428,7 +427,6 @@ export default function POSPage() {
         }
 
       setCart([]);
-      setDiscount(0);
       setCashTendered("");
       setSelectedCustomer(DEFAULT_CUSTOMER);
       setToast({ message: "Venta registrada exitosamente", type: "success" });
@@ -614,10 +612,6 @@ export default function POSPage() {
                 <span>${tax.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between items-center text-xs text-gray-500">
-              <span className="cursor-pointer border-b border-dashed border-gray-300 hover:text-gray-800" onClick={() => { if(!canOperate) return; setDiscount(Number(window.prompt("Descuento en $:") || 0))}}>Aplicar Descuento</span>
-              <span>-${discount.toFixed(2)}</span>
-            </div>
             <div className="flex justify-between items-end border-t border-gray-200 pt-2 mt-2">
               <span className="text-sm font-bold text-gray-800">Total a Cobrar</span>
               <span className="text-xl font-black text-[#33172c]">${total.toFixed(2)}</span>

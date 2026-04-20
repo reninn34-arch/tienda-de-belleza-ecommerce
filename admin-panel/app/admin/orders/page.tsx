@@ -48,6 +48,13 @@ export default function AdminOrdersPage() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
 
+  function formatDate(iso: string) {
+    if (!iso) return "—";
+    return new Date(iso).toLocaleDateString("es-EC", {
+      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    });
+  }
+
   useEffect(() => {
     const fetchOrders = async () => {
       const res = await fetch("/api/admin/orders");
@@ -143,7 +150,7 @@ export default function AdminOrdersPage() {
                     <p className="font-semibold text-gray-900">{order.customer}</p>
                     <p className="text-xs text-gray-400">{order.id}</p>
                   </td>
-                  <td className="px-5 py-4 text-gray-500 hidden md:table-cell">{order.date}</td>
+                  <td className="px-5 py-4 text-gray-500 hidden md:table-cell">{formatDate(order.date)}</td>
                   <td className="px-5 py-4 hidden lg:table-cell">
                     <span className="flex items-center gap-1.5 text-gray-500">
                       <span className="material-symbols-outlined text-[16px]">{PAYMENT_ICON[order.paymentMethod] ?? "payments"}</span>
