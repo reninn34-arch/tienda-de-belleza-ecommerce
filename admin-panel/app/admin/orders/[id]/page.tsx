@@ -5,7 +5,7 @@ import { use } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-interface OrderProduct { id: string; name: string; price: number; quantity: number; image?: string; }
+interface OrderProduct { id: string; name: string; price: number; quantity: number; image?: string; isBundle?: boolean; isComponent?: boolean; }
 interface Order {
   id: string;
   customer: string;
@@ -150,30 +150,54 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         <div className="lg:col-span-2 space-y-5">
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
             <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Productos</h2>
-            <div className="space-y-4">
-              {order.products.map((p) => (
-                <div key={p.id} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
-                  {p.image ? (
-                    <Image
-                      src={p.image}
-                      alt={p.name}
-                      width={56}
-                      height={64}
-                      className="w-14 h-16 object-cover rounded-lg shrink-0 bg-gray-100"
-                      sizes="56px"
-                    />
-                  ) : (
-                    <div className="w-14 h-16 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-gray-300 text-2xl">image_not_supported</span>
+            <div className="space-y-2">
+              {order.products.map((p) => {
+                if (p.isComponent) {
+                  // Componente de un bundle: renderizar indentado y sin precio
+                  return (
+                    <div key={p.id} className="flex items-center gap-3 pl-6 py-1.5 border-b border-gray-50 last:border-0">
+                      <div className="w-6 h-6 text-gray-300 flex items-center justify-center text-xs flex-shrink-0">
+                        <span className="material-symbols-outlined text-[14px]">subdirectory_arrow_right</span>
+                      </div>
+                      {p.image ? (
+                        <Image src={p.image} alt={p.name} width={36} height={40} className="w-9 h-10 object-cover rounded-lg shrink-0 bg-gray-100" sizes="36px" />
+                      ) : (
+                        <div className="w-9 h-10 rounded-lg bg-gray-50 shrink-0 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-gray-300 text-base">image_not_supported</span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500 truncate">{p.name.replace(/^\s*↳\s*Contiene:\s*/i, "")}</p>
+                        <p className="text-[10px] text-gray-400">x{p.quantity}</p>
+                      </div>
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800 truncate">{p.name}</p>
-                    <p className="text-xs text-gray-400">x{p.quantity} · ${p.price.toFixed(2)} c/u</p>
+                  );
+                }
+                // Producto normal o cabecera de bundle
+                return (
+                  <div key={p.id} className={`flex items-center gap-4 py-3 border-b border-gray-50 last:border-0 ${p.isBundle ? "bg-purple-50/40 -mx-1 px-1 rounded-xl" : ""}`}>
+                    {p.image ? (
+                      <Image
+                        src={p.image}
+                        alt={p.name}
+                        width={56}
+                        height={64}
+                        className="w-14 h-16 object-cover rounded-lg shrink-0 bg-gray-100"
+                        sizes="56px"
+                      />
+                    ) : (
+                      <div className="w-14 h-16 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-gray-300 text-2xl">image_not_supported</span>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">{p.name}</p>
+                      <p className="text-xs text-gray-400">x{p.quantity} · ${p.price.toFixed(2)} c/u</p>
+                    </div>
+                    <p className="text-sm font-bold shrink-0">${(p.price * p.quantity).toFixed(2)}</p>
                   </div>
-                  <p className="text-sm font-bold shrink-0">${(p.price * p.quantity).toFixed(2)}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="pt-4 mt-2 space-y-1.5 border-t border-gray-100">
               <div className="flex justify-between text-sm text-gray-500"><span>Subtotal</span><span>${order.subtotal?.toFixed(2)}</span></div>

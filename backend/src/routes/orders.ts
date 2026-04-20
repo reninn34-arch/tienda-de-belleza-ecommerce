@@ -431,19 +431,37 @@ router.get("/:id", async (req: Request, res: Response) => {
     return;
   }
 
-  const productIds = order.items.map((i: OrderItemRow) => i.productId);
-  const products = await db.product.findMany({
-    where: { id: { in: productIds } },
-  }) as unknown as ProductRow[];
-  const productMap = Object.fromEntries(products.map((p) => [p.id, p]));
+  // Separar IDs reales de productos vs IDs de resumen de bundle (BNDL-RESUMEN-xxx)
+  const realProductIds = order.items
+    .map((i: OrderItemRow) => i.productId)
+    .filter((pid: string) => !pid.startsWith("BNDL-RESUMEN-"));
+
+  const bundleIds = order.items
+    .filter((i: OrderItemRow) => i.productId.startsWith("BNDL-RESUMEN-"))
+    .map((i: OrderItemRow) => i.productId.replace("BNDL-RESUMEN-", ""));
+
+  const [products, bundles] = await Promise.all([
+    db.product.findMany({ where: { id: { in: realProductIds } } }) as unknown as Promise<ProductRow[]>,
+    bundleIds.length > 0
+      ? db.bundle.findMany({ where: { id: { in: bundleIds } }, select: { id: true, image: true } })
+      : Promise.resolve([]),
+  ]);
+
+  const productMap = Object.fromEntries((products as ProductRow[]).map((p) => [p.id, p]));
+  const bundleMap = Object.fromEntries((bundles as any[]).map((b) => [`BNDL-RESUMEN-${b.id}`, b]));
 
   res.json({
     ...order,
-    products: order.items.map((item: OrderItemRow) => ({
-      ...item,
-      image: productMap[item.productId]?.image ?? null,
-    })),
+    products: order.items.map((item: OrderItemRow) => {
+      const isBundle = item.productId.startsWith("BNDL-RESUMEN-");
+      const isComponent = item.name.trimStart().startsWith("↳");
+      const image = isBundle
+        ? (bundleMap[item.productId]?.image ?? null)
+        : (productMap[item.productId]?.image ?? null);
+      return { ...item, image, isBundle, isComponent };
+    }),
   });
+
 });
 
 // ─── PUT update order (with stock restore on cancel/refund) ──────────────────
