@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { sendError } from "../lib/errors";
+import { db } from "../../../lib/db";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -18,7 +19,7 @@ export type AuthenticatedRequest = Request & {
   }
 };
 
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     sendError(res, 401, { code: "UNAUTHORIZED", message: "No autorizado" });
@@ -28,11 +29,24 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET_TYPED) as any;
+
+    // Verificar que el usuario aún existe en la base de datos
+    // Esto garantiza que las sesiones se revocan inmediatamente al eliminar un usuario
+    const adminInDb = await db.admin.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, role: true, branchId: true, email: true },
+    });
+
+    if (!adminInDb) {
+      sendError(res, 401, { code: "UNAUTHORIZED", message: "Sesión revocada" });
+      return;
+    }
+
     (req as AuthenticatedRequest).user = {
-      userId: decoded.userId,
-      email: decoded.email,
-      role: decoded.role,
-      branchId: decoded.branchId,
+      userId: adminInDb.id,
+      email: adminInDb.email,
+      role: adminInDb.role as "ADMIN" | "VENDEDOR",
+      branchId: adminInDb.branchId,
     };
     next();
   } catch {
