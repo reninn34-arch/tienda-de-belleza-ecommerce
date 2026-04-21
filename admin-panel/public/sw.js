@@ -23,14 +23,26 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
+  // Ignorar peticiones no-HTTP (ej. extensiones de Chrome)
+  if (!e.request.url.startsWith("http")) return;
+
   const url = new URL(e.request.url);
 
-  // API calls → network only (never cache order/product data)
-  if (url.pathname.startsWith("/api/")) {
-    e.respondWith(fetch(e.request));
-    return;
+  // Dejar que el navegador maneje Webpack HMR y Server-Sent Events libremente 
+  // Esto evita problemas de conexión en Next.js dev y en la página de POS/Stats
+  if (
+    url.pathname.includes("/_next/webpack-hmr") || 
+    e.request.headers.get("Accept")?.includes("text/event-stream")
+  ) {
+    return; 
   }
 
-  // Dev-safe: network only to avoid response clone errors
-  e.respondWith(fetch(e.request));
+  // Las demás peticiones van por red con fallback (y capturando el error para limpiar la consola)
+  e.respondWith(
+    fetch(e.request).catch((err) => {
+      // Capturamos el error silenciosamente en vez de lanzar "Uncaught (in promise) TypeError"
+      console.debug("SW Fetch Network Error:", err.message);
+      return caches.match(e.request);
+    })
+  );
 });

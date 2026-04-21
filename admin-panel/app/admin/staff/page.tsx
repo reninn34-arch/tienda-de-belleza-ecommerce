@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getAdminProfile } from "@/components/ProfileModal";
 
 interface Branch { id: string; name: string; }
@@ -156,9 +157,18 @@ export default function StaffPage() {
   return (
     <div className="p-4 sm:p-8 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Equipo</h1>
-          <p className="text-sm text-gray-500 mt-1">Administra roles y sucursales de tus colaboradores</p>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/settings"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-[#33172c] hover:bg-gray-100 transition-colors flex-shrink-0"
+            title="Volver a Configuración"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Gestión de Equipo</h1>
+            <p className="text-sm text-gray-500 mt-1">Administra roles y sucursales de tus colaboradores</p>
+          </div>
         </div>
         <button 
           onClick={() => { closeForm(); setShowForm(true); }}

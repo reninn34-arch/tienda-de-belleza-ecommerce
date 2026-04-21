@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 interface AccountDetails {
   bank: string;
@@ -90,9 +91,18 @@ export default function AdminPaymentsPage() {
         </div>
       )}
 
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Métodos de Pago</h1>
-        <p className="text-sm text-gray-400 mt-1">Activa, desactiva y configura los métodos de pago disponibles para tus clientes.</p>
+      <div className="flex items-center gap-3 mb-8">
+        <Link
+          href="/admin/settings"
+          className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-[#33172c] hover:bg-gray-100 transition-colors flex-shrink-0 mb-1"
+          title="Volver a Configuración"
+        >
+          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Métodos de Pago</h1>
+          <p className="text-sm text-gray-400 mt-1">Activa, desactiva y configura los métodos de pago disponibles para tus clientes.</p>
+        </div>
       </div>
 
       <div className="space-y-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface Branch {
   id: string;
@@ -115,9 +116,18 @@ export default function BranchesPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">Sucursales y Ubicaciones</h1>
-          <p className="text-sm text-gray-400 mt-1">Administra tus locales físicos para controlar el inventario y ventas separadas.</p>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/settings"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-[#33172c] hover:bg-gray-100 transition-colors flex-shrink-0"
+            title="Volver a Configuración"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </Link>
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">Sucursales y Ubicaciones</h1>
+            <p className="text-sm text-gray-400 mt-1">Administra tus locales físicos para controlar el inventario y ventas separadas.</p>
+          </div>
         </div>
         <button
           onClick={openNewModal}

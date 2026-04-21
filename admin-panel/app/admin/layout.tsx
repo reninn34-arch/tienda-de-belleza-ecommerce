@@ -37,16 +37,12 @@ const NAV_SECTIONS = [
       { label: "Páginas", href: "/admin/pages", icon: "article" },
       { label: "Carrusel y Textos", href: "/admin/content", icon: "edit_document" },
       { label: "Colecciones", href: "/admin/collections", icon: "collections_bookmark" },
-      { label: "Políticas", href: "/admin/policies", icon: "policy" },
     ],
   },
   {
-    section: "CONFIGURACIÓN",
+    section: "AJUSTES",
     items: [
-      { label: "Gestión de Equipo", href: "/admin/staff", icon: "badge" },
-      { label: "Sucursales", href: "/admin/branches", icon: "storefront" },
-      { label: "Métodos de Envío", href: "/admin/shipping", icon: "local_shipping" },
-      { label: "Métodos de Pago", href: "/admin/payments", icon: "payments" },
+      { label: "Configuración", href: "/admin/settings", icon: "settings" },
     ],
   },
 ];
@@ -462,7 +458,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {NAV_SECTIONS.map(({ section, items }) => {
             // Filtrar secciones para Vendedores
             if (adminRole === "VENDEDOR") {
-              if (section === "CONFIGURACIÓN" || section === "CONTENIDO") return null;
+              if (section === "AJUSTES" || section === "CONTENIDO") return null;
             }
 
             const filteredItems = items.filter(item => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 interface ShippingMethod {
   id: string;
@@ -84,9 +85,18 @@ export default function AdminShippingPage() {
       )}
 
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Métodos de Envío</h1>
-          <p className="text-sm text-gray-400 mt-1">Administra los métodos de envío disponibles en la tienda.</p>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/settings"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-[#33172c] hover:bg-gray-100 transition-colors flex-shrink-0"
+            title="Volver a Configuración"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Métodos de Envío</h1>
+            <p className="text-sm text-gray-400 mt-1">Administra los métodos de envío disponibles en la tienda.</p>
+          </div>
         </div>
         <button
           onClick={() => setShowNew(!showNew)}

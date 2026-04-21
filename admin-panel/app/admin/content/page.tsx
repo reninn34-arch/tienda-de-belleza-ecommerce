@@ -56,11 +56,6 @@ function emptySlide(): Slide {
   };
 }
 
-interface Branding {
-  logoUrl: string;
-  faviconUrl: string;
-}
-
 const HIGHLIGHT_ICONS = [
   { icon: "schedule", label: "Tiempo" },
   { icon: "science", label: "Ciencia" },
@@ -88,26 +83,21 @@ const HIGHLIGHT_ICONS = [
 
 export default function AdminContentPage() {
   const [content, setContent] = useState<ContentSettings | null>(null);
-  const [branding, setBranding] = useState<Branding>({ logoUrl: "", faviconUrl: "" });
+
   const [socialLinks, setSocialLinks] = useState({ instagram: "", tiktok: "", facebook: "", whatsapp: "" });
   const [footer, setFooterState] = useState<FooterSettings>({
     brandName: "", brandDesc: "", copyright: "", tagline: "", columns: [],
   });
-  const [storeName, setStoreName] = useState("");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
   const [uploadingIdx, setUploadingIdx] = useState<number | null>(null);
   const [iconPickerOpen, setIconPickerOpen] = useState<number | null>(null);
-  const [uploadingBrand, setUploadingBrand] = useState<"logo" | "favicon" | null>(null);
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const logoRef = useRef<HTMLInputElement>(null);
-  const faviconRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/admin/settings")
       .then((r) => r.json())
       .then((s) => {
-        setStoreName(s.storeName ?? "The Editorial Alchemist");
         setContent({
           ...s.content,
           slides: s.content?.slides ?? [],
@@ -120,7 +110,6 @@ export default function AdminContentPage() {
             },
           },
         });
-        setBranding(s.branding ?? { logoUrl: "", faviconUrl: "" });
         setSocialLinks(s.socialLinks ?? { instagram: "", tiktok: "", facebook: "", whatsapp: "" });
         const rawFooter = s.footer ?? {};
         // migrate legacy col1/col2 format
@@ -269,23 +258,13 @@ export default function AdminContentPage() {
     setUploadingIdx(null);
   }
 
-  async function uploadBrandAsset(key: "logo" | "favicon", file: File) {
-    setUploadingBrand(key);
-    const form = new FormData();
-    form.append("file", file);
-    const res = await fetch("/api/admin/upload", { method: "POST", body: form });
-    const data = await res.json();
-    if (data.url) setBranding((prev) => ({ ...prev, [key === "logo" ? "logoUrl" : "faviconUrl"]: data.url }));
-    setUploadingBrand(null);
-  }
-
   async function handleSave() {
     if (!content) return;
     setSaving(true);
     await fetch("/api/admin/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storeName, content, branding, socialLinks, footer }),
+      body: JSON.stringify({ content, socialLinks, footer }),
     });
     setSaving(false);
     setToast("Contenido guardado correctamente.");
@@ -311,119 +290,6 @@ export default function AdminContentPage() {
       </div>
 
       <div className="space-y-6">
-        {/* Identidad de Marca */}
-        <input type="file" accept="image/*" ref={logoRef} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBrandAsset("logo", f); }} />
-        <input type="file" accept="image/*,.ico" ref={faviconRef} className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBrandAsset("favicon", f); }} />
-
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-          <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Identidad de Marca</h2>
-          <p className="text-[11px] text-gray-400 mb-5">Logo que reemplaza el nombre de texto en el header. Favicon que aparece en la pestaña del navegador.</p>
-          <div className="space-y-5">
-            {/* Store name */}
-            <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Nombre de la Tienda</label>
-              <input
-                value={storeName}
-                onChange={(e) => setStoreName(e.target.value)}
-                placeholder="The Editorial Alchemist"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none"
-              />
-              <p className="text-[10px] text-gray-400 mt-1">Aparece en el login del admin y en el panel.</p>
-            </div>
-            {/* Logo */}
-            <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Logo de la Tienda</label>
-              <div className="flex gap-2">
-                <input
-                  value={branding.logoUrl}
-                  onChange={(e) => setBranding((prev) => ({ ...prev, logoUrl: e.target.value }))}
-                  placeholder="https://... o sube una imagen"
-                  className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none"
-                />
-                <button
-                  onClick={() => logoRef.current?.click()}
-                  disabled={uploadingBrand === "logo"}
-                  className="px-3 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center gap-1"
-                >
-                  {uploadingBrand === "logo" ? (
-                    <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span className="material-symbols-outlined text-[16px]">upload</span>
-                  )}
-                </button>
-                {branding.logoUrl && (
-                  <button
-                    onClick={() => setBranding((prev) => ({ ...prev, logoUrl: "" }))}
-                    className="px-3 py-2.5 border border-red-100 text-red-400 rounded-xl hover:bg-red-50 transition-colors"
-                    title="Eliminar logo"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">delete</span>
-                  </button>
-                )}
-              </div>
-              {branding.logoUrl && (
-                <div className="mt-3 bg-[#faf9f6] border border-gray-100 rounded-xl px-4 py-3 inline-flex items-center">
-                  <Image
-                    src={branding.logoUrl}
-                    alt="Logo preview"
-                    width={200}
-                    height={40}
-                    className="h-10 max-w-[200px] object-contain"
-                    sizes="200px"
-                  />
-                </div>
-              )}
-              <p className="text-[10px] text-gray-400 mt-1.5">Recomendado: PNG transparente, altura ~40px. Si está vacío se muestra el nombre de texto.</p>
-            </div>
-
-            {/* Favicon */}
-            <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Favicon (ícono de pestaña)</label>
-              <div className="flex gap-2">
-                <input
-                  value={branding.faviconUrl}
-                  onChange={(e) => setBranding((prev) => ({ ...prev, faviconUrl: e.target.value }))}
-                  placeholder="https://... o sube un .ico / .png"
-                  className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none"
-                />
-                <button
-                  onClick={() => faviconRef.current?.click()}
-                  disabled={uploadingBrand === "favicon"}
-                  className="px-3 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center gap-1"
-                >
-                  {uploadingBrand === "favicon" ? (
-                    <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span className="material-symbols-outlined text-[16px]">upload</span>
-                  )}
-                </button>
-                {branding.faviconUrl && (
-                  <button
-                    onClick={() => setBranding((prev) => ({ ...prev, faviconUrl: "" }))}
-                    className="px-3 py-2.5 border border-red-100 text-red-400 rounded-xl hover:bg-red-50 transition-colors"
-                    title="Eliminar favicon"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">delete</span>
-                  </button>
-                )}
-              </div>
-              {branding.faviconUrl && (
-                <div className="mt-3 bg-[#faf9f6] border border-gray-100 rounded-xl px-4 py-3 inline-flex items-center gap-3">
-                  <Image
-                    src={branding.faviconUrl}
-                    alt="Favicon preview"
-                    width={32}
-                    height={32}
-                    className="w-8 h-8 object-contain"
-                    sizes="32px"
-                  />
-                  <span className="text-[11px] text-gray-400">Vista previa del favicon</span>
-                </div>
-              )}
-              <p className="text-[10px] text-gray-400 mt-1.5">Recomendado: .ico o PNG 32×32px. Los cambios se aplican al recargar la página.</p>
-            </div>
-          </div>
-        </div>
 
         {/* Redes Sociales */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
