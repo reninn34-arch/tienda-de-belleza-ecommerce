@@ -299,25 +299,36 @@ export default function ProductForm({ initial, mode, productId }: ProductFormPro
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20 text-gray-800" style={{ fontFamily: "Manrope, sans-serif" }}>
       {/* Barra superior de acciones fijas (Estilo Shopify) */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {mode === "new" ? "Crear producto" : "Editar producto"}
-        </h1>
-        <div className="flex items-center gap-3">
-          <button 
-            type="button" 
-            onClick={() => router.push("/admin/products")} 
-            className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Descartar
+      <div className="sticky top-12 z-40 bg-[#f6f7f9] pt-4 pb-4 border-b border-gray-200 mb-6 -mx-4 px-4 sm:-mx-8 sm:px-8 flex flex-col gap-2">
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <button type="button" onClick={() => router.push("/admin/products")} className="hover:text-gray-900 flex items-center gap-1 transition-colors">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Productos
           </button>
-          <button 
-            onClick={handleSubmit}
-            disabled={saving} 
-            className="px-4 py-2 text-sm font-semibold text-white bg-[#33172c] rounded-lg hover:bg-[#4b2c42] disabled:opacity-50 transition-colors shadow-sm"
-          >
-            {saving ? "Guardando..." : "Guardar producto"}
-          </button>
+          <span className="text-gray-300">/</span>
+          <span className="text-gray-900 font-medium truncate max-w-[200px]">{mode === "new" ? "Nuevo producto" : (form.name || "Editar producto")}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {mode === "new" ? "Crear producto" : "Editar producto"}
+          </h1>
+          <div className="flex items-center gap-3">
+            <button 
+              type="button" 
+              onClick={() => router.push("/admin/products")} 
+              className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Descartar
+            </button>
+            <button 
+              onClick={handleSubmit}
+              disabled={saving} 
+              className="px-4 py-2 text-sm font-semibold text-white bg-[#33172c] rounded-lg hover:bg-[#4b2c42] disabled:opacity-50 transition-colors shadow-sm"
+            >
+              {saving ? "Guardando..." : "Guardar"}
+            </button>
+          </div>
         </div>
       </div>
 

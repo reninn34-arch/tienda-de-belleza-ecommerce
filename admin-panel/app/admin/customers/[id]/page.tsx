@@ -72,11 +72,17 @@ export default function CustomerDetailPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-7xl mx-auto">
-      {/* Breadcrumbs */}
-      <div className="mb-6 flex items-center gap-2 text-xs text-gray-400">
-        <Link href="/admin/customers" className="hover:text-gray-600 transition-colors">Clientes</Link>
-        <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-        <span className="text-gray-600 font-semibold">{customer.name || 'Cargando...'}</span>
+      <div className="sticky top-12 z-40 bg-[#f6f7f9] pt-4 pb-4 border-b border-gray-200 mb-8 -mx-4 px-4 sm:-mx-8 sm:px-8">
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+          <Link href="/admin/customers" className="hover:text-gray-900 flex items-center gap-1 transition-colors">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Clientes
+          </Link>
+          <span className="text-gray-300">/</span>
+          <span className="text-gray-900 font-medium truncate">{customer.name || 'Cargando...'}</span>
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900">{customer.name}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -87,7 +93,6 @@ export default function CustomerDetailPage() {
                 <div className="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-2xl mb-4">
                   {customer.name?.charAt(0).toUpperCase() || '?'}
                 </div>
-                <h2 className="text-xl font-bold text-gray-900">{customer.name}</h2>
                 <p className="text-sm text-gray-500">{customer.email}</p>
                 {customer.cedula && (
                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-2">

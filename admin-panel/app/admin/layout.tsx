@@ -12,6 +12,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { getAdminProfile } from "@/components/ProfileModal";
 import NotificationsPanel, { type Notif } from "@/components/NotificationsPanel";
+import Omnibar from "@/components/admin/Omnibar";
 
 const NAV_SECTIONS = [
   {
@@ -59,6 +60,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notif[]>([]);
   const [storeUrl, setStoreUrl] = useState("/");
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const buildNotifs = useCallback((orders: Record<string, unknown>[], products: Record<string, unknown>[], purchases: Record<string, unknown>[], read: Set<string>): Notif[] => {
     const notifs: Notif[] = [];
@@ -310,6 +312,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
   }, [pathname, router, buildNotifs]);
 
+  // Keyboard shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   if (!ready) {
     return (
       <div className="min-h-screen bg-[#0f0a1a] flex items-center justify-center">
@@ -364,83 +378,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex h-screen bg-[#f6f7f9] overflow-hidden" style={{ fontFamily: "Manrope, sans-serif" }}>
 
-      {/* ── Mobile top bar ─────────────────────────────────────── */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-50 h-14 bg-[#1f1030] flex items-center gap-3 px-4 shadow-lg print:hidden">
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="p-1.5 rounded-lg hover:bg-white/10 text-white transition-colors flex-shrink-0"
-          aria-label="Abrir menú"
-        >
-          <span className="material-symbols-outlined text-[22px]">menu</span>
-        </button>
-        <p className="text-sm font-bold text-white flex-1 truncate">{storeName || "Admin"}</p>
-        {/* Bell — mobile */}
-        <button
-          onClick={() => setNotifOpen(true)}
-          className="relative p-1.5 rounded-lg hover:bg-white/10 text-white transition-colors flex-shrink-0"
-          aria-label="Notificaciones"
-        >
-          <span className="material-symbols-outlined text-[22px]">notifications</span>
-          {unreadCount > 0 && (
-            <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-rose-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </button>
-        <Link
-          href="/admin/profile"
-          onClick={() => setSidebarOpen(false)}
-          className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 hover:bg-white/30 transition-colors"
-        >
-          {adminName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "A"}
-        </Link>
-      </div>
-
       {/* ── Mobile overlay ─────────────────────────────────────── */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-[60] lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* ── Sidebar ────────────────────────────────────────────── */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-[#1f1030] text-white overflow-y-auto transition-transform duration-300
+        fixed inset-y-0 left-0 z-[70] w-64 flex flex-col bg-[#1f1030] text-white overflow-y-auto transition-transform duration-300
         lg:static lg:z-auto lg:w-56 lg:flex-shrink-0 lg:translate-x-0
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         print:hidden
       `}>
         {/* Brand */}
-        <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
+        <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between h-14">
           <div>
             <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-white/50">{storeName || "Panel"}</p>
             <p className="text-sm font-bold text-white mt-0.5">Admin</p>
           </div>
-          <div className="flex items-center gap-1">
-            {/* Bell — desktop */}
-            <button
-              onClick={() => setNotifOpen(true)}
-              className="relative p-1.5 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-              aria-label="Notificaciones"
-            >
-              <span className="material-symbols-outlined text-[18px]">notifications</span>
-              {unreadCount > 0 && (
-                <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-rose-500 rounded-full text-[8px] font-bold text-white flex items-center justify-center">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
-            >
-              <span className="material-symbols-outlined text-[20px]">close</span>
-            </button>
-          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+          >
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
         </div>
 
-        {/* Dashboard */}
+        {/* Navigation */}
         <nav className="flex-1 px-3 py-4">
           <Link
             href="/admin"
@@ -456,22 +423,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
 
           {NAV_SECTIONS.map(({ section, items }) => {
-            // Filtrar secciones para Vendedores
             if (adminRole === "VENDEDOR") {
               if (section === "AJUSTES" || section === "CONTENIDO") return null;
             }
 
             const filteredItems = items.filter(item => {
               if (adminRole === "VENDEDOR") {
-                // Vendedor no ve Analítica, Categorías, Gastos, Cajas, Proveedores ni Compras
-                const forbidden = [
-                  "/admin/analytics", 
-                  "/admin/categories", 
-                  "/admin/expenses", 
-                  "/admin/cash", 
-                  "/admin/suppliers", 
-                  "/admin/purchases"
-                ];
+                const forbidden = ["/admin/analytics", "/admin/categories", "/admin/expenses", "/admin/cash", "/admin/suppliers", "/admin/purchases"];
                 if (forbidden.includes(item.href)) return false;
               }
               return true;
@@ -507,42 +465,90 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
 
-        {/* Profile button */}
-        <div className="px-3 py-3 border-t border-white/10">
-          <Link
-            href="/admin/profile"
-            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/10 transition-colors group text-left ${pathname === "/admin/profile" ? "bg-white/15" : ""}`}
-          >
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0">
-              {adminName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "A"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-white truncate">{adminName}</p>
-              <p className="text-[10px] text-white/40 truncate">{adminEmail}</p>
-            </div>
-            <span className="material-symbols-outlined text-[16px] text-white/30 group-hover:text-white/60 flex-shrink-0">settings</span>
-          </Link>
-        </div>
-
-        {/* Footer */}
-        <div className="px-4 py-3 border-t border-white/10 space-y-1">
+        {/* Footer Sidebar */}
+        <div className="px-4 py-3 border-t border-white/10 space-y-1 mt-auto">
           <Link
             href={storeUrl}
             target="_blank"
-            className="flex items-center gap-2 text-[12px] text-white/40 hover:text-white/70 transition-colors"
+            className="flex items-center gap-2 text-[12px] text-white/40 hover:text-white/70 transition-colors py-1.5 px-2"
           >
             <span className="material-symbols-outlined text-[16px]">open_in_new</span>
             Ver tienda
           </Link>
           <button
             onClick={logout}
-            className="flex items-center gap-2 text-[12px] text-white/40 hover:text-white/70 transition-colors w-full"
+            className="flex items-center gap-2 text-[12px] text-white/40 hover:text-white/70 transition-colors w-full text-left py-1.5 px-2"
           >
             <span className="material-symbols-outlined text-[16px]">logout</span>
             Cerrar sesión
           </button>
         </div>
       </aside>
+
+      {/* ── Main Area ─────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col min-w-0 relative h-screen overflow-hidden">
+        
+        {/* Unified Top Header - Glassmorphism & Overlay Style */}
+        <header className="absolute top-0 left-0 right-0 h-12 flex items-center justify-between px-4 sm:px-6 shrink-0 z-50 print:hidden bg-white/50 backdrop-blur-md border-b border-gray-200/30">
+          <div className="flex items-center gap-4 flex-1">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-1.5 rounded-lg hover:bg-black/5 text-gray-600 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[24px]">menu</span>
+            </button>
+            
+            {/* Search Input Placeholder - Delicate & Modern Style */}
+            <div className="max-w-[280px] w-full">
+              <button 
+                onClick={() => setSearchOpen(true)}
+                className="w-full h-8 flex items-center gap-2 px-3 bg-white/40 hover:bg-white/80 rounded-full text-gray-500 transition-all text-[12px] text-left group border border-gray-200/50 shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[16px] opacity-60">search</span>
+                <span className="flex-1 truncate opacity-70">Buscar...</span>
+                <div className="hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-gray-500/10 text-[9px] font-medium text-gray-500 opacity-60">
+                  <span className="text-[10px]">⌘</span>
+                  <span>K</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-4 ml-4">
+            {/* Notifications */}
+            <button
+              onClick={() => setNotifOpen(true)}
+              className="relative p-2 rounded-lg hover:bg-black/5 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">notifications</span>
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-rose-500 rounded-full text-[8px] font-bold text-white flex items-center justify-center border-2 border-white/50">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Profile */}
+            <Link
+              href="/admin/profile"
+              className="flex items-center gap-2 p-1 pl-1 pr-1.5 sm:pr-2 rounded-full hover:bg-black/5 transition-colors"
+            >
+              <div className="w-7 h-7 rounded-full bg-[#33172c] flex items-center justify-center text-[10px] font-bold text-white shrink-0 shadow-sm">
+                {adminName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "A"}
+              </div>
+              <div className="hidden sm:block text-left">
+                <p className="text-[10px] font-bold text-gray-800 leading-tight truncate max-w-[80px]">{adminName}</p>
+                <p className="text-[8px] text-gray-500 leading-tight uppercase font-bold tracking-tighter">{adminRole}</p>
+              </div>
+            </Link>
+          </div>
+        </header>
+
+        {/* Content Container - Smart padding: pt-12 for standard pages, pt-0 for Hero pages (Profile) */}
+        <main className={`flex-1 overflow-y-auto relative print:overflow-visible print:block ${pathname === '/admin/profile' ? 'pt-0' : 'pt-12'}`}>
+          {children}
+        </main>
+      </div>
 
       {/* Notifications Panel */}
       <NotificationsPanel
@@ -553,8 +559,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         onMarkAllRead={markAllRead}
       />
 
-      {/* Content */}
-      <main className="flex-1 overflow-y-auto pt-14 lg:pt-0 print:overflow-visible print:pt-0 print:block">{children}</main>
+      {/* Omnibar Search */}
+      <Omnibar open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

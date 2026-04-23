@@ -143,18 +143,26 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      <div className="flex items-center gap-3 mb-8">
-        <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
-          <span className="material-symbols-outlined text-gray-400">arrow_back</span>
-        </button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">{order.id}</h1>
-            <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${currentStatus?.color}`}>
-              {currentStatus?.label}
-            </span>
+      <div className="sticky top-12 z-40 bg-[#f6f7f9] pt-4 pb-4 border-b border-gray-200 mb-8 -mx-4 px-4 sm:-mx-8 sm:px-8">
+        {/* Breadcrumbs */}
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+          <button type="button" onClick={() => router.push("/admin/orders")} className="hover:text-gray-900 flex items-center gap-1 transition-colors">
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Pedidos
+          </button>
+          <span className="text-gray-300">/</span>
+          <span className="text-gray-900 font-medium truncate">Pedido #{order.id}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">{order.id}</h1>
+              <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${currentStatus?.color}`}>
+                {currentStatus?.label}
+              </span>
+            </div>
+            <p className="text-sm text-gray-400 mt-0.5">{formatDate(order.date)}</p>
           </div>
-          <p className="text-sm text-gray-400 mt-0.5">{formatDate(order.date)}</p>
         </div>
       </div>
 

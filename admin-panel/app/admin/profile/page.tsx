@@ -98,7 +98,7 @@ export default function ProfilePage() {
         <div className="absolute -top-16 -right-16 w-72 h-72 rounded-full bg-white/5" />
         <div className="absolute top-8 right-32 w-40 h-40 rounded-full bg-white/5" />
 
-        <div className="relative px-10 py-10 flex items-center gap-8">
+        <div className="relative px-10 pt-20 pb-10 flex items-center gap-8">
           {/* avatar */}
           <div className="w-24 h-24 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-3xl font-bold text-white flex-shrink-0">
             {initials}
