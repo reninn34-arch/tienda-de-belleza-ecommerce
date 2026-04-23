@@ -37,12 +37,23 @@ self.addEventListener("fetch", (e) => {
     return; 
   }
 
-  // Las demás peticiones van por red con fallback (y capturando el error para limpiar la consola)
+  // Las demás peticiones van por red con fallback
   e.respondWith(
-    fetch(e.request).catch((err) => {
-      // Capturamos el error silenciosamente en vez de lanzar "Uncaught (in promise) TypeError"
+    fetch(e.request).catch(async (err) => {
       console.debug("SW Fetch Network Error:", err.message);
-      return caches.match(e.request);
+      const cachedResponse = await caches.match(e.request);
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      // Si falla la red y no está en caché, DEBEMOS retornar un Response válido
+      // para evitar el error "Failed to convert value to 'Response'"
+      return new Response(
+        JSON.stringify({ error: "Sin conexión a internet y sin caché disponible." }), 
+        { 
+          status: 503,
+          headers: { "Content-Type": "application/json" }
+        }
+      );
     })
   );
 });
