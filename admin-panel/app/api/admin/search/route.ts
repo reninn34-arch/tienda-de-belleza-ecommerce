@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { db as prisma } from "@/lib/db";
 
 const STATIC_PAGES = [
   { title: "Dashboard", url: "/admin", icon: "dashboard" },
@@ -69,7 +69,17 @@ export async function GET(request: Request) {
       }),
     ]);
 
-    const results = [];
+    interface SearchResult {
+      id: string;
+      type: "page" | "product" | "order" | "customer";
+      title: string;
+      subtitle: string;
+      url: string;
+      icon: string;
+      image?: string | null;
+    }
+
+    const results: SearchResult[] = [];
 
     // 1. Pages
     const pages = STATIC_PAGES.filter(p => p.title.toLowerCase().includes(q) || p.url.toLowerCase().includes(q));
