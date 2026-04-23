@@ -20,4 +20,51 @@
 
 body {
   font-family: var(--font-manrope), sans-serif;
+  @apply bg-[#f6f7f9] text-gray-900;
+}
+
+/* ── Premium Animations ── */
+@keyframes revealPage {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-reveal-page {
+  animation: revealPage 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* ── Hover Effects ── */
+.hover-lift {
+  @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-200/50 hover:border-gray-300;
+}
+
+/* ── Modern Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
 }

@@ -57,6 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [adminRole, setAdminRole] = useState<"ADMIN" | "VENDEDOR">("ADMIN");
   const [storeName, setStoreName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notif[]>([]);
   const [storeUrl, setStoreUrl] = useState("/");
@@ -388,17 +389,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* ── Sidebar ────────────────────────────────────────────── */}
       <aside className={`
-        fixed inset-y-0 left-0 z-[70] w-64 flex flex-col bg-[#1f1030] text-white overflow-y-auto transition-transform duration-300
-        lg:static lg:z-auto lg:w-56 lg:flex-shrink-0 lg:translate-x-0
+        fixed inset-y-0 left-0 z-[70] flex flex-col bg-[#1f1030] text-white overflow-y-auto transition-all duration-300 ease-in-out
+        lg:static lg:z-auto lg:flex-shrink-0 lg:translate-x-0
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        ${isCollapsed ? "w-20" : "w-64 lg:w-48"}
         print:hidden
       `}>
-        {/* Brand */}
-        <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between h-14">
-          <div>
-            <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-white/50">{storeName || "Panel"}</p>
-            <p className="text-sm font-bold text-white mt-0.5">Admin</p>
-          </div>
+        {/* Brand & Collapse Toggle */}
+        <div className={`px-6 border-b border-white/10 flex items-center justify-between h-20 transition-all ${isCollapsed ? "px-0 justify-center" : ""}`}>
+          {!isCollapsed && (
+            <div className="animate-in fade-in duration-500">
+              <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-white/30">{storeName || "Panel"}</p>
+              <p className="text-sm font-bold text-white mt-0.5 tracking-tight">Admin</p>
+            </div>
+          )}
+          
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+            title={isCollapsed ? "Expandir" : "Colapsar"}
+          >
+            <span className="material-symbols-outlined text-[20px]">
+              {isCollapsed ? "menu_open" : "menu"}
+            </span>
+          </button>
+
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
@@ -407,19 +422,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-4">
+        <nav className="flex-1 px-3 py-4 space-y-1">
           <Link
             href="/admin"
             onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm mb-1 transition-colors ${
-              isActive("/admin") && pathname === "/admin"
-                ? "bg-white/15 text-white font-semibold"
+            className={`flex items-center gap-2.5 px-3 py-3.5 rounded-lg text-sm transition-all group ${
+              pathname === "/admin"
+                ? "bg-white/15 text-white font-semibold shadow-sm"
                 : "text-white/60 hover:bg-white/8 hover:text-white"
-            }`}
+            } ${isCollapsed ? "justify-center px-0" : ""}`}
+            title={isCollapsed ? "Dashboard" : ""}
           >
-            <span className="material-symbols-outlined text-[18px]">dashboard</span>
-            Dashboard
+            <span className="material-symbols-outlined text-[18px] transition-transform group-hover:scale-110">dashboard</span>
+            {!isCollapsed && <span className="animate-in fade-in slide-in-from-left-2 duration-300">Dashboard</span>}
           </Link>
 
           {NAV_SECTIONS.map(({ section, items }) => {
@@ -438,25 +453,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (filteredItems.length === 0) return null;
 
             return (
-              <div key={section} className="mt-5">
-                <p className="px-3 mb-1.5 text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase">
-                  {section}
-                </p>
+              <div key={section} className="pt-4">
+                {!isCollapsed ? (
+                  <p className="px-3 mb-1.5 text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase animate-in fade-in duration-300">
+                    {section}
+                  </p>
+                ) : (
+                  <div className="border-t border-white/5 mx-2 my-2" />
+                )}
                 {filteredItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-colors ${
-                      isActive(item.href)
-                        ? "bg-white/15 text-white font-semibold"
+                    className={`flex items-center gap-2.5 px-3 py-3.5 rounded-lg text-sm transition-all group relative ${
+                      pathname.startsWith(item.href)
+                        ? "bg-white/15 text-white font-semibold shadow-sm"
                         : "text-white/60 hover:bg-white/8 hover:text-white"
-                    }`}
+                    } ${isCollapsed ? "justify-center px-0" : ""}`}
+                    title={isCollapsed ? item.label : ""}
                   >
-                    <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                    <span className="flex-1">{item.label}</span>
+                    {pathname.startsWith(item.href) && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-r-full shadow-[0_0_8px_rgba(255,255,255,0.5)] animate-in fade-in duration-500" />
+                    )}
+                    <span className="material-symbols-outlined text-[18px] transition-transform group-hover:scale-110">{item.icon}</span>
+                    {!isCollapsed && <span className="flex-1 animate-in fade-in slide-in-from-left-2 duration-300">{item.label}</span>}
                     {item.label === "Inventario" && notifications.some(n => n.type === "stock" || n.type === "outofstock") && (
-                      <span className="w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50 animate-pulse" />
+                      <span className={`w-2 h-2 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50 animate-pulse ${isCollapsed ? "absolute top-2 right-2" : ""}`} />
                     )}
                   </Link>
                 ))}
@@ -466,21 +489,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* Footer Sidebar */}
-        <div className="px-4 py-3 border-t border-white/10 space-y-1 mt-auto">
+        <div className={`px-4 py-3 border-t border-white/10 space-y-1 mt-auto ${isCollapsed ? "px-0 text-center" : ""}`}>
           <Link
             href={storeUrl}
             target="_blank"
-            className="flex items-center gap-2 text-[12px] text-white/40 hover:text-white/70 transition-colors py-1.5 px-2"
+            className="flex items-center gap-2 text-[12px] text-white/40 hover:text-white/70 transition-colors py-1.5 px-2 group"
+            title={isCollapsed ? "Ver tienda" : ""}
           >
-            <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-            Ver tienda
+            <span className="material-symbols-outlined text-[16px] group-hover:rotate-45 transition-transform">open_in_new</span>
+            {!isCollapsed && <span className="animate-in fade-in duration-300">Ver tienda</span>}
           </Link>
           <button
-            onClick={logout}
-            className="flex items-center gap-2 text-[12px] text-white/40 hover:text-white/70 transition-colors w-full text-left py-1.5 px-2"
+            onClick={() => { localStorage.removeItem("adminAuth"); router.replace("/admin/login"); }}
+            className="flex items-center gap-2 text-[12px] text-white/40 hover:text-white/70 transition-colors w-full text-left py-1.5 px-2 group"
+            title={isCollapsed ? "Cerrar sesión" : ""}
           >
-            <span className="material-symbols-outlined text-[16px]">logout</span>
-            Cerrar sesión
+            <span className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">logout</span>
+            {!isCollapsed && <span className="animate-in fade-in duration-300">Cerrar sesión</span>}
           </button>
         </div>
       </aside>
@@ -545,7 +570,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </header>
 
         {/* Content Container - Smart padding: pt-12 for standard pages, pt-0 for Hero pages (Profile) */}
-        <main className={`flex-1 overflow-y-auto relative print:overflow-visible print:block ${pathname === '/admin/profile' ? 'pt-0' : 'pt-12'}`}>
+        <main 
+          key={pathname}
+          className={`flex-1 overflow-y-auto relative print:overflow-visible print:block animate-reveal-page ${pathname === '/admin/profile' ? 'pt-0' : 'pt-12'}`}
+        >
           {children}
         </main>
       </div>
