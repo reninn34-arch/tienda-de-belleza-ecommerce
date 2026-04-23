@@ -20,14 +20,14 @@
 
 body {
   font-family: var(--font-manrope), sans-serif;
-  @apply bg-[#f6f7f9] text-gray-900;
+  @apply bg-[#f6f7f9] text-gray-900 antialiased;
 }
 
-/* ── Premium Animations ── */
+/* ── Fluid Page Reveal ── */
 @keyframes revealPage {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -36,18 +36,22 @@ body {
 }
 
 .animate-reveal-page {
-  animation: revealPage 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation: revealPage 0.35s cubic-bezier(0, 0, 0.2, 1) forwards;
 }
 
-/* ── Hover Effects ── */
-.hover-lift {
-  @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-200/50 hover:border-gray-300;
+/* ── Fluid Interactions ── */
+.fluid-interactive {
+  @apply transition-all duration-150 ease-out active:scale-[0.98];
 }
 
-/* ── Modern Scrollbar ── */
+.hover-lift-subtle {
+  @apply transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:shadow-gray-200/50 hover:border-gray-300/50;
+}
+
+/* ── Minimal Scrollbar ── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -55,12 +59,24 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 10px;
+  @apply bg-gray-300 rounded-full hover:bg-gray-400 transition-colors;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+/* ── Skeleton Shimmer ── */
+.skeleton-shimmer {
+  @apply relative overflow-hidden bg-gray-100 rounded-lg;
+}
+
+.skeleton-shimmer::after {
+  content: "";
+  @apply absolute inset-0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* For Firefox */

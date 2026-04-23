@@ -1178,9 +1178,9 @@ export default function AnalyticsPage() {
                           <div className="flex flex-col items-end gap-1 flex-shrink-0">
                             <span className="text-[11px] font-bold text-gray-700">${o.total.toFixed(0)}</span>
                             <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold uppercase ${o.status === "completed" ? "bg-emerald-100 text-emerald-700" :
-                                o.status === "pending" ? "bg-amber-100 text-amber-700" :
-                                  o.status === "cancelled" ? "bg-red-100 text-red-600" :
-                                    "bg-gray-100 text-gray-600"
+                              o.status === "pending" ? "bg-amber-100 text-amber-700" :
+                                o.status === "cancelled" ? "bg-red-100 text-red-600" :
+                                  "bg-gray-100 text-gray-600"
                               }`}>{o.status}</span>
                           </div>
                         </div>

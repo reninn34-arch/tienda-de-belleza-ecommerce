@@ -231,11 +231,11 @@ export default function DashboardClient({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {STATS.map((stat) => (
           <Link key={stat.label} href={stat.href}
-            className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all group">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${stat.color}`}>
+            className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm hover-lift-subtle fluid-interactive group">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${stat.color} transition-colors group-hover:scale-110`}>
               <span className="material-symbols-outlined text-[20px]">{stat.icon}</span>
             </div>
-            <div className="text-2xl font-bold text-gray-900 group-hover:text-[#33172c] transition-colors">{stat.value}</div>
+            <div className="text-2xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{stat.value}</div>
             <div className="text-[11px] text-gray-500 mt-1 uppercase tracking-wider font-semibold">{stat.label}</div>
           </Link>
         ))}
@@ -381,8 +381,8 @@ export default function DashboardClient({
           <div className="space-y-1">
             {QUICK_ACTIONS.map((a) => (
               <Link key={a.href} href={a.href}
-                className="flex items-center gap-3 text-sm text-gray-600 hover:text-[#33172c] hover:bg-gray-50 px-3 py-2.5 rounded-xl transition-colors">
-                <span className="material-symbols-outlined text-[18px] text-gray-500">{a.icon}</span>
+                className="flex items-center gap-3 text-sm text-gray-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-3 py-2.5 rounded-xl transition-all fluid-interactive">
+                <span className="material-symbols-outlined text-[18px] text-gray-400 group-hover:text-indigo-500">{a.icon}</span>
                 {a.label}
               </Link>
             ))}
@@ -400,7 +400,7 @@ export default function DashboardClient({
             <div className="space-y-3">
               {orders.slice(0, 5).map((order) => (
                 <Link key={order.id} href={`/admin/orders/${order.id}`}
-                  className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                  className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 fluid-interactive">
                   <div>
                     <p className="text-sm font-semibold text-gray-800">{order.customer}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{order.id} {order.date} {order.items} art.</p>
