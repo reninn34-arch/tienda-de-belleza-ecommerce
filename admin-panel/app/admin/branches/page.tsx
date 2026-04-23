@@ -139,7 +139,8 @@ export default function BranchesPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[800px] whitespace-nowrap">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50/50">
               <th className="py-4 px-5 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre del Local</th>
@@ -194,6 +195,7 @@ export default function BranchesPage() {
             ))}
           </tbody>
         </table>
+          </div>
         {branches.length === 0 && (
           <div className="p-8 text-center text-gray-400">No hay sucursales creadas.</div>
         )}

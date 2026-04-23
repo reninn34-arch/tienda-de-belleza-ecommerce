@@ -146,7 +146,8 @@ export default function CustomerDetailPage() {
               {customer.orders.length === 0 ? (
                 <div className="px-6 py-12 text-center text-gray-400">Este cliente aún no tiene pedidos.</div>
               ) : (
-                <table className="w-full text-left order-collapse">
+                <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left order-collapse min-w-[800px] whitespace-nowrap">
                   <thead>
                     <tr className="bg-gray-50/30">
                       <th className="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">ID Pedido</th>
@@ -190,6 +191,7 @@ export default function CustomerDetailPage() {
                     ))}
                   </tbody>
                 </table>
+          </div>
               )}
             </div>
           </div>

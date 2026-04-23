@@ -125,54 +125,56 @@ export default function AdminOrdersPage() {
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <span className="w-7 h-7 border-2 border-[#33172c] border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 text-sm">No hay pedidos con estos filtros.</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">Pedido</th>
-                <th className="text-left px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 hidden md:table-cell">Fecha</th>
-                <th className="text-left px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 hidden lg:table-cell">Pago</th>
-                <th className="text-left px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">Total</th>
-                <th className="text-left px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">Estado</th>
-                <th className="px-5 py-3.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((order, i) => (
-                <tr key={order.id} className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${i === filtered.length - 1 ? "border-0" : ""}`}>
-                  <td className="px-5 py-4">
-                    <p className="font-semibold text-gray-900">{order.customer}</p>
-                    <p className="text-xs text-gray-400">{order.id}</p>
-                  </td>
-                  <td className="px-5 py-4 text-gray-500 hidden md:table-cell">{formatDate(order.date)}</td>
-                  <td className="px-5 py-4 hidden lg:table-cell">
-                    <span className="flex items-center gap-1.5 text-gray-500">
-                      <span className="material-symbols-outlined text-[16px]">{PAYMENT_ICON[order.paymentMethod] ?? "payments"}</span>
-                      {PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 font-bold text-gray-900">${order.total.toFixed(2)}</td>
-                  <td className="px-5 py-4">
-                    <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${STATUS_COLOR[order.status] ?? "bg-gray-100 text-gray-500"}`}>
-                      {STATUS_LABEL[order.status] ?? order.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <Link href={`/admin/orders/${order.id}`} className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-[#33172c] inline-flex">
-                      <span className="material-symbols-outlined text-[18px]">visibility</span>
-                    </Link>
-                  </td>
+        <div className="overflow-x-auto custom-scrollbar">
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <span className="w-7 h-7 border-2 border-[#33172c] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 text-gray-400 text-sm">No hay pedidos con estos filtros.</div>
+          ) : (
+            <table className="w-full text-sm min-w-[600px]">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left px-4 sm:px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">Pedido</th>
+                  <th className="text-left px-4 sm:px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 hidden md:table-cell">Fecha</th>
+                  <th className="text-left px-4 sm:px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400 hidden lg:table-cell">Pago</th>
+                  <th className="text-left px-4 sm:px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">Total</th>
+                  <th className="text-left px-4 sm:px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">Estado</th>
+                  <th className="px-4 sm:px-5 py-3.5" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody>
+                {filtered.map((order, i) => (
+                  <tr key={order.id} className={`border-b border-gray-50 hover:bg-gray-50/50 transition-colors ${i === filtered.length - 1 ? "border-0" : ""}`}>
+                    <td className="px-4 sm:px-5 py-4">
+                      <p className="font-semibold text-gray-900 truncate max-w-[150px] sm:max-w-xs">{order.customer}</p>
+                      <p className="text-xs text-gray-400 truncate max-w-[150px] sm:max-w-xs">{order.id}</p>
+                    </td>
+                    <td className="px-4 sm:px-5 py-4 text-gray-500 hidden md:table-cell">{formatDate(order.date)}</td>
+                    <td className="px-4 sm:px-5 py-4 hidden lg:table-cell">
+                      <span className="flex items-center gap-1.5 text-gray-500 whitespace-nowrap">
+                        <span className="material-symbols-outlined text-[16px]">{PAYMENT_ICON[order.paymentMethod] ?? "payments"}</span>
+                        {PAYMENT_LABEL[order.paymentMethod] ?? order.paymentMethod}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-5 py-4 font-bold text-gray-900 whitespace-nowrap">${order.total.toFixed(2)}</td>
+                    <td className="px-4 sm:px-5 py-4">
+                      <span className={`text-[10px] font-bold uppercase px-2.5 py-1 rounded-full whitespace-nowrap ${STATUS_COLOR[order.status] ?? "bg-gray-100 text-gray-500"}`}>
+                        {STATUS_LABEL[order.status] ?? order.status}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-5 py-4 text-right">
+                      <Link href={`/admin/orders/${order.id}`} className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-[#33172c] inline-flex">
+                        <span className="material-symbols-outlined text-[18px]">visibility</span>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   );

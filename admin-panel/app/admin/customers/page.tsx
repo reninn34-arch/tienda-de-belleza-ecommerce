@@ -123,7 +123,8 @@ export default function CustomersPage() {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[800px] whitespace-nowrap">
             <thead>
               <tr className="bg-gray-50/50">
                 <th className="px-6 py-4 text-[11px] font-bold text-gray-500 uppercase tracking-wider">Cliente</th>
@@ -197,6 +198,7 @@ export default function CustomersPage() {
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>

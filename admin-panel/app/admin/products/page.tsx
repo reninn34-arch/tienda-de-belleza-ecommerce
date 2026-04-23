@@ -137,7 +137,8 @@ export default function AdminProductsPage() {
             {search || category !== "all" ? "Sin resultados para esta búsqueda." : "No hay productos. Crea el primero."}
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-sm min-w-[800px] whitespace-nowrap">
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="text-left px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">Producto</th>
@@ -197,6 +198,7 @@ export default function AdminProductsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

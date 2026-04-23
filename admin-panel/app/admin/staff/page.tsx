@@ -180,7 +180,8 @@ export default function StaffPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-sm min-w-[800px] whitespace-nowrap">
           <thead>
             <tr className="bg-gray-50/50 border-b border-gray-100">
               <th className="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-gray-400">Usuario</th>
@@ -240,6 +241,7 @@ export default function StaffPage() {
             ))}
           </tbody>
         </table>
+          </div>
       </div>
 
       {/* MODAL FORM */}

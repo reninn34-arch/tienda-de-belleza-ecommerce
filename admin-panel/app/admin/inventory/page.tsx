@@ -184,9 +184,9 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 custom-scrollbar">
           {/* Type Filters */}
-          <div className="flex bg-gray-100 p-1 rounded-xl mr-2">
+          <div className="flex bg-gray-100 p-1 rounded-xl flex-shrink-0">
             {[
               { id: 'all', label: 'Todos', icon: 'list' },
               { id: 'products', label: 'Prods', icon: 'inventory_2' },
@@ -206,23 +206,25 @@ export default function InventoryPage() {
             ))}
           </div>
 
-          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:block">
-            Sucursal:
-          </label>
-          <select
-            value={selectedBranchId}
-            onChange={(e) => {
-              setSelectedBranchId(e.target.value);
-              setChanges({}); // Limpiar cambios no guardados al cambiar de sucursal
-            }}
-            className="bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none shadow-sm min-w-[200px]"
-          >
-            {branches.map(b => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest hidden md:block">
+              Sucursal:
+            </label>
+            <select
+              value={selectedBranchId}
+              onChange={(e) => {
+                setSelectedBranchId(e.target.value);
+                setChanges({}); // Limpiar cambios no guardados al cambiar de sucursal
+              }}
+              className="bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-800 focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none shadow-sm min-w-[160px] md:min-w-[200px]"
+            >
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -235,8 +237,9 @@ export default function InventoryPage() {
 
       {selectedBranchId ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
                 <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest w-[60px]">Img</th>
                 <th className="py-3 px-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Producto</th>
@@ -357,8 +360,9 @@ export default function InventoryPage() {
               })}
             </tbody>
           </table>
+          </div>
 
-          <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+          <div className="p-4 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
             <p className="text-xs text-gray-400">
               {Object.keys(changes).length > 0
                 ? <span className="text-amber-600 font-bold">{Object.keys(changes).length} producto(s) modificados</span>

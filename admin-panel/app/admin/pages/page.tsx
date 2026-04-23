@@ -159,7 +159,8 @@ export default function PagesAdminPage() {
             No hay páginas. Crea la primera con el botón de arriba.
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-sm min-w-[800px] whitespace-nowrap">
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="text-left px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">Título</th>
@@ -213,6 +214,7 @@ export default function PagesAdminPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

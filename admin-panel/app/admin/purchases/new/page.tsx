@@ -200,7 +200,8 @@ export default function NewPurchasePage() {
              </div>
 
              <div className="overflow-x-auto min-h-[300px]">
-               <table className="w-full text-left">
+               <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left min-w-[800px] whitespace-nowrap">
                  <thead>
                     <tr className="bg-gray-50/50">
                       <th className="px-6 py-3 text-[10px] font-bold text-gray-400 uppercase">Producto</th>
@@ -256,6 +257,7 @@ export default function NewPurchasePage() {
                     )}
                  </tbody>
                </table>
+          </div>
              </div>
           </div>
 
