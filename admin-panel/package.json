@@ -4,13 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "npx prisma generate --schema=../prisma/schema.prisma && next build",
+    "build": "prisma generate --schema=../prisma/schema.prisma && next build",
     "start": "next start -p 3001",
     "lint": "eslint"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.6.0",
-    "@prisma/client": "^7.6.0",
+    "@prisma/client": "7.8.0",
     "jsonwebtoken": "^9.0.3",
     "next": "16.2.2",
     "pg": "^8.20.0",
@@ -19,6 +19,7 @@
     "sharp": "^0.34.5"
   },
   "devDependencies": {
+    "prisma": "7.8.0",
     "@tailwindcss/postcss": "^4",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
