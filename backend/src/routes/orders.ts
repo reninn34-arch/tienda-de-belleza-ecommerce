@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { db } from "../../../lib/db";
+import { db } from "../lib/db";
 import { sendError, type ErrorCode } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
 import { AuthenticatedRequest } from "../middleware/auth";

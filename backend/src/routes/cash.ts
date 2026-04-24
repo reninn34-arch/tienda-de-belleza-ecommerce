@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "../../../lib/db";
+import { db } from "../lib/db";
 import { sendError } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
 import { requireAuth } from "../middleware/auth";
