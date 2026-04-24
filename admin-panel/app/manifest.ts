@@ -23,18 +23,20 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     display: "standalone",
     background_color: brandColor,
     theme_color: brandColor,
+    scope: "/",
+    id: "/",
     icons: [
       {
         src: "/icon-192.png",
         sizes: "192x192",
         type: "image/png",
-        purpose: "maskable",
+        purpose: "any maskable" as any,
       },
       {
         src: "/icon-512.png",
         sizes: "512x512",
         type: "image/png",
-        purpose: "maskable",
+        purpose: "any maskable" as any,
       },
     ],
   };
