@@ -36,5 +36,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "admin-panel"]
+  "exclude": ["node_modules", "admin-panel", "backend"]
 }
