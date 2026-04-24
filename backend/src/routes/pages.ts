@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
-import { db } from "../lib/db";
+import { Prisma } from "../../../lib/generated/prisma/client";
+import { db } from "../../../lib/db";
 import { sendError } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
 import { requireAuth, requireRole } from "../middleware/auth";

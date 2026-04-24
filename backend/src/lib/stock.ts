@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "../../../lib/db";
 
 /**
  * Calculates the available stock for a bundle.
