@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "next build",
+    "build": "npx --yes prisma generate --schema=../prisma/schema.prisma && next build",
     "start": "next start -p 3001",
     "lint": "eslint"
   },
