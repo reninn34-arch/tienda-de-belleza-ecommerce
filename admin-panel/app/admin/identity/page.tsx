@@ -7,6 +7,7 @@ import Link from "next/link";
 interface Branding {
   logoUrl: string;
   faviconUrl: string;
+  brandColor?: string;
 }
 
 export default function IdentityPage() {
@@ -298,6 +299,38 @@ export default function IdentityPage() {
               <span className="text-[11px] text-gray-400">Vista previa del favicon</span>
             </div>
           )}
+        </div>
+
+        {/* Brand Color */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3 mb-5">
+            <div
+              className="w-9 h-9 rounded-lg flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, #1f1030, #33172c)" }}
+            >
+              <span className="material-symbols-outlined text-[18px] text-white">palette</span>
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-gray-800">Color de Marca</h2>
+              <p className="text-[11px] text-gray-400">
+                Se usa para la pantalla de carga en dispositivos móviles y otros elementos de identidad.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <input
+              type="color"
+              value={branding.brandColor || "#f5edf8"}
+              onChange={(e) => setBranding((prev) => ({ ...prev, brandColor: e.target.value }))}
+              className="w-12 h-12 rounded-xl border-none cursor-pointer bg-transparent"
+            />
+            <input
+              value={branding.brandColor || "#f5edf8"}
+              onChange={(e) => setBranding((prev) => ({ ...prev, brandColor: e.target.value }))}
+              placeholder="#f5edf8"
+              className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#33172c]/20 focus:border-[#33172c] outline-none transition-all uppercase"
+            />
+          </div>
         </div>
 
         {/* Save button */}

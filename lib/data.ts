@@ -18,9 +18,9 @@ export async function getStoreName(): Promise<string> {
   return (s?.storeName as string) ?? "The Editorial Alchemist";
 }
 
-export async function getBranding(): Promise<{ logoUrl: string; faviconUrl: string }> {
+export async function getBranding(): Promise<{ logoUrl: string; faviconUrl: string; brandColor?: string }> {
   const s = await getSettings();
-  return (s?.branding as { logoUrl: string; faviconUrl: string }) ?? { logoUrl: "", faviconUrl: "" };
+  return (s?.branding as { logoUrl: string; faviconUrl: string; brandColor?: string }) ?? { logoUrl: "", faviconUrl: "" };
 }
 
 export async function getSocialLinks(): Promise<{ instagram: string; tiktok: string; facebook: string; whatsapp: string }> {

@@ -20,12 +20,40 @@ import { CartProvider } from "@/context/CartContext";
 import { getStoreName } from "@/lib/data";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { faviconUrl } = await getBranding();
+  const { faviconUrl, brandColor } = await getBranding();
   const storeName = await getStoreName();
+  const themeColor = brandColor || "#f5edf8";
+
   return {
     title: storeName,
     description: "Scientific Artistry • Editorial Excellence",
+    manifest: "/manifest.json",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: storeName,
+      startupImage: "/icon-512.png",
+    },
+    formatDetection: {
+      telephone: false,
+    },
+    other: {
+      "mobile-web-app-capable": "yes",
+      "apple-mobile-web-app-capable": "yes",
+    },
     ...(faviconUrl ? { icons: { icon: faviconUrl } } : {}),
+  };
+}
+
+export async function generateViewport(): Promise<any> {
+  const { brandColor } = await getBranding();
+  return {
+    themeColor: brandColor || "#f5edf8",
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover",
   };
 }
 
