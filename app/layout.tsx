@@ -41,7 +41,9 @@ export async function generateMetadata(): Promise<Metadata> {
       "mobile-web-app-capable": "yes",
       "apple-mobile-web-app-capable": "yes",
     },
-    ...(faviconUrl ? { icons: { icon: faviconUrl } } : {}),
+    icons: {
+      icon: faviconUrl || "/favicon.ico",
+    },
   };
 }
 

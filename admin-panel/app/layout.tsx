@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   let title = "Admin Panel";
   let storeName = "Tienda";
+  let faviconUrl = "";
   try {
     const res = await fetch(`${process.env.BACKEND_URL || 'http://localhost:4000'}/api/settings`, {
       cache: "no-store",
@@ -21,6 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
       const data = await res.json();
       storeName = data?.storeName ?? "Blush";
       title = `Admin — ${storeName}`;
+      faviconUrl = data?.branding?.faviconUrl ?? "";
     }
   } catch (e: any) {
     if (e.digest !== 'DYNAMIC_SERVER_USAGE') {
@@ -43,6 +45,9 @@ export async function generateMetadata(): Promise<Metadata> {
     other: {
       "mobile-web-app-capable": "yes",
       "apple-mobile-web-app-capable": "yes",
+    },
+    icons: {
+      icon: faviconUrl || "/icon-192.png",
     },
   };
 }
