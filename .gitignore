@@ -21,6 +21,10 @@
 # production
 /build
 
+# TypeScript/Prisma generated
+backend/dist/
+lib/db.js
+
 # misc
 .DS_Store
 *.pem
