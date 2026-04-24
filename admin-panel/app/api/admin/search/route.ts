@@ -21,15 +21,51 @@ const STATIC_PAGES = [
   { title: "Configuración General", url: "/admin/settings", icon: "settings" },
 ];
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim().toLowerCase();
+
+  console.log(`[Search API] Query received: "${q}"`);
 
   if (!q) {
     return NextResponse.json({ results: [] });
   }
 
+  interface SearchResult {
+    id: string;
+    type: "page" | "product" | "order" | "customer";
+    title: string;
+    subtitle: string;
+    url: string;
+    icon: string;
+    image?: string | null;
+  }
+
+  const results: SearchResult[] = [];
+
+  // 1. Pages (In-memory, always should work)
   try {
+    const pages = STATIC_PAGES.filter(p => p.title.toLowerCase().includes(q) || p.url.toLowerCase().includes(q));
+    pages.forEach(p => {
+      results.push({
+        id: `page-${p.url}`,
+        type: "page",
+        title: p.title,
+        subtitle: "Ir al módulo",
+        url: p.url,
+        icon: p.icon,
+      });
+    });
+    console.log(`[Search API] Static pages found: ${pages.length}`);
+  } catch (e) {
+    console.error("[Search API] Error filtering static pages:", e);
+  }
+
+  // 2. Database results
+  try {
+    console.log("[Search API] Attempting database search...");
     const [products, orders, customers] = await Promise.all([
       // Search Products
       prisma.product.findMany({
@@ -69,32 +105,7 @@ export async function GET(request: Request) {
       }),
     ]);
 
-    interface SearchResult {
-      id: string;
-      type: "page" | "product" | "order" | "customer";
-      title: string;
-      subtitle: string;
-      url: string;
-      icon: string;
-      image?: string | null;
-    }
-
-    const results: SearchResult[] = [];
-
-    // 1. Pages
-    const pages = STATIC_PAGES.filter(p => p.title.toLowerCase().includes(q) || p.url.toLowerCase().includes(q));
-    pages.forEach(p => {
-      results.push({
-        id: `page-${p.url}`,
-        type: "page",
-        title: p.title,
-        subtitle: "Ir al módulo",
-        url: p.url,
-        icon: p.icon,
-      });
-    });
-
-    // 2. Products
+    // Transform Products
     products.forEach(p => {
       results.push({
         id: `prod-${p.id}`,
@@ -107,7 +118,7 @@ export async function GET(request: Request) {
       });
     });
 
-    // 3. Orders
+    // Transform Orders
     orders.forEach(o => {
       results.push({
         id: `ord-${o.id}`,
@@ -119,7 +130,7 @@ export async function GET(request: Request) {
       });
     });
 
-    // 4. Customers
+    // Transform Customers
     customers.forEach(c => {
       results.push({
         id: `cust-${c.id}`,
@@ -130,10 +141,11 @@ export async function GET(request: Request) {
         icon: "person",
       });
     });
-
-    return NextResponse.json({ results });
-  } catch (error) {
-    console.error("Search API Error:", error);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    console.log(`[Search API] DB results found: ${products.length + orders.length + customers.length}`);
+  } catch (error: any) {
+    console.error("[Search API] Database Search Error:", error.message || error);
+    // Note: We don't return 500 here, we just return whatever results we have (static pages)
   }
+
+  return NextResponse.json({ results });
 }
