@@ -8,6 +8,7 @@ const manrope = Manrope({
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-manrope",
 });
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   let title = "Admin Panel";
@@ -21,8 +22,11 @@ export async function generateMetadata(): Promise<Metadata> {
       storeName = data?.storeName ?? "Blush";
       title = `Admin — ${storeName}`;
     }
-  } catch (e) {
-    console.error("Error fetching storeName for metadata:", e);
+  } catch (e: any) {
+    // Only log errors that are NOT about dynamic usage during build
+    if (e.digest !== 'DYNAMIC_SERVER_USAGE') {
+      console.error("Error fetching storeName for metadata:", e);
+    }
   }
   return {
     title,

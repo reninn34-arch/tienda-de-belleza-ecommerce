@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import DashboardClient from "./DashboardClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboardPage() {
   // 1. Obtener la cookie segura de Next.js
   const cookieStore = await cookies();
