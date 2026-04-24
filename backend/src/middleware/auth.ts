@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { sendError } from "../lib/errors";
-import { db } from "../../../lib/db";
+import { db } from "../lib/db";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {

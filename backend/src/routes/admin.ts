@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "../../../lib/db";
+import { db } from "../lib/db";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { sendError } from "../lib/errors";

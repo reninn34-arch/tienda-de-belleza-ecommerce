@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { db } from "../../../lib/db";
+import { db } from "../lib/db";
 import { z } from "zod";
 import { sendError } from "../lib/errors";
 import { logAdminAction } from "../lib/audit";
