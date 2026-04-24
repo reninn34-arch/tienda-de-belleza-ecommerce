@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+generator adminClient {
+  provider = "prisma-client-js"
+  output   = "../admin-panel/lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Branch {
+  id           String          @id @default(cuid())
+  name         String          @unique
+  address      String?
+  createdAt    DateTime        @default(now())
+  admins       Admin[]
+  cashSessions CashSession[]
+  expenses     Expense[]
+  inventories  Inventory[]
+  orders       Order[]
+  purchases    PurchaseOrder[]
+}
+
+model Inventory {
+  id        Int     @id @default(autoincrement())
+  productId String
+  branchId  String
+  stock     Int     @default(0)
+  branch    Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, branchId])
+}
+
+model Product {
+  id              String         @id
+  name            String
+  description     String?
+  price           Float
+  cost            Float?
+  category        String
+  taxRate         Float          @default(0)
+  image           String?
+  badge           String?
+  features        String[]
+  gallery         String[]
+  swatches        Json           @default("[]")
+  reviews         Json           @default("[]")
+  highlights      Json           @default("[]")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  details         String?
+  howToUse        String?
+  shippingInfo    String?
+  highlightsLabel String?
+  highlightsTitle String?
+  scienceDesc     String?
+  scienceItems    Json           @default("[]")
+  scienceTitle    String?
+  minStock        Int            @default(5)
+  active          Boolean        @default(true)
+  bundleItems     BundleItem[]
+  inventories     Inventory[]
+  purchaseItems   PurchaseItem[]
+}
+
+model Order {
+  id               String       @id
+  customer         String
+  email            String
+  total            Float
+  subtotal         Float
+  shipping         Float        @default(0)
+  tax              Float        @default(0)
+  status           String       @default("pending")
+  shippingMethod   String?
+  paymentMethod    String?
+  address          String?
+  notes            String?
+  date             DateTime     @default(now())
+  /// * Sucursal desde donde se despachó/retiró el pedido (para restaurar stock en cancelaciones)
+  branchId         String?
+  cashSessionId    String?
+  customerId       String?
+  cedula           String?
+  trackingCode     String?
+  courierName      String?
+  shippingLabelUrl String?
+  invoiceXmlUrl    String?
+  invoicePdfUrl    String?
+  isBundle         Boolean      @default(false)
+  branch           Branch?      @relation(fields: [branchId], references: [id])
+  cashSession      CashSession? @relation(fields: [cashSessionId], references: [id])
+  customerRef      Customer?    @relation(fields: [customerId], references: [id])
+  items            OrderItem[]
+}
+
+model Customer {
+  id          String    @id @default(cuid())
+  name        String
+  email       String    @unique
+  phone       String?
+  address     String?
+  city        String?
+  totalSpent  Float     @default(0)
+  ordersCount Int       @default(0)
+  lastOrderAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  cedula      String?   @unique
+  orders      Order[]
+}
+
+model CashSession {
+  id                     String         @id @default(cuid())
+  branchId               String
+  adminId                String
+  status                 String         @default("OPEN")
+  openingBalance         Float
+  expectedClosingBalance Float          @default(0)
+  actualClosingBalance   Float?
+  difference             Float?
+  notes                  String?
+  openedAt               DateTime       @default(now())
+  closedAt               DateTime?
+  movements              CashMovement[]
+  admin                  Admin          @relation(fields: [adminId], references: [id])
+  branch                 Branch         @relation(fields: [branchId], references: [id])
+  orders                 Order[]
+}
+
+model CashMovement {
+  id        String      @id @default(cuid())
+  sessionId String
+  type      String
+  amount    Float
+  reason    String
+  orderId   String?
+  createdAt DateTime    @default(now())
+  session   CashSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model OrderItem {
+  id        Int    @id @default(autoincrement())
+  orderId   String
+  productId String
+  name      String
+  price     Float
+  quantity  Int
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  title     String
+  slug      String   @unique
+  blocks    Json     @default("[]")
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Settings {
+  id   Int  @id @default(1)
+  data Json
+}
+
+model Tutorials {
+  id   Int  @id @default(1)
+  data Json
+}
+
+model NewsletterSubscriber {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  phone     String?
+  message   String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Admin {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  password     String
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  branchId     String?
+  active       Boolean       @default(true)
+  role         AdminRole     @default(ADMIN)
+  branch       Branch?       @relation(fields: [branchId], references: [id])
+  cashSessions CashSession[]
+}
+
+model Supplier {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  taxId       String?         @unique
+  email       String?
+  phone       String?
+  contactName String?
+  address     String?
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  purchases   PurchaseOrder[]
+}
+
+model PurchaseOrder {
+  id            String         @id @default(cuid())
+  internalId    String         @unique
+  supplierId    String
+  branchId      String
+  totalAmount   Float          @default(0)
+  status        String         @default("PENDING")
+  receivedAt    DateTime?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  autoGenerated Boolean        @default(false)
+  items         PurchaseItem[]
+  branch        Branch         @relation(fields: [branchId], references: [id])
+  supplier      Supplier       @relation(fields: [supplierId], references: [id])
+}
+
+model PurchaseItem {
+  id              Int           @id @default(autoincrement())
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+  unitCost        Float
+  product         Product       @relation(fields: [productId], references: [id])
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  description String
+  amount      Float
+  category    String
+  date        DateTime @default(now())
+  branchId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+}
+
+model Bundle {
+  id               String       @id @default(cuid())
+  name             String
+  description      String?
+  price            Float
+  taxRate          Float        @default(0)
+  image            String?
+  active           Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  branchIds        String[]     @default([])
+  customStockLimit Int?
+  items            BundleItem[]
+}
+
+model BundleItem {
+  id        Int     @id @default(autoincrement())
+  bundleId  String
+  productId String
+  quantity  Int     @default(1)
+  bundle    Bundle  @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+enum AdminRole {
+  ADMIN
+  VENDEDOR
+}

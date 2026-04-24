@@ -1,6 +1,11 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../lib/generated/prisma"
+}
+
+generator adminClient {
+  provider = "prisma-client-js"
+  output   = "../admin-panel/lib/generated/prisma"
 }
 
 datasource db {
