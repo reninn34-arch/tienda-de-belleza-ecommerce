@@ -3,9 +3,12 @@ import SocialIcons from "./SocialIcons";
 import { getSocialLinks, getPolicies, getFooterContent } from "@/lib/data";
 
 export default async function Footer() {
-  const socialLinks = await getSocialLinks();
-  const policies = await getPolicies();
-  const footer = await getFooterContent();
+  // Paralelizamos — las 3 funciones acceden a getSettings (ahora con cache())
+  const [socialLinks, policies, footer] = await Promise.all([
+    getSocialLinks(),
+    getPolicies(),
+    getFooterContent(),
+  ]);
 
   const brandName = footer?.brandName ?? "The Editorial Alchemist";
   const brandDesc = footer?.brandDesc ?? "Creando un mundo de belleza transformadora y arte consciente a través de la precisión científica.";

@@ -7,12 +7,15 @@ import SocialIcons from "./SocialIcons";
 import { getAllPages, getAllProducts, getBranding, getCollectionsPage, getSocialLinks } from "@/lib/data";
 
 export default async function Navbar() {
-  const customPages = await getAllPages();
-  const products = await getAllProducts();
-  const { logoUrl } = await getBranding();
-  const collectionsPage = await getCollectionsPage();
+  // Paralelizamos todos los fetches del navbar simultáneamente
+  const [customPages, products, { logoUrl }, collectionsPage, socialLinks] = await Promise.all([
+    getAllPages(),
+    getAllProducts(),
+    getBranding(),
+    getCollectionsPage(),
+    getSocialLinks(),
+  ]);
   const collections = collectionsPage?.collections ?? [];
-  const socialLinks = await getSocialLinks();
 
   return (
     <header className="fixed top-0 w-full z-50 bg-[#f2eaf6]/50 backdrop-blur-md border-b border-outline-variant/10">

@@ -1,8 +1,12 @@
 import { Product, Slide, CollectionsPage, Collection, CuratedPage, Page, TutorialsData, HomeContent, FooterContent } from "./types";
+import { cache } from "react";
 
 const BACKEND = process.env.BACKEND_URL ?? "http://localhost:4000";
 
-async function getSettings(): Promise<Record<string, unknown>> {
+// cache() deduplica llamadas dentro del mismo render pass de Next.js.
+// Sin esto, layout + page + navbar + footer cada uno hacía su propio fetch.
+// Con cache(), TODAS comparten el mismo resultado de una sola llamada al backend.
+const getSettings = cache(async (): Promise<Record<string, unknown>> => {
   try {
     const res = await fetch(`${BACKEND}/api/settings`, {
       next: { tags: ["settings"], revalidate: 3600 }, // 1 hour for general settings
@@ -11,7 +15,7 @@ async function getSettings(): Promise<Record<string, unknown>> {
   } catch {
     return {};
   }
-}
+});
 
 export async function getStoreName(): Promise<string> {
   const s = await getSettings();

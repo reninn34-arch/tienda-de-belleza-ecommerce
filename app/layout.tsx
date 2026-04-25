@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Noto_Serif, Manrope } from "next/font/google";
 import "./globals.css";
-import { getBranding } from "@/lib/data";
-
+import { getBranding, getStoreName } from "@/lib/data";
+import { CartProvider } from "@/context/CartContext";
 const notoSerif = Noto_Serif({
   subsets: ["latin"],
   weight: ["400", "700"],
@@ -18,12 +18,15 @@ const manrope = Manrope({
   display: "swap",
 });
 
-import { CartProvider } from "@/context/CartContext";
-import { getStoreName } from "@/lib/data";
+
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { faviconUrl, brandColor } = await getBranding();
-  const storeName = await getStoreName();
+  // Ambas funciones llaman a getSettings() — las ejecutamos en paralelo
+  // para evitar 2 round-trips secuenciales al backend
+  const [{ faviconUrl }, storeName] = await Promise.all([
+    getBranding(),
+    getStoreName(),
+  ]);
 
   return {
     title: storeName,

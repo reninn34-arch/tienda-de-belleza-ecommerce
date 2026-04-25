@@ -6,12 +6,18 @@ import NewsletterForm from "@/components/store/NewsletterForm";
 import { getAllProducts, getSlides, getHomeContent, getCollectionsPage, getSocialLinks } from "@/lib/data";
 
 export default async function Home() {
-  const featured = (await getAllProducts()).slice(0, 4);
-  const slides = await getSlides();
-  const home = await getHomeContent();
-  const collectionsPage = await getCollectionsPage();
+  // Paralelizamos todos los fetches — en lugar de esperar 5 llamadas en serie,
+  // se ejecutan todas simultáneamente (reduce TTFB ~4x)
+  const [products, slides, home, collectionsPage, { whatsapp }] = await Promise.all([
+    getAllProducts(),
+    getSlides(),
+    getHomeContent(),
+    getCollectionsPage(),
+    getSocialLinks(),
+  ]);
+
+  const featured = products.slice(0, 4);
   const collections = collectionsPage?.collections ?? [];
-  const { whatsapp } = await getSocialLinks();
 
   const t = home?.tendencias;
   const tr = home?.transformacion;
