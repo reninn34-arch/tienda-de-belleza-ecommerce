@@ -41,7 +41,7 @@ export default function ProductCard({ product, href }: { product: Product; href?
         )}
       </Link>
       <div className="space-y-2 text-center">
-        <h4 className="font-headline text-xl text-primary">{product.name}</h4>
+        <h3 className="font-headline text-xl text-primary">{product.name}</h3>
         <p className="text-on-surface-variant text-[11px] uppercase tracking-widest font-light">
           {({
             "permanent": "Permanente",

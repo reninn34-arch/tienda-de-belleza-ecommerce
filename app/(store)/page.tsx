@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import Image from "next/image";
 import ProductCarousel from "@/components/store/ProductCarousel";
 import HeroCarousel from "@/components/store/HeroCarousel";
@@ -242,7 +242,7 @@ export default async function Home() {
         <section className="py-16 md:py-32 bg-primary text-on-primary">
           <div className="max-w-[1440px] mx-auto px-8 text-center">
             <div className="max-w-2xl mx-auto space-y-6 md:space-y-8">
-              <span className="font-label uppercase tracking-[0.4em] text-[10px] font-bold opacity-70">
+              <span className="font-label uppercase tracking-[0.4em] text-[10px] font-bold text-on-primary/80">
                 {nl?.label ?? "El Círculo Íntimo"}
               </span>
               <h2 className="font-headline text-4xl md:text-6xl leading-tight">
@@ -256,7 +256,7 @@ export default async function Home() {
               <div className="mt-6">
                 <NewsletterForm formType={nl?.formType} buttonText={nl?.buttonText} whatsapp={whatsapp} />
               </div>
-              <p className="text-[10px] text-on-primary/40 uppercase tracking-widest pt-2">
+              <p className="text-[10px] text-on-primary/60 uppercase tracking-widest pt-2">
                 Al suscribirte aceptas nuestra política de privacidad.
               </p>
             </div>

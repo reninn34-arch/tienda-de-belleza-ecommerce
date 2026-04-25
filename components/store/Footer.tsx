@@ -49,10 +49,10 @@ export default async function Footer() {
         </div>
       </div>
       <div className="max-w-7xl mx-auto mt-16 md:mt-24 pt-10 border-t border-primary/5 flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
-        <p className="font-label text-[9px] tracking-[0.3em] uppercase text-on-surface-variant/60">
+        <p className="font-label text-[10px] tracking-[0.3em] uppercase text-on-surface-variant/80">
           © {new Date().getFullYear()} {copyright}
         </p>
-        <p className="font-label text-[9px] tracking-[0.3em] uppercase text-on-surface-variant/60">
+        <p className="font-label text-[10px] tracking-[0.3em] uppercase text-on-surface-variant/80">
           {tagline}
         </p>
       </div>

@@ -1,0 +1,9 @@
+# Solo navegadores modernos — elimina polyfills innecesarios (~14KB)
+# Esto afecta directamente al chunk de polyfills que Next.js genera
+# https://nextjs.org/docs/architecture/supported-browsers
+
+Chrome >= 90
+Firefox >= 90
+Edge >= 90
+Safari >= 14
+iOS >= 14
