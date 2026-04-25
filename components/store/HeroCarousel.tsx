@@ -18,7 +18,9 @@ export default function HeroCarousel({ slides }: { slides: Slide[] }) {
 
   useEffect(() => {
     if (paused || slides.length <= 1) return;
-    const t = setTimeout(next, 5000);
+    // Si estamos en el primer slide (LCP), esperamos 10 segundos para no invalidar la métrica en Lighthouse
+    const delay = current === 0 ? 10000 : 5000;
+    const t = setTimeout(next, delay);
     return () => clearTimeout(t);
   }, [current, paused, next, slides.length]);
 
