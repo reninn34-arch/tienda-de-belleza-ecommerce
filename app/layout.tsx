@@ -83,27 +83,11 @@ export default function RootLayout({
         />
         {/*
           Material Symbols: cargamos SOLO los exactos (reduce de 3.8MB a ~100KB).
-          Lo cargamos de forma asíncrona para que NO bloquee el First Contentful Paint.
         */}
-        <link
-          rel="preload"
-          as="style"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0&display=swap"
-        />
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0&display=swap"
           rel="stylesheet"
-          // @ts-ignore
-          media="print"
-          // @ts-ignore
-          onLoad="this.media='all'"
         />
-        <noscript>
-          <link
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0&display=swap"
-            rel="stylesheet"
-          />
-        </noscript>
       </head>
       <body className="bg-background text-on-surface font-body selection:bg-secondary-container antialiased">
         <CartProvider>
