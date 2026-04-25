@@ -49,6 +49,7 @@ export default function HeroCarousel({ slides }: { slides: Slide[] }) {
             priority={i === 0}
             fetchPriority={i === 0 ? "high" : "low"}
             quality={85}
+            unoptimized={i === 0}
           />
           <div className="absolute inset-0 hero-gradient" />
         </div>
