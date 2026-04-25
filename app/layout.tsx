@@ -8,12 +8,14 @@ const notoSerif = Noto_Serif({
   weight: ["400", "700"],
   style: ["normal", "italic"],
   variable: "--font-noto-serif",
+  display: "swap",
 });
 
 const manrope = Manrope({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-manrope",
+  display: "swap",
 });
 
 import { CartProvider } from "@/context/CartContext";
@@ -22,7 +24,6 @@ import { getStoreName } from "@/lib/data";
 export async function generateMetadata(): Promise<Metadata> {
   const { faviconUrl, brandColor } = await getBranding();
   const storeName = await getStoreName();
-  const themeColor = brandColor || "#f5edf8";
 
   return {
     title: storeName,
@@ -53,8 +54,7 @@ export async function generateViewport(): Promise<any> {
     themeColor: brandColor || "#f5edf8",
     width: "device-width",
     initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
+    // maximumScale y userScalable eliminados — requerido por WCAG 2.1 y PageSpeed
     viewportFit: "cover",
   };
 }
@@ -66,17 +66,21 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="es"
       className={`${notoSerif.variable} ${manrope.variable}`}
       suppressHydrationWarning
     >
       <head>
-        {/*
-          Next.js recomienda cargar fuentes globales en _document.js para evitar advertencias.
-          Si usas la app directory, puedes ignorar esta advertencia o migrar a un archivo personalizado _document.js en pages/.
-        */}
+        {/* Preconnect para reducir latencia de fuentes de Google */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        {/* Material Symbols con display=swap para evitar bloqueo de renderizado */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
           rel="stylesheet"
         />
       </head>

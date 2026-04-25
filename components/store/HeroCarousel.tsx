@@ -56,12 +56,15 @@ export default function HeroCarousel({ slides }: { slides: Slide[] }) {
           <span className="font-label text-secondary tracking-[0.4em] uppercase text-[10px] mb-6 block font-bold transition-all duration-700">
             {slides[current].label}
           </span>
-          <h1 className="font-headline text-4xl sm:text-6xl md:text-[88px] text-primary leading-[1.05] mb-6 md:mb-8">
-            {slides[current].title} <br />
-            <span className="italic font-normal">
-              {slides[current].titleHighlight}
-            </span>
-          </h1>
+          {/* Solo el slide activo usa h1 — los demás usan div para evitar múltiples h1 */}
+          {slides[current].title && (
+            <h1 className="font-headline text-4xl sm:text-6xl md:text-[88px] text-primary leading-[1.05] mb-6 md:mb-8">
+              {slides[current].title} <br />
+              <span className="italic font-normal">
+                {slides[current].titleHighlight}
+              </span>
+            </h1>
+          )}
           <p className="text-on-surface-variant text-base md:text-xl mb-8 md:mb-12 max-w-lg font-light leading-relaxed">
             {slides[current].description}
           </p>

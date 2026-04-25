@@ -78,18 +78,20 @@ export default function DashboardClient({
   // Estado para periodo, hover y ancho del gráfico
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>("14d");
   const [hovered, setHovered] = useState<number | null>(null);
-  const [chartWidth, setChartWidth] = useState(560); // valor inicial
+  const [chartWidth, setChartWidth] = useState(560); // valor inicial SSR-safe
   const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function updateWidth() {
-      if (chartRef.current) {
-        setChartWidth(chartRef.current.offsetWidth);
+    if (!chartRef.current) return;
+    // ResizeObserver es asíncrono y no provoca reflow forzado
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setChartWidth(entry.contentRect.width);
       }
-    }
-    updateWidth();
-    window.addEventListener("resize", updateWidth);
-    return () => window.removeEventListener("resize", updateWidth);
+    });
+    observer.observe(chartRef.current);
+    return () => observer.disconnect();
   }, []);
 
   // Lógica de filtrado por periodo dinámico

@@ -20,6 +20,33 @@ const nextConfig: NextConfig = {
     // Le dice a Vercel que ignore warnings de ESLint
     ignoreDuringBuilds: true,
   },
+  // Optimizaciones del compilador SWC
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "X-DNS-Prefetch-Control",
+            value: "on",
+          },
+        ],
+      },
+      {
+        // Cache de fuentes externas (woff/woff2)
+        source: "/fonts/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -1,17 +1,29 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import ProductCard from "./ProductCard";
 import { Product } from "@/lib/types";
 
 export default function ProductCarousel({ products }: { products: Product[] }) {
   const ref = useRef<HTMLDivElement>(null);
+  const stepRef = useRef<number>(320); // valor cached del ancho de tarjeta
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const observer = new ResizeObserver(() => {
+      const first = ref.current?.children[0] as HTMLElement | null;
+      if (first) {
+        // Cache del ancho para evitar reflow forzado en cada click
+        stepRef.current = first.getBoundingClientRect().width + 32;
+      }
+    });
+    observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
 
   function scroll(dir: 1 | -1) {
     if (!ref.current) return;
-    const first = ref.current.children[0] as HTMLElement | null;
-    const step = first ? first.offsetWidth + 32 : 320;
-    ref.current.scrollBy({ left: dir * step, behavior: "smooth" });
+    ref.current.scrollBy({ left: dir * stepRef.current, behavior: "smooth" });
   }
 
   return (
